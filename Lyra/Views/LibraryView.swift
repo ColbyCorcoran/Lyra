@@ -1,0 +1,338 @@
+//
+//  LibraryView.swift
+//  Lyra
+//
+//  Main library view with songs, books, and sets
+//
+
+import SwiftUI
+import SwiftData
+import UniformTypeIdentifiers
+
+enum LibrarySection: String, CaseIterable {
+    case allSongs = "All Songs"
+    case books = "Books"
+    case sets = "Sets"
+}
+
+struct LibraryView: View {
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var selectedSection: LibrarySection = .allSongs
+    @State private var showAddSongSheet: Bool = false
+    @State private var showAddBookSheet: Bool = false
+    @State private var showAddSetSheet: Bool = false
+
+    // Import state
+    @State private var showFileImporter: Bool = false
+    @State private var importedSong: Song?
+    @State private var showImportSuccess: Bool = false
+    @State private var showImportError: Bool = false
+    @State private var importErrorMessage: String = ""
+    @State private var importRecoverySuggestion: String = ""
+    @State private var failedImportURL: URL?
+    @State private var navigateToImportedSong: Bool = false
+
+    // Paste state
+    @State private var pastedSong: Song?
+    @State private var showPasteToast: Bool = false
+    @State private var pasteToastMessage: String = ""
+    @State private var navigateToPastedSong: Bool = false
+    @State private var showPasteError: Bool = false
+    @State private var pasteErrorMessage: String = ""
+    @State private var pasteRecoverySuggestion: String = ""
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Segmented Control
+                Picker("Library Section", selection: $selectedSection) {
+                    ForEach(LibrarySection.allCases, id: \.self) { section in
+                        Text(section.rawValue)
+                            .tag(section)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding()
+
+                // Content based on selected section
+                switch selectedSection {
+                case .allSongs:
+                    SongListView()
+                case .books:
+                    BookListView()
+                case .sets:
+                    SetListView()
+                }
+            }
+            .navigationTitle("Library")
+            .toolbar {
+                // Import button (Songs only)
+                if selectedSection == .allSongs {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            showFileImporter = true
+                        } label: {
+                            Label("Import", systemImage: "square.and.arrow.down")
+                        }
+                    }
+                }
+
+                // Paste button (Songs only)
+                if selectedSection == .allSongs {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            handlePaste()
+                        } label: {
+                            Label("Paste", systemImage: "doc.on.clipboard")
+                        }
+                        .disabled(!ClipboardManager.shared.hasClipboardContent())
+                    }
+                }
+
+                // Add button
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        handleAddButton()
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showAddSongSheet) {
+                AddSongView()
+            }
+            .sheet(isPresented: $showAddBookSheet) {
+                // TODO: AddBookView
+                Text("Add Book - Coming Soon")
+            }
+            .sheet(isPresented: $showAddSetSheet) {
+                // TODO: AddSetView
+                Text("Add Set - Coming Soon")
+            }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: ImportManager.supportedTypes,
+                allowsMultipleSelection: false
+            ) { result in
+                handleFileImport(result: result)
+            }
+            .alert("Import Successful", isPresented: $showImportSuccess) {
+                Button("View Song") {
+                    navigateToImportedSong = true
+                }
+                Button("OK", role: .cancel) {}
+            } message: {
+                if let song = importedSong {
+                    Text("Successfully imported \"\(song.title)\"")
+                }
+            }
+            .alert("Import Failed", isPresented: $showImportError) {
+                if failedImportURL != nil {
+                    Button("Import as Plain Text") {
+                        importAsPlainText()
+                    }
+                }
+                Button("OK", role: .cancel) {
+                    failedImportURL = nil
+                }
+            } message: {
+                VStack {
+                    Text(importErrorMessage)
+                    if !importRecoverySuggestion.isEmpty {
+                        Text(importRecoverySuggestion)
+                    }
+                }
+            }
+            .navigationDestination(isPresented: $navigateToImportedSong) {
+                if let song = importedSong {
+                    SongDisplayView(song: song)
+                }
+            }
+            .navigationDestination(isPresented: $navigateToPastedSong) {
+                if let song = pastedSong {
+                    SongDisplayView(song: song)
+                }
+            }
+            .alert("Paste Failed", isPresented: $showPasteError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                VStack {
+                    Text(pasteErrorMessage)
+                    if !pasteRecoverySuggestion.isEmpty {
+                        Text(pasteRecoverySuggestion)
+                    }
+                }
+            }
+            .overlay(alignment: .top) {
+                if showPasteToast {
+                    ToastView(message: pasteToastMessage)
+                        .padding(.top, 60)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+        }
+    }
+
+    /// Handle the add button based on current section
+    private func handleAddButton() {
+        switch selectedSection {
+        case .allSongs:
+            showAddSongSheet = true
+        case .books:
+            showAddBookSheet = true
+        case .sets:
+            showAddSetSheet = true
+        }
+    }
+
+    // MARK: - File Import Handling
+
+    private func handleFileImport(result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            importFile(from: url)
+
+        case .failure(let error):
+            showError(
+                message: "Unable to access file",
+                recovery: error.localizedDescription
+            )
+        }
+    }
+
+    private func importFile(from url: URL) {
+        do {
+            let result = try ImportManager.shared.importFile(
+                from: url,
+                to: modelContext
+            )
+
+            importedSong = result.song
+
+            if result.hadParsingWarnings {
+                // Show warning but still treat as success
+                showError(
+                    message: "Import completed with warnings",
+                    recovery: "The file was imported but some ChordPro formatting may not have been recognized."
+                )
+            } else {
+                showImportSuccess = true
+            }
+
+        } catch let error as ImportError {
+            failedImportURL = url
+            showError(
+                message: error.errorDescription ?? "Import failed",
+                recovery: error.recoverySuggestion ?? ""
+            )
+
+        } catch {
+            showError(
+                message: "Import failed",
+                recovery: error.localizedDescription
+            )
+        }
+    }
+
+    private func importAsPlainText() {
+        guard let url = failedImportURL else { return }
+
+        do {
+            let result = try ImportManager.shared.importAsPlainText(
+                from: url,
+                to: modelContext
+            )
+
+            importedSong = result.song
+            failedImportURL = nil
+            showImportSuccess = true
+
+        } catch {
+            showError(
+                message: "Plain text import failed",
+                recovery: error.localizedDescription
+            )
+        }
+    }
+
+    private func showError(message: String, recovery: String) {
+        importErrorMessage = message
+        importRecoverySuggestion = recovery
+        showImportError = true
+    }
+
+    // MARK: - Paste Handling
+
+    private func handlePaste() {
+        do {
+            let result = try ClipboardManager.shared.pasteSongFromClipboard(to: modelContext)
+            pastedSong = result.song
+
+            // Show toast notification
+            if result.wasUntitled {
+                pasteToastMessage = "Song pasted as \"Untitled Song\""
+            } else {
+                pasteToastMessage = "Pasted \"\(result.song.title)\""
+            }
+
+            showPasteToast = true
+
+            // Auto-dismiss toast after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation {
+                    showPasteToast = false
+                }
+            }
+
+            // Navigate to pasted song after short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                navigateToPastedSong = true
+            }
+
+        } catch let error as ClipboardError {
+            pasteErrorMessage = error.errorDescription ?? "Paste failed"
+            pasteRecoverySuggestion = error.recoverySuggestion ?? ""
+            showPasteError = true
+
+        } catch {
+            pasteErrorMessage = "Paste failed"
+            pasteRecoverySuggestion = error.localizedDescription
+            showPasteError = true
+        }
+    }
+}
+
+// MARK: - Toast Notification
+
+struct ToastView: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .font(.system(size: 20))
+
+            Text(message)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.primary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+        )
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - Previews
+
+#Preview("Library View") {
+    LibraryView()
+        .modelContainer(PreviewContainer.shared.container)
+}

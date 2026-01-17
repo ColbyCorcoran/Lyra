@@ -12,12 +12,28 @@ import SwiftData
 struct LyraApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Song.self,
+            Book.self,
+            PerformanceSet.self,
+            SetEntry.self,
+            Attachment.self,
+            Annotation.self,
+            UserSettings.self
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: .none // Can be changed to .automatic for iCloud sync
+        )
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+
+            // Initialize DataManager with the container's main context
+            DataManager.shared.initialize(with: container.mainContext)
+
+            return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -25,7 +41,7 @@ struct LyraApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
         }
         .modelContainer(sharedModelContainer)
     }

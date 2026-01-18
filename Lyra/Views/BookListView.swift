@@ -10,15 +10,12 @@ import SwiftData
 
 struct BookListView: View {
     @Query(sort: \Book.name, order: .forward) private var books: [Book]
+    @State private var showAddBookSheet: Bool = false
 
     var body: some View {
         Group {
             if books.isEmpty {
-                EmptyStateView(
-                    icon: "books.vertical",
-                    title: "No Books Yet",
-                    message: "Create a book to organize your songs into collections like \"Worship\", \"Hymns\", or \"Kids Songs\""
-                )
+                EnhancedBookEmptyStateView(showAddBookSheet: $showAddBookSheet)
             } else {
                 List {
                     ForEach(books) { book in
@@ -30,6 +27,82 @@ struct BookListView: View {
                 .listStyle(.plain)
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showAddBookSheet = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("Add book")
+                .accessibilityHint("Create a new book collection")
+            }
+        }
+        .sheet(isPresented: $showAddBookSheet) {
+            AddBookView()
+        }
+    }
+}
+
+// MARK: - Enhanced Book Empty State View
+
+struct EnhancedBookEmptyStateView: View {
+    @Binding var showAddBookSheet: Bool
+
+    var body: some View {
+        VStack(spacing: 24) {
+            // Animated icon
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.purple.opacity(0.3), Color.purple.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 120, height: 120)
+
+                Image(systemName: "books.vertical.fill")
+                    .font(.system(size: 50, weight: .medium))
+                    .foregroundStyle(.purple)
+                    .symbolEffect(.bounce, value: showAddBookSheet)
+            }
+
+            VStack(spacing: 12) {
+                Text("No Books Yet")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Text("Organize your songs into collections like \"Worship\", \"Holiday Songs\", or \"Kids Music\"")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+
+            // Create first book button
+            Button {
+                showAddBookSheet = true
+            } label: {
+                Label("Create Your First Book", systemImage: "plus.circle.fill")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.purple, Color.purple.opacity(0.8)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(Capsule())
+            }
+            .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGroupedBackground))
     }
 }
 

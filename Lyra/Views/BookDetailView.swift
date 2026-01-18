@@ -6,9 +6,17 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct BookDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+
     let book: Book
+
+    @State private var showSongPicker: Bool = false
+    @State private var showEditBook: Bool = false
+    @State private var showDeleteConfirmation: Bool = false
 
     private var songs: [Song] {
         book.songs ?? []
@@ -63,11 +71,19 @@ struct BookDetailView: View {
             // Songs section
             Section {
                 if songs.isEmpty {
-                    BookEmptyStateView()
+                    BookEmptyStateView(showSongPicker: $showSongPicker)
                 } else {
                     ForEach(songs) { song in
                         NavigationLink(destination: SongDisplayView(song: song)) {
                             BookSongRowView(song: song)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                HapticManager.shared.swipeAction()
+                                removeSong(song)
+                            } label: {
+                                Label("Remove", systemImage: "trash")
+                            }
                         }
                     }
                 }
@@ -80,13 +96,13 @@ struct BookDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {
-                        // TODO: Add songs to book
+                        showSongPicker = true
                     } label: {
                         Label("Add Songs", systemImage: "plus")
                     }
 
                     Button {
-                        // TODO: Edit book
+                        showEditBook = true
                     } label: {
                         Label("Edit Book", systemImage: "pencil")
                     }
@@ -94,7 +110,7 @@ struct BookDetailView: View {
                     Divider()
 
                     Button(role: .destructive) {
-                        // TODO: Delete book
+                        showDeleteConfirmation = true
                     } label: {
                         Label("Delete Book", systemImage: "trash")
                     }
@@ -103,6 +119,51 @@ struct BookDetailView: View {
                 }
                 .accessibilityLabel("Book options")
             }
+        }
+        .sheet(isPresented: $showSongPicker) {
+            SongPickerView(book: book)
+        }
+        .sheet(isPresented: $showEditBook) {
+            EditBookView(book: book)
+        }
+        .alert("Delete Book?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteBook()
+            }
+        } message: {
+            Text("This will permanently delete \"\(book.name)\". Songs in this book will not be deleted.")
+        }
+    }
+
+    // MARK: - Actions
+
+    private func removeSong(_ song: Song) {
+        guard var bookSongs = book.songs else { return }
+
+        bookSongs.removeAll(where: { $0.id == song.id })
+        book.songs = bookSongs
+        book.modifiedAt = Date()
+
+        do {
+            try modelContext.save()
+            HapticManager.shared.success()
+        } catch {
+            print("❌ Error removing song from book: \(error.localizedDescription)")
+            HapticManager.shared.operationFailed()
+        }
+    }
+
+    private func deleteBook() {
+        modelContext.delete(book)
+
+        do {
+            try modelContext.save()
+            HapticManager.shared.success()
+            dismiss()
+        } catch {
+            print("❌ Error deleting book: \(error.localizedDescription)")
+            HapticManager.shared.operationFailed()
         }
     }
 }
@@ -179,6 +240,8 @@ struct MetadataBadge: View {
 // MARK: - Book Empty State View
 
 struct BookEmptyStateView: View {
+    @Binding var showSongPicker: Bool
+
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "music.note.list")
@@ -197,7 +260,7 @@ struct BookEmptyStateView: View {
             }
 
             Button {
-                // TODO: Add songs to book
+                showSongPicker = true
             } label: {
                 Label("Add Songs", systemImage: "plus.circle.fill")
                     .font(.subheadline)
@@ -205,7 +268,6 @@ struct BookEmptyStateView: View {
             }
             .buttonStyle(.bordered)
             .tint(.accentColor)
-            .disabled(true) // TODO: Remove when add songs is implemented
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
@@ -215,34 +277,43 @@ struct BookEmptyStateView: View {
 // MARK: - Preview
 
 #Preview("Book with Songs") {
-    @Previewable @State var book = {
-        let book = Book(name: "Classic Hymns", description: "Traditional hymns and worship songs")
-        book.color = "#4A90E2"
-        book.icon = "music.note.list"
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Book.self, Song.self, configurations: config)
 
-        let song1 = Song(title: "Amazing Grace", artist: "John Newton", originalKey: "G")
-        song1.capo = 2
-        let song2 = Song(title: "How Great Thou Art", artist: "Carl Boberg", originalKey: "C")
-        let song3 = Song(title: "It Is Well", artist: "Horatio Spafford", originalKey: "D")
-        song3.capo = 4
-        book.songs = [song1, song2, song3]
-        return book
-    }()
+    let book = Book(name: "Classic Hymns", description: "Traditional hymns and worship songs")
+    book.color = "#4A90E2"
+    book.icon = "music.note.list"
 
-    NavigationStack {
+    let song1 = Song(title: "Amazing Grace", artist: "John Newton", originalKey: "G")
+    song1.capo = 2
+    let song2 = Song(title: "How Great Thou Art", artist: "Carl Boberg", originalKey: "C")
+    let song3 = Song(title: "It Is Well", artist: "Horatio Spafford", originalKey: "D")
+    song3.capo = 4
+    book.songs = [song1, song2, song3]
+
+    container.mainContext.insert(book)
+    container.mainContext.insert(song1)
+    container.mainContext.insert(song2)
+    container.mainContext.insert(song3)
+
+    return NavigationStack {
         BookDetailView(book: book)
     }
+    .modelContainer(container)
 }
 
 #Preview("Empty Book") {
-    @Previewable @State var book = {
-        let book = Book(name: "New Collection", description: "A fresh collection waiting for songs")
-        book.color = "#9B59B6"
-        book.icon = "books.vertical.fill"
-        return book
-    }()
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Book.self, Song.self, configurations: config)
 
-    NavigationStack {
+    let book = Book(name: "New Collection", description: "A fresh collection waiting for songs")
+    book.color = "#9B59B6"
+    book.icon = "books.vertical.fill"
+
+    container.mainContext.insert(book)
+
+    return NavigationStack {
         BookDetailView(book: book)
     }
+    .modelContainer(container)
 }

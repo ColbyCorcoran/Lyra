@@ -18,6 +18,7 @@ struct SongDisplayView: View {
     @State private var fontSize: CGFloat = 16
     @State private var showDisplaySettings: Bool = false
     @State private var displaySettings: DisplaySettings
+    @State private var isLoadingSong: Bool = false
 
     init(song: Song) {
         self.song = song
@@ -36,7 +37,17 @@ struct SongDisplayView: View {
             // Scrollable Content
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    if let parsed = parsedSong {
+                    if isLoadingSong {
+                        // Loading state
+                        VStack(spacing: 16) {
+                            ProgressView()
+                            Text("Loading song...")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding()
+                    } else if let parsed = parsedSong {
                         // Sections
                         ForEach(Array(parsed.sections.enumerated()), id: \.element.id) { index, section in
                             SongSectionView(section: section, settings: displaySettings)
@@ -44,7 +55,7 @@ struct SongDisplayView: View {
                                 .padding(.bottom, index < parsed.sections.count - 1 ? 32 : 16)
                         }
                     } else {
-                        // Loading or empty state
+                        // Empty state
                         VStack(spacing: 16) {
                             Image(systemName: "music.note")
                                 .font(.system(size: 48))
@@ -74,6 +85,8 @@ struct SongDisplayView: View {
                     Image(systemName: "pencil")
                 }
                 .disabled(true)
+                .accessibilityLabel("Edit song")
+                .accessibilityHint("Opens song editor. Currently unavailable.")
             }
 
             // Transpose button
@@ -84,6 +97,8 @@ struct SongDisplayView: View {
                     Image(systemName: "arrow.up.arrow.down")
                 }
                 .disabled(true)
+                .accessibilityLabel("Transpose")
+                .accessibilityHint("Transpose song to a different key. Currently unavailable.")
             }
 
             // Display Settings button
@@ -93,6 +108,8 @@ struct SongDisplayView: View {
                 } label: {
                     Image(systemName: "textformat.size")
                 }
+                .accessibilityLabel("Display settings")
+                .accessibilityHint("Adjust font size, colors, and spacing")
             }
 
             // More menu
@@ -175,7 +192,18 @@ struct SongDisplayView: View {
     }
 
     private func parseSong() {
-        parsedSong = ChordProParser.parse(song.content)
+        isLoadingSong = true
+
+        Task {
+            let parsed = await Task.detached(priority: .userInitiated) {
+                return ChordProParser.parse(song.content)
+            }.value
+
+            await MainActor.run {
+                parsedSong = parsed
+                isLoadingSong = false
+            }
+        }
     }
 
     /// Track that the user viewed this song

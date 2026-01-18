@@ -71,8 +71,16 @@ struct SongListView: View {
                 NavigationLink(destination: SongDisplayView(song: song)) {
                     EnhancedSongRowView(song: song)
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(makeAccessibilityLabel(for: song))
+                .accessibilityHint("Double tap to view song")
+                .transition(.asymmetric(
+                    insertion: .move(edge: .leading).combined(with: .opacity),
+                    removal: .move(edge: .trailing).combined(with: .opacity)
+                ))
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
+                        HapticManager.shared.swipeAction()
                         deleteSong(song)
                     } label: {
                         Label("Delete", systemImage: "trash")
@@ -90,6 +98,26 @@ struct SongListView: View {
             }
         }
         .listStyle(.plain)
+        .animation(.easeInOut(duration: 0.2), value: filteredAndSortedSongs.count)
+    }
+
+    /// Create accessibility label for song row
+    private func makeAccessibilityLabel(for song: Song) -> String {
+        var parts: [String] = [song.title]
+
+        if let artist = song.artist {
+            parts.append("by \(artist)")
+        }
+
+        if let key = song.originalKey {
+            parts.append("in key of \(key)")
+        }
+
+        if let capo = song.capo, capo > 0 {
+            parts.append("capo \(capo)")
+        }
+
+        return parts.joined(separator: ", ")
     }
 
     // MARK: - Filtering & Sorting
@@ -119,6 +147,8 @@ struct SongListView: View {
             songs.sort { ($0.lastViewed ?? Date.distantPast) > ($1.lastViewed ?? Date.distantPast) }
         }
 
+        // Note: SwiftData @Query already efficiently handles large datasets
+        // For libraries with 1000+ songs, consider implementing pagination here
         return songs
     }
 

@@ -70,12 +70,20 @@ class ImportManager {
     private init() {}
 
     /// Import a ChordPro file and create a Song
-    func importFile(from url: URL, to modelContext: ModelContext) throws -> ImportResult {
+    func importFile(
+        from url: URL,
+        to modelContext: ModelContext,
+        progress: ((Double) -> Void)? = nil
+    ) throws -> ImportResult {
+        progress?(0.1)  // Starting
+
         // Start accessing security-scoped resource
         guard url.startAccessingSecurityScopedResource() else {
             throw ImportError.fileNotReadable
         }
         defer { url.stopAccessingSecurityScopedResource() }
+
+        progress?(0.3)  // File accessed
 
         // Read file contents
         let content: String
@@ -92,6 +100,8 @@ class ImportManager {
             }
         }
 
+        progress?(0.5)  // File read
+
         // Check for empty content
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ImportError.emptyContent
@@ -100,11 +110,15 @@ class ImportManager {
         // Get filename
         let filename = url.lastPathComponent
 
+        progress?(0.7)  // Parsing
+
         // Parse ChordPro content
         let parsed = ChordProParser.parse(content)
 
         // Extract title (from parsed metadata or filename)
         let title = parsed.title ?? filenameWithoutExtension(filename)
+
+        progress?(0.9)  // Creating song
 
         // Create Song object
         let song = Song(
@@ -132,6 +146,8 @@ class ImportManager {
         // Insert into SwiftData
         modelContext.insert(song)
         try modelContext.save()
+
+        progress?(1.0)  // Complete
 
         // Check for parsing warnings (no sections parsed)
         let hadWarnings = parsed.sections.isEmpty && !content.isEmpty

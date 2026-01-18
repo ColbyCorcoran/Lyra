@@ -96,15 +96,26 @@ final class Song {
     /// Get display settings (song-specific or global default)
     var displaySettings: DisplaySettings {
         get {
-            if let data = displaySettingsData,
-               let settings = try? JSONDecoder().decode(DisplaySettings.self, from: data) {
-                return settings
+            if let data = displaySettingsData {
+                do {
+                    return try JSONDecoder().decode(DisplaySettings.self, from: data)
+                } catch {
+                    print("⚠️ Error decoding display settings: \(error.localizedDescription)")
+                    // Fall back to global defaults if decoding fails
+                    return UserDefaults.standard.globalDisplaySettings
+                }
             }
             // Fall back to global defaults
             return UserDefaults.standard.globalDisplaySettings
         }
         set {
-            displaySettingsData = try? JSONEncoder().encode(newValue)
+            do {
+                displaySettingsData = try JSONEncoder().encode(newValue)
+            } catch {
+                print("⚠️ Error encoding display settings: \(error.localizedDescription)")
+                // Fall back to not saving (use global defaults)
+                displaySettingsData = nil
+            }
         }
     }
 

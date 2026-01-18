@@ -32,6 +32,8 @@ struct LibraryView: View {
     @State private var importRecoverySuggestion: String = ""
     @State private var failedImportURL: URL?
     @State private var navigateToImportedSong: Bool = false
+    @State private var isImporting: Bool = false
+    @State private var importProgress: Double = 0.0
 
     // Paste state
     @State private var pastedSong: Song?
@@ -168,7 +170,39 @@ struct LibraryView: View {
                 if showPasteToast {
                     ToastView(message: pasteToastMessage)
                         .padding(.top, 60)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top)
+                                .combined(with: .opacity)
+                                .animation(.spring(response: 0.3, dampingFraction: 0.7)),
+                            removal: .move(edge: .top)
+                                .combined(with: .opacity)
+                                .animation(.easeInOut(duration: 0.2))
+                        ))
+                }
+            }
+            .overlay {
+                if isImporting {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+
+                        VStack(spacing: 16) {
+                            ProgressView(value: importProgress)
+                                .progressViewStyle(.linear)
+                                .frame(width: 200)
+                                .tint(.blue)
+
+                            Text("Importing...")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(24)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(.systemBackground))
+                                .shadow(color: Color.black.opacity(0.2), radius: 10)
+                        )
+                    }
                 }
             }
         }
@@ -203,32 +237,45 @@ struct LibraryView: View {
     }
 
     private func importFile(from url: URL) {
+        isImporting = true
+        importProgress = 0.0
+
         do {
             let result = try ImportManager.shared.importFile(
                 from: url,
-                to: modelContext
+                to: modelContext,
+                progress: { progress in
+                    importProgress = progress
+                }
             )
 
             importedSong = result.song
+            isImporting = false
 
             if result.hadParsingWarnings {
+                HapticManager.shared.warning()
                 // Show warning but still treat as success
                 showError(
                     message: "Import completed with warnings",
                     recovery: "The file was imported but some ChordPro formatting may not have been recognized."
                 )
             } else {
+                HapticManager.shared.success()
                 showImportSuccess = true
             }
 
         } catch let error as ImportError {
+            isImporting = false
             failedImportURL = url
+            HapticManager.shared.operationFailed()
             showError(
                 message: error.errorDescription ?? "Import failed",
                 recovery: error.recoverySuggestion ?? ""
             )
 
         } catch {
+            isImporting = false
+            HapticManager.shared.operationFailed()
             showError(
                 message: "Import failed",
                 recovery: error.localizedDescription
@@ -270,6 +317,8 @@ struct LibraryView: View {
             let result = try ClipboardManager.shared.pasteSongFromClipboard(to: modelContext)
             pastedSong = result.song
 
+            HapticManager.shared.success()
+
             // Show toast notification
             if result.wasUntitled {
                 pasteToastMessage = "Song pasted as \"Untitled Song\""
@@ -292,11 +341,13 @@ struct LibraryView: View {
             }
 
         } catch let error as ClipboardError {
+            HapticManager.shared.operationFailed()
             pasteErrorMessage = error.errorDescription ?? "Paste failed"
             pasteRecoverySuggestion = error.recoverySuggestion ?? ""
             showPasteError = true
 
         } catch {
+            HapticManager.shared.operationFailed()
             pasteErrorMessage = "Paste failed"
             pasteRecoverySuggestion = error.localizedDescription
             showPasteError = true

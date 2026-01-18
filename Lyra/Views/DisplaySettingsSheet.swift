@@ -16,6 +16,8 @@ struct DisplaySettingsSheet: View {
 
     @State private var settings: DisplaySettings
     @State private var hasChanges: Bool = false
+    @State private var showErrorAlert: Bool = false
+    @State private var errorMessage: String = ""
 
     init(song: Song) {
         self.song = song
@@ -40,6 +42,8 @@ struct DisplaySettingsSheet: View {
                         }
 
                         Slider(value: $settings.fontSize, in: 12...28, step: 1)
+                            .accessibilityLabel("Font size")
+                            .accessibilityValue("\(Int(settings.fontSize)) points")
                             .onChange(of: settings.fontSize) { _, _ in
                                 hasChanges = true
                             }
@@ -127,6 +131,8 @@ struct DisplaySettingsSheet: View {
                         }
 
                         Slider(value: $settings.spacing, in: 4...16, step: 1)
+                            .accessibilityLabel("Chord lyrics spacing")
+                            .accessibilityValue("\(Int(settings.spacing)) points")
                             .onChange(of: settings.spacing) { _, _ in
                                 hasChanges = true
                             }
@@ -195,13 +201,26 @@ struct DisplaySettingsSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .presentationCornerRadius(20)
+        .alert("Error Saving Settings", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
     }
 
     // MARK: - Actions
 
     private func saveSettings() {
         song.displaySettings = settings
-        try? modelContext.save()
+
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ Error saving display settings: \(error.localizedDescription)")
+            errorMessage = "Unable to save display settings. Please try again."
+            showErrorAlert = true
+        }
     }
 
     private func resetToDefaults() {
@@ -217,7 +236,15 @@ struct DisplaySettingsSheet: View {
     private func clearCustomSettings() {
         song.clearCustomDisplaySettings()
         settings = UserDefaults.standard.globalDisplaySettings
-        try? modelContext.save()
+
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ Error clearing custom settings: \(error.localizedDescription)")
+            errorMessage = "Unable to clear custom settings. Please try again."
+            showErrorAlert = true
+        }
+
         hasChanges = true
     }
 }
@@ -231,7 +258,10 @@ struct ColorSwatch: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            HapticManager.shared.selection()
+            action()
+        }) {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()

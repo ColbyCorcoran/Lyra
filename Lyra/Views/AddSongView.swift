@@ -228,9 +228,11 @@ struct AddSongView: View {
         // Save context
         do {
             try modelContext.save()
+            HapticManager.shared.saveSuccess()
             dismiss()
         } catch {
             print("Error saving song: \(error)")
+            HapticManager.shared.operationFailed()
         }
     }
 

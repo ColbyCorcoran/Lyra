@@ -508,17 +508,21 @@ struct SongResultRow: View {
 struct BookResultRow: View {
     let book: Book
 
+    private var bookColor: Color {
+        Color(hex: book.color ?? "#4A90E2") ?? .blue
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             // Book icon
             ZStack {
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(Color(hex: book.color ?? "#4A90E2").opacity(0.15))
+                    .fill(bookColor.opacity(0.15))
                     .frame(width: 36, height: 36)
 
-                Image(systemName: book.icon)
+                Image(systemName: book.icon ?? "book.fill")
                     .font(.subheadline)
-                    .foregroundStyle(Color(hex: book.color ?? "#4A90E2"))
+                    .foregroundStyle(bookColor)
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -579,28 +583,33 @@ struct SetResultRow: View {
 
 // MARK: - Preview
 
-#Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Song.self, Book.self, PerformanceSet.self, configurations: config)
+#Preview("Library Search") {
+    @Previewable @State var container: ModelContainer = {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try! ModelContainer(for: Song.self, Book.self, PerformanceSet.self, configurations: config)
 
-    // Create sample data
-    for i in 1...20 {
-        let song = Song(title: "Song \(i)", artist: "Artist \(i % 5)", originalKey: ["C", "G", "D"].randomElement())
-        song.content = "Sample lyrics for song \(i)"
-        container.mainContext.insert(song)
-    }
+        // Create sample data
+        for i in 1...20 {
+            let song = Song(title: "Song \(i)", artist: "Artist \(i % 5)", originalKey: ["C", "G", "D"].randomElement())
+            song.content = "Sample lyrics for song \(i)"
+            container.mainContext.insert(song)
+        }
 
-    for i in 1...5 {
-        let book = Book(name: "Book \(i)", color: "#4A90E2")
-        container.mainContext.insert(book)
-    }
+        for i in 1...5 {
+            let book = Book(name: "Book \(i)")
+            book.color = "#4A90E2"
+            container.mainContext.insert(book)
+        }
 
-    for i in 1...3 {
-        let set = PerformanceSet(name: "Set \(i)", scheduledDate: Date())
-        set.venue = "Venue \(i)"
-        container.mainContext.insert(set)
-    }
+        for i in 1...3 {
+            let set = PerformanceSet(name: "Set \(i)", scheduledDate: Date())
+            set.venue = "Venue \(i)"
+            container.mainContext.insert(set)
+        }
 
-    return LibrarySearchView()
+        return container
+    }()
+
+    LibrarySearchView()
         .modelContainer(container)
 }

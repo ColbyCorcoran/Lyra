@@ -106,7 +106,7 @@ struct FolderPickerField: View {
 
                                 if selectedFolder == nil || selectedFolder?.isEmpty == true {
                                     Image(systemName: "checkmark")
-                                        .foregroundStyle(.accentColor)
+                                        .foregroundStyle(.blue)
                                 }
                             }
                         }

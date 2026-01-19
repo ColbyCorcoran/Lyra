@@ -22,13 +22,14 @@ class FolderManager {
         }
 
         // Extract unique non-empty folders
-        let uniqueFolders = Set(allSets.compactMap { set in
+        let folders = allSets.compactMap { set -> String? in
             guard let folder = set.folder,
                   !folder.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 return nil
             }
             return folder.trimmingCharacters(in: .whitespacesAndNewlines)
-        })
+        }
+        let uniqueFolders = Set(folders)
 
         // Return sorted alphabetically
         return uniqueFolders.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }

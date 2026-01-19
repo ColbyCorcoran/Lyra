@@ -47,6 +47,9 @@ struct LibraryView: View {
     // Stats state
     @State private var showLibraryStats: Bool = false
 
+    // Search state
+    @State private var showSearch: Bool = false
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -72,6 +75,15 @@ struct LibraryView: View {
             }
             .navigationTitle("Library")
             .toolbar {
+                // Search button
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showSearch = true
+                    } label: {
+                        Label("Search", systemImage: "magnifyingglass")
+                    }
+                }
+
                 // Stats button
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -124,6 +136,9 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $showLibraryStats) {
                 LibraryStatsView()
+            }
+            .sheet(isPresented: $showSearch) {
+                LibrarySearchView()
             }
             .fileImporter(
                 isPresented: $showFileImporter,

@@ -35,6 +35,10 @@ struct LibrarySearchView: View {
     @State private var suggestions: [String] = []
     @State private var showSuggestions: Bool = false
 
+    // Error handling
+    @State private var showSearchError: Bool = false
+    @State private var searchErrorMessage: String = ""
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -118,6 +122,14 @@ struct LibrarySearchView: View {
                     }
                 }
             }
+            .alert("Search Error", isPresented: $showSearchError) {
+                Button("OK", role: .cancel) {}
+                Button("Retry") {
+                    performSearch()
+                }
+            } message: {
+                Text(searchErrorMessage)
+            }
         }
     }
 
@@ -129,8 +141,10 @@ struct LibrarySearchView: View {
             Section("Suggestions") {
                 ForEach(suggestions, id: \.self) { suggestion in
                     Button {
-                        searchText = suggestion
-                        showSuggestions = false
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            searchText = suggestion
+                            showSuggestions = false
+                        }
                         performSearch()
                     } label: {
                         HStack {
@@ -144,6 +158,7 @@ struct LibrarySearchView: View {
             }
         }
         .listStyle(.plain)
+        .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
     // MARK: - Search History View
@@ -404,19 +419,29 @@ struct LibrarySearchView: View {
 
         // Perform search
         Task {
-            let results = searchManager.search(
-                query: searchText,
-                songs: allSongs,
-                books: allBooks,
-                sets: allSets,
-                scope: selectedScope
-            )
+            do {
+                let results = searchManager.search(
+                    query: searchText,
+                    songs: allSongs,
+                    books: allBooks,
+                    sets: allSets,
+                    scope: selectedScope
+                )
 
-            await MainActor.run {
-                songResults = results.songs
-                bookResults = results.books
-                setResults = results.sets
-                isSearching = false
+                await MainActor.run {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        songResults = results.songs
+                        bookResults = results.books
+                        setResults = results.sets
+                        isSearching = false
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    searchErrorMessage = "Search failed. Please try again."
+                    showSearchError = true
+                    isSearching = false
+                }
             }
         }
     }

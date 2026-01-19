@@ -20,6 +20,7 @@ struct OnSongImportView: View {
     @State private var importResult: OnSongImportResult?
     @State private var showError: Bool = false
     @State private var errorMessage: String = ""
+    @State private var failedImportURL: URL?
 
     // Duplicate handling
     @State private var duplicates: [DuplicateInfo] = []
@@ -41,16 +42,21 @@ struct OnSongImportView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                if let result = importResult {
-                    // Import complete - show summary
-                    importSummaryView(result: result)
-                } else if isImporting {
-                    // Importing - show progress
-                    importingView
-                } else {
-                    // Initial state - explain and show import button
-                    initialView
+                Group {
+                    if let result = importResult {
+                        // Import complete - show summary
+                        importSummaryView(result: result)
+                    } else if isImporting {
+                        // Importing - show progress
+                        importingView
+                    } else {
+                        // Initial state - explain and show import button
+                        initialView
+                    }
                 }
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isImporting)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: importResult != nil)
             }
             .navigationTitle("Import from OnSong")
             .navigationBarTitleDisplayMode(.inline)
@@ -73,9 +79,26 @@ struct OnSongImportView: View {
                 handleFileSelection(result)
             }
             .alert("Import Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
+                Button("OK", role: .cancel) {
+                    errorMessage = ""
+                }
+                if let _ = failedImportURL {
+                    Button("Retry") {
+                        retryImport()
+                    }
+                }
             } message: {
-                Text(errorMessage)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(errorMessage)
+
+                    if errorMessage.contains("extraction") || errorMessage.contains("archive") {
+                        Text("Make sure the file is a valid OnSong backup (.backup or .onsongarchive)")
+                            .font(.caption)
+                    } else if errorMessage.contains("parsing") {
+                        Text("The backup file may be corrupted or in an unsupported format")
+                            .font(.caption)
+                    }
+                }
             }
             .sheet(isPresented: $showDuplicateSheet) {
                 duplicateHandlingSheet
@@ -94,19 +117,23 @@ struct OnSongImportView: View {
                     .font(.system(size: 64))
                     .foregroundStyle(.blue.gradient)
                     .padding(.top, 40)
+                    .accessibilityHidden(true)
 
                 // Title and description
                 VStack(spacing: 12) {
                     Text("Import Your OnSong Library")
                         .font(.title2)
                         .fontWeight(.bold)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
 
                     Text("Migrate your songs, books, and sets from OnSong to Lyra")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 }
+                .accessibilityElement(children: .combine)
 
                 // Instructions
                 VStack(alignment: .leading, spacing: 16) {
@@ -429,11 +456,19 @@ struct OnSongImportView: View {
             } catch {
                 await MainActor.run {
                     isImporting = false
+                    failedImportURL = url
                     errorMessage = error.localizedDescription
                     showError = true
                 }
             }
         }
+    }
+
+    private func retryImport() {
+        guard let url = failedImportURL else { return }
+        errorMessage = ""
+        showError = false
+        startImport(from: url)
     }
 
     private func checkForDuplicates(_ result: OnSongImportResult) {
@@ -522,9 +557,11 @@ struct OnSongImportView: View {
             try modelContext.save()
             HapticManager.shared.success()
 
-            // Show summary
-            importResult = finalResult
-            isImporting = false
+            // Show summary with animation
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                importResult = finalResult
+                isImporting = false
+            }
         } catch {
             errorMessage = "Failed to save imported data: \(error.localizedDescription)"
             showError = true

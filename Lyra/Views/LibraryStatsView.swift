@@ -21,49 +21,110 @@ struct LibraryStatsView: View {
     @State private var showUnorganizedSongs: Bool = false
     @State private var showEmptyBooks: Bool = false
     @State private var exportText: String = ""
+    @State private var isLoading: Bool = true
+
+    // Cached computed values for performance
+    @State private var cachedUniqueArtistsCount: Int = 0
+    @State private var cachedTopViewedSongs: [Song] = []
+    @State private var cachedTopPerformedSongs: [Song] = []
+    @State private var cachedRecentlyAddedSongs: [Song] = []
+    @State private var cachedUnorganizedSongs: [Song] = []
+    @State private var cachedEmptyBooks: [Book] = []
+    @State private var cachedAverageSongsPerBook: Double = 0
+    @State private var cachedAverageSongsPerSet: Double = 0
+    @State private var cachedSongsByKey: [(key: String, count: Int)] = []
+    @State private var cachedSongsByDecade: [(decade: String, count: Int)] = []
+    @State private var cachedSongsWithYearCount: Int = 0
 
     var body: some View {
         NavigationStack {
-            List {
-                // MARK: - Overview Section
-
-                Section {
-                    OverviewStatRow(
-                        icon: "music.note",
-                        label: "Total Songs",
-                        value: "\(allSongs.count)",
-                        color: .blue
-                    )
-
-                    OverviewStatRow(
-                        icon: "book.fill",
-                        label: "Total Books",
-                        value: "\(allBooks.count)",
-                        color: .purple
-                    )
-
-                    OverviewStatRow(
-                        icon: "music.note.list",
-                        label: "Performance Sets",
-                        value: "\(allSets.count)",
-                        color: .green
-                    )
-
-                    OverviewStatRow(
-                        icon: "person.fill",
-                        label: "Unique Artists",
-                        value: "\(uniqueArtistsCount)",
-                        color: .orange
-                    )
-                } header: {
-                    Text("Overview")
+            Group {
+                if isLoading {
+                    // Loading state with skeleton
+                    loadingView
+                } else {
+                    statisticsListView
                 }
+            }
+            .navigationTitle("Library Statistics")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+            .sheet(isPresented: $showUnorganizedSongs) {
+                UnorganizedSongsView(songs: cachedUnorganizedSongs)
+            }
+            .sheet(isPresented: $showEmptyBooks) {
+                EmptyBooksView(books: cachedEmptyBooks)
+            }
+            .sheet(isPresented: $showExportSheet) {
+                ShareSheet(items: [exportText])
+            }
+            .onAppear {
+                if isLoading {
+                    computeStatistics()
+                }
+            }
+        }
+    }
 
-                // MARK: - Most Viewed Section
+    // MARK: - Statistics List View
 
-                if !topViewedSongs.isEmpty {
+    @ViewBuilder
+    private var statisticsListView: some View {
+        List {
+            // MARK: - Overview Section
+
+            Section {
+                OverviewStatRow(
+                    icon: "music.note",
+                    label: "Total Songs",
+                    value: "\(allSongs.count)",
+                    color: .blue
+                )
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Total Songs: \(allSongs.count)")
+
+                OverviewStatRow(
+                    icon: "book.fill",
+                    label: "Total Books",
+                    value: "\(allBooks.count)",
+                    color: .purple
+                )
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Total Books: \(allBooks.count)")
+
+                OverviewStatRow(
+                    icon: "music.note.list",
+                    label: "Performance Sets",
+                    value: "\(allSets.count)",
+                    color: .green
+                )
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Performance Sets: \(allSets.count)")
+
+                OverviewStatRow(
+                    icon: "person.fill",
+                    label: "Unique Artists",
+                    value: "\(cachedUniqueArtistsCount)",
+                    color: .orange
+                )
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Unique Artists: \(cachedUniqueArtistsCount)")
+            } header: {
+                Text("Overview")
+            }
+
+            // MARK: - Most Viewed Section
+
+            if !cachedTopViewedSongs.isEmpty {
                     Section {
-                        ForEach(Array(topViewedSongs.prefix(5).enumerated()), id: \.element.id) { index, song in
+                        ForEach(Array(cachedTopViewedSongs.prefix(5).enumerated()), id: \.element.id) { index, song in
                             HStack(spacing: 12) {
                                 // Rank badge
                                 ZStack {
@@ -109,9 +170,9 @@ struct LibraryStatsView: View {
 
                 // MARK: - Most Performed Section
 
-                if !topPerformedSongs.isEmpty {
+                if !cachedTopPerformedSongs.isEmpty {
                     Section {
-                        ForEach(Array(topPerformedSongs.prefix(5).enumerated()), id: \.element.id) { index, song in
+                        ForEach(Array(cachedTopPerformedSongs.prefix(5).enumerated()), id: \.element.id) { index, song in
                             HStack(spacing: 12) {
                                 // Rank badge
                                 ZStack {
@@ -157,9 +218,9 @@ struct LibraryStatsView: View {
 
                 // MARK: - Recently Added Section
 
-                if !recentlyAddedSongs.isEmpty {
+                if !cachedRecentlyAddedSongs.isEmpty {
                     Section {
-                        ForEach(recentlyAddedSongs.prefix(5)) { song in
+                        ForEach(cachedRecentlyAddedSongs.prefix(5)) { song in
                             HStack(spacing: 12) {
                                 Image(systemName: "clock.fill")
                                     .font(.subheadline)
@@ -190,9 +251,9 @@ struct LibraryStatsView: View {
                     OrganizationHealthRow(
                         icon: "folder.badge.questionmark",
                         label: "Unorganized Songs",
-                        value: "\(unorganizedSongsCount)",
-                        status: unorganizedSongsCount == 0 ? .good : .warning,
-                        action: unorganizedSongsCount > 0 ? {
+                        value: "\(cachedUnorganizedSongs.count)",
+                        status: cachedUnorganizedSongs.count == 0 ? .good : .warning,
+                        action: cachedUnorganizedSongs.count > 0 ? {
                             showUnorganizedSongs = true
                         } : nil
                     )
@@ -200,9 +261,9 @@ struct LibraryStatsView: View {
                     OrganizationHealthRow(
                         icon: "book.closed",
                         label: "Empty Books",
-                        value: "\(emptyBooksCount)",
-                        status: emptyBooksCount == 0 ? .good : .info,
-                        action: emptyBooksCount > 0 ? {
+                        value: "\(cachedEmptyBooks.count)",
+                        status: cachedEmptyBooks.count == 0 ? .good : .info,
+                        action: cachedEmptyBooks.count > 0 ? {
                             showEmptyBooks = true
                         } : nil
                     )
@@ -218,7 +279,7 @@ struct LibraryStatsView: View {
 
                         Spacer()
 
-                        Text(String(format: "%.1f", averageSongsPerBook))
+                        Text(String(format: "%.1f", cachedAverageSongsPerBook))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.secondary)
@@ -235,7 +296,7 @@ struct LibraryStatsView: View {
 
                         Spacer()
 
-                        Text(String(format: "%.1f", averageSongsPerSet))
+                        Text(String(format: "%.1f", cachedAverageSongsPerSet))
                             .font(.subheadline)
                             .fontWeight(.semibold)
                             .foregroundStyle(.secondary)
@@ -246,10 +307,10 @@ struct LibraryStatsView: View {
 
                 // MARK: - Songs by Key Chart
 
-                if !songsByKey.isEmpty {
+                if !cachedSongsByKey.isEmpty {
                     Section {
                         Chart {
-                            ForEach(songsByKey, id: \.key) { data in
+                            ForEach(cachedSongsByKey, id: \.key) { data in
                                 BarMark(
                                     x: .value("Key", data.key),
                                     y: .value("Count", data.count)
@@ -276,10 +337,10 @@ struct LibraryStatsView: View {
 
                 // MARK: - Songs by Decade Chart
 
-                if !songsByDecade.isEmpty {
+                if !cachedSongsByDecade.isEmpty {
                     Section {
                         Chart {
-                            ForEach(songsByDecade, id: \.decade) { data in
+                            ForEach(cachedSongsByDecade, id: \.decade) { data in
                                 BarMark(
                                     x: .value("Decade", data.decade),
                                     y: .value("Count", data.count)
@@ -302,7 +363,7 @@ struct LibraryStatsView: View {
                     } header: {
                         Text("Songs by Decade")
                     } footer: {
-                        Text("Based on \(songsWithYearCount) songs with year metadata")
+                        Text("Based on \(cachedSongsWithYearCount) songs with year metadata")
                     }
                 }
 
@@ -324,29 +385,149 @@ struct LibraryStatsView: View {
                     Text("Export")
                 }
             }
-            .navigationTitle("Library Statistics")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+        }
+    }
+
+    // MARK: - Loading View
+
+    @ViewBuilder
+    private var loadingView: some View {
+        List {
+            Section {
+                ForEach(0..<4) { _ in
+                    HStack(spacing: 16) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(.systemGray5))
+                            .frame(width: 44, height: 44)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color(.systemGray5))
+                                .frame(width: 120, height: 16)
+
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color(.systemGray6))
+                                .frame(width: 80, height: 12)
+                        }
+
+                        Spacer()
+
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(.systemGray5))
+                            .frame(width: 50, height: 20)
                     }
-                    .fontWeight(.semibold)
+                    .padding(.vertical, 4)
                 }
+            } header: {
+                Text("Overview")
             }
-            .sheet(isPresented: $showUnorganizedSongs) {
-                UnorganizedSongsView(songs: unorganizedSongs)
+
+            Section {
+                ForEach(0..<3) { _ in
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.systemGray5))
+                            .frame(width: 32, height: 32)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color(.systemGray5))
+                                .frame(width: 150, height: 14)
+
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color(.systemGray6))
+                                .frame(width: 100, height: 12)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            } header: {
+                Text("Most Viewed Songs")
             }
-            .sheet(isPresented: $showEmptyBooks) {
-                EmptyBooksView(books: emptyBooks)
+        }
+        .redacted(reason: .placeholder)
+        .disabled(true)
+    }
+
+    // MARK: - Compute Statistics Function
+
+    private func computeStatistics() {
+        Task {
+            // Perform expensive computations off the main thread
+            let uniqueArtists = Set(allSongs.compactMap { $0.artist }).count
+
+            let topViewed = allSongs
+                .filter { $0.timesViewed > 0 }
+                .sorted { $0.timesViewed > $1.timesViewed }
+
+            let topPerformed = allSongs
+                .filter { $0.timesPerformed > 0 }
+                .sorted { $0.timesPerformed > $1.timesPerformed }
+
+            let recentlyAdded = allSongs.sorted { $0.createdAt > $1.createdAt }
+
+            let unorganized = allSongs.filter { song in
+                let inBooks = song.books?.isEmpty ?? true
+                let inSets = song.setEntries?.isEmpty ?? true
+                return inBooks && inSets
             }
-            .sheet(isPresented: $showExportSheet) {
-                ShareSheet(items: [exportText])
+
+            let emptyBooks = allBooks.filter { $0.songs?.isEmpty ?? true }
+
+            let avgSongsPerBook: Double
+            if !allBooks.isEmpty {
+                let totalSongs = allBooks.reduce(0) { $0 + ($1.songs?.count ?? 0) }
+                avgSongsPerBook = Double(totalSongs) / Double(allBooks.count)
+            } else {
+                avgSongsPerBook = 0
+            }
+
+            let avgSongsPerSet: Double
+            if !allSets.isEmpty {
+                let totalSongs = allSets.reduce(0) { $0 + ($1.songEntries?.count ?? 0) }
+                avgSongsPerSet = Double(totalSongs) / Double(allSets.count)
+            } else {
+                avgSongsPerSet = 0
+            }
+
+            let songsByKey = Dictionary(grouping: allSongs.compactMap { $0.originalKey }, by: { $0 })
+                .mapValues { $0.count }
+                .sorted { $0.value > $1.value }
+                .map { (key: $0.key, count: $0.value) }
+
+            let decades = allSongs.compactMap { song -> String? in
+                guard let year = song.year else { return nil }
+                let decade = (year / 10) * 10
+                return "\(decade)s"
+            }
+            let songsByDecade = Dictionary(grouping: decades, by: { $0 })
+                .mapValues { $0.count }
+                .sorted { $0.key < $1.key }
+                .map { (decade: $0.key, count: $0.value) }
+
+            let songsWithYear = allSongs.filter { $0.year != nil }.count
+
+            // Update state on main thread with animation
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    cachedUniqueArtistsCount = uniqueArtists
+                    cachedTopViewedSongs = topViewed
+                    cachedTopPerformedSongs = topPerformed
+                    cachedRecentlyAddedSongs = recentlyAdded
+                    cachedUnorganizedSongs = unorganized
+                    cachedEmptyBooks = emptyBooks
+                    cachedAverageSongsPerBook = avgSongsPerBook
+                    cachedAverageSongsPerSet = avgSongsPerSet
+                    cachedSongsByKey = songsByKey
+                    cachedSongsByDecade = songsByDecade
+                    cachedSongsWithYearCount = songsWithYear
+                    isLoading = false
+                }
             }
         }
     }
 
-    // MARK: - Computed Properties
+    // MARK: - Computed Properties (Deprecated - Using Cached Values)
 
     private var uniqueArtistsCount: Int {
         Set(allSongs.compactMap { $0.artist }).count
@@ -451,13 +632,13 @@ struct LibraryStatsView: View {
         report += "Total Songs: \(allSongs.count)\n"
         report += "Total Books: \(allBooks.count)\n"
         report += "Performance Sets: \(allSets.count)\n"
-        report += "Unique Artists: \(uniqueArtistsCount)\n\n"
+        report += "Unique Artists: \(cachedUniqueArtistsCount)\n\n"
 
         // Most Viewed
-        if !topViewedSongs.isEmpty {
+        if !cachedTopViewedSongs.isEmpty {
             report += "MOST VIEWED SONGS\n"
             report += String(repeating: "-", count: 50) + "\n"
-            for (index, song) in topViewedSongs.prefix(10).enumerated() {
+            for (index, song) in cachedTopViewedSongs.prefix(10).enumerated() {
                 let artist = song.artist ?? "Unknown"
                 report += "\(index + 1). \(song.title) by \(artist) - \(song.timesViewed) views\n"
             }
@@ -465,10 +646,10 @@ struct LibraryStatsView: View {
         }
 
         // Most Performed
-        if !topPerformedSongs.isEmpty {
+        if !cachedTopPerformedSongs.isEmpty {
             report += "MOST PERFORMED SONGS\n"
             report += String(repeating: "-", count: 50) + "\n"
-            for (index, song) in topPerformedSongs.prefix(10).enumerated() {
+            for (index, song) in cachedTopPerformedSongs.prefix(10).enumerated() {
                 let artist = song.artist ?? "Unknown"
                 report += "\(index + 1). \(song.title) by \(artist) - \(song.timesPerformed) performances\n"
             }
@@ -478,16 +659,16 @@ struct LibraryStatsView: View {
         // Organization Health
         report += "ORGANIZATION HEALTH\n"
         report += String(repeating: "-", count: 50) + "\n"
-        report += "Unorganized Songs: \(unorganizedSongsCount)\n"
-        report += "Empty Books: \(emptyBooksCount)\n"
-        report += "Average Songs per Book: \(String(format: "%.1f", averageSongsPerBook))\n"
-        report += "Average Songs per Set: \(String(format: "%.1f", averageSongsPerSet))\n\n"
+        report += "Unorganized Songs: \(cachedUnorganizedSongs.count)\n"
+        report += "Empty Books: \(cachedEmptyBooks.count)\n"
+        report += "Average Songs per Book: \(String(format: "%.1f", cachedAverageSongsPerBook))\n"
+        report += "Average Songs per Set: \(String(format: "%.1f", cachedAverageSongsPerSet))\n\n"
 
         // Songs by Key
-        if !songsByKey.isEmpty {
+        if !cachedSongsByKey.isEmpty {
             report += "SONGS BY KEY\n"
             report += String(repeating: "-", count: 50) + "\n"
-            for data in songsByKey {
+            for data in cachedSongsByKey {
                 report += "\(data.key): \(data.count) songs\n"
             }
             report += "\n"

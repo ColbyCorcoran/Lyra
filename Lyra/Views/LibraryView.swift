@@ -63,15 +63,19 @@ struct LibraryView: View {
                 .pickerStyle(.segmented)
                 .padding()
 
-                // Content based on selected section
-                switch selectedSection {
-                case .allSongs:
-                    SongListView()
-                case .books:
-                    BookListView()
-                case .sets:
-                    SetListView()
+                // Content based on selected section with smooth transition
+                Group {
+                    switch selectedSection {
+                    case .allSongs:
+                        SongListView()
+                    case .books:
+                        BookListView()
+                    case .sets:
+                        SetListView()
+                    }
                 }
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                .animation(.easeInOut(duration: 0.3), value: selectedSection)
             }
             .navigationTitle("Library")
             .toolbar {

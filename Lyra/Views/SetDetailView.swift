@@ -20,13 +20,10 @@ struct SetDetailView: View {
     @State private var showDeleteConfirmation: Bool = false
     @State private var showOverrideEditor: Bool = false
     @State private var selectedEntry: SetEntry?
-
-    private var entries: [SetEntry] {
-        (performanceSet.songEntries ?? []).sorted { $0.orderIndex < $1.orderIndex }
-    }
+    @State private var cachedEntries: [SetEntry] = []
 
     private var songCount: Int {
-        entries.count
+        cachedEntries.count
     }
 
     private var isEditing: Bool {
@@ -113,14 +110,16 @@ struct SetDetailView: View {
 
             // Songs section
             Section {
-                if entries.isEmpty {
+                if cachedEntries.isEmpty {
                     SetEmptyStateView(showSongPicker: $showSongPicker)
                 } else {
-                    ForEach(entries) { entry in
+                    ForEach(cachedEntries) { entry in
                         if let song = entry.song {
                             NavigationLink(destination: SongDisplayView(song: song, setEntry: entry)) {
                                 SetEntryRowView(entry: entry, song: song, isEditing: isEditing)
                             }
+                            .accessibilityLabel(accessibilityLabelForEntry(entry, song: song))
+                            .accessibilityHint(isEditing ? "Swipe up or down to reorder" : "Tap to view song")
                             .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                 Button {
                                     HapticManager.shared.selection()
@@ -167,7 +166,7 @@ struct SetDetailView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                if !entries.isEmpty {
+                if !cachedEntries.isEmpty {
                     EditButton()
                         .accessibilityLabel(isEditing ? "Done reordering" : "Reorder songs")
                 }
@@ -219,9 +218,18 @@ struct SetDetailView: View {
         } message: {
             Text("This will permanently delete \"\(performanceSet.name)\". Songs will not be deleted.")
         }
+        .onAppear {
+            refreshEntries()
+        }
     }
 
     // MARK: - Actions
+
+    private func refreshEntries() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            cachedEntries = (performanceSet.songEntries ?? []).sorted { $0.orderIndex < $1.orderIndex }
+        }
+    }
 
     private func removeEntry(_ entry: SetEntry) {
         guard var setEntries = performanceSet.songEntries else { return }
@@ -243,6 +251,7 @@ struct SetDetailView: View {
         do {
             try modelContext.save()
             HapticManager.shared.success()
+            refreshEntries()
         } catch {
             print("❌ Error removing song from set: \(error.localizedDescription)")
             HapticManager.shared.operationFailed()
@@ -282,6 +291,7 @@ struct SetDetailView: View {
         do {
             try modelContext.save()
             HapticManager.shared.selection()
+            refreshEntries()
         } catch {
             print("❌ Error reordering songs: \(error.localizedDescription)")
             HapticManager.shared.operationFailed()
@@ -306,6 +316,39 @@ struct SetDetailView: View {
             formatter.timeStyle = .short
             return formatter.string(from: date)
         }
+    }
+
+    private func accessibilityLabelForEntry(_ entry: SetEntry, song: Song) -> String {
+        var label = "Song \(entry.orderIndex + 1): \(song.title)"
+
+        if let artist = song.artist {
+            label += " by \(artist)"
+        }
+
+        let hasOverrides = entry.keyOverride != nil || entry.capoOverride != nil || entry.tempoOverride != nil
+
+        if hasOverrides {
+            label += ". Has override settings"
+
+            if let keyOverride = entry.keyOverride {
+                label += ". Key overridden to \(keyOverride)"
+            }
+            if let capoOverride = entry.capoOverride {
+                label += ". Capo overridden to \(capoOverride > 0 ? "fret \(capoOverride)" : "no capo")"
+            }
+            if let tempoOverride = entry.tempoOverride {
+                label += ". Tempo overridden to \(tempoOverride) BPM"
+            }
+        } else {
+            if let key = song.originalKey {
+                label += ". Key: \(key)"
+            }
+            if let capo = song.capo, capo > 0 {
+                label += ". Capo on fret \(capo)"
+            }
+        }
+
+        return label
     }
 }
 
@@ -349,9 +392,10 @@ struct SetEntryRowView: View {
                         }
                         .padding(.horizontal, 5)
                         .padding(.vertical, 2)
-                        .background(Color.indigo.opacity(0.15))
-                        .foregroundStyle(.indigo)
+                        .background(Color.indigo)
+                        .foregroundStyle(.white)
                         .clipShape(Capsule())
+                        .accessibilityLabel("Has override settings")
                     }
                 }
 

@@ -60,46 +60,11 @@ struct QuickOrganizationPicker: View {
         NavigationStack {
             List {
                 Section {
-                    switch mode {
-                    case .book:
-                        if allBooks.isEmpty {
-                            Text("No books available")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(allBooks) { book in
-                                BookRow(
-                                    book: book,
-                                    isSelected: songBooks.contains(where: { $0.id == book.id })
-                                ) {
-                                    handleBookSelection(book)
-                                }
-                            }
-                        }
-
-                    case .set:
-                        if allSets.isEmpty {
-                            Text("No sets available")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(allSets) { set in
-                                SetRow(
-                                    set: set,
-                                    isSelected: songSets.contains(where: { $0.id == set.id })
-                                ) {
-                                    handleSetSelection(set)
-                                }
-                            }
-                        }
-                    }
+                    listContent
                 }
 
                 Section {
-                    Button {
-                        showNewItemSheet = true
-                    } label: {
-                        Label(mode.createLabel, systemImage: "plus.circle.fill")
-                            .foregroundStyle(.blue)
-                    }
+                    createButton
                 }
             }
             .navigationTitle(mode.title)
@@ -112,12 +77,7 @@ struct QuickOrganizationPicker: View {
                 }
             }
             .sheet(isPresented: $showNewItemSheet) {
-                switch mode {
-                case .book:
-                    AddBookView()
-                case .set:
-                    AddSetView()
-                }
+                sheetContent
             }
             .alert("Error", isPresented: $showErrorAlert) {
                 Button("OK", role: .cancel) {}
@@ -127,6 +87,60 @@ struct QuickOrganizationPicker: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    @ViewBuilder
+    private var listContent: some View {
+        switch mode {
+        case .book:
+            if allBooks.isEmpty {
+                Text("No books available")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(allBooks) { book in
+                    BookRow(
+                        book: book,
+                        isSelected: songBooks.contains(where: { $0.id == book.id })
+                    ) {
+                        handleBookSelection(book)
+                    }
+                }
+            }
+
+        case .set:
+            if allSets.isEmpty {
+                Text("No sets available")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(allSets) { set in
+                    SetRow(
+                        set: set,
+                        isSelected: songSets.contains(where: { $0.id == set.id })
+                    ) {
+                        handleSetSelection(set)
+                    }
+                }
+            }
+        }
+    }
+
+    private var createButton: some View {
+        Button {
+            showNewItemSheet = true
+        } label: {
+            Label(mode.createLabel, systemImage: "plus.circle.fill")
+                .foregroundStyle(.blue)
+        }
+    }
+
+    @ViewBuilder
+    private var sheetContent: some View {
+        switch mode {
+        case .book:
+            AddBookView()
+        case .set:
+            AddPerformanceSetView()
+        }
     }
 
     // MARK: - Actions

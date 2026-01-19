@@ -386,7 +386,6 @@ struct LibraryStatsView: View {
                 }
             }
         }
-    }
 
     // MARK: - Loading View
 

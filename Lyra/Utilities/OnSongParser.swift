@@ -77,7 +77,7 @@ class OnSongParser {
                 let progress = 0.3 + (Double(index + 1) / Double(totalSongs)) * 0.4
                 progressCallback?(progress, "Parsing song \(index + 1) of \(totalSongs)...")
             } catch {
-                result.errors.append(ImportError(
+                result.errors.append(OnSongImportResult.ImportError(
                     fileName: songFile.lastPathComponent,
                     error: error.localizedDescription
                 ))
@@ -92,7 +92,7 @@ class OnSongParser {
                 let books = try parseBooks(from: booksXML, songs: result.songs)
                 result.books = books
             } catch {
-                result.errors.append(ImportError(
+                result.errors.append(OnSongImportResult.ImportError(
                     fileName: "books.xml",
                     error: error.localizedDescription
                 ))
@@ -107,7 +107,7 @@ class OnSongParser {
                 let sets = try parseSets(from: setsXML, songs: result.songs)
                 result.sets = sets
             } catch {
-                result.errors.append(ImportError(
+                result.errors.append(OnSongImportResult.ImportError(
                     fileName: "sets.xml",
                     error: error.localizedDescription
                 ))
@@ -128,12 +128,13 @@ class OnSongParser {
     // MARK: - Private Methods
 
     private static func extractZip(from sourceURL: URL, to destinationURL: URL) throws {
-        // Use FileManager to unzip
+        #if os(macOS)
+        // Use FileManager to unzip on macOS
         let data = try Data(contentsOf: sourceURL)
         let tempZipFile = FileManager.default.temporaryDirectory.appendingPathComponent("temp.zip")
         try data.write(to: tempZipFile)
 
-        // Try to use unzip command (macOS/iOS)
+        // Try to use unzip command (macOS only)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
         process.arguments = ["-q", tempZipFile.path, "-d", destinationURL.path]
@@ -146,6 +147,12 @@ class OnSongParser {
         }
 
         try? FileManager.default.removeItem(at: tempZipFile)
+        #else
+        // iOS implementation requires a third-party ZIP library like ZIPFoundation
+        // For now, throw an error indicating this feature needs implementation
+        // TODO: Integrate ZIPFoundation or similar library for iOS ZIP extraction
+        throw OnSongError.archiveExtractionFailed
+        #endif
     }
 
     private static func findFiles(withExtension ext: String, in directory: URL) throws -> [URL] {

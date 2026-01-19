@@ -13,22 +13,29 @@ struct SongDisplayView: View {
     @Environment(\.modelContext) private var modelContext
 
     let song: Song
+    let setEntry: SetEntry?
 
     @State private var parsedSong: ParsedSong?
     @State private var fontSize: CGFloat = 16
     @State private var showDisplaySettings: Bool = false
     @State private var displaySettings: DisplaySettings
 
-    init(song: Song) {
+    init(song: Song, setEntry: SetEntry? = nil) {
         self.song = song
+        self.setEntry = setEntry
         _displaySettings = State(initialValue: song.displaySettings)
     }
 
     var body: some View {
         VStack(spacing: 0) {
+            // Set context banner
+            if let entry = setEntry, let set = entry.performanceSet {
+                SetContextBanner(setName: set.name, songPosition: entry.orderIndex + 1, totalSongs: set.songEntries?.count ?? 0)
+            }
+
             // Sticky Header
             if let parsed = parsedSong {
-                SongHeaderView(parsedSong: parsed)
+                SongHeaderView(parsedSong: parsed, setEntry: setEntry)
                     .background(Color(.systemBackground))
                     .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
             }
@@ -206,6 +213,7 @@ struct SongDisplayView: View {
  */
 struct SongHeaderView: View {
     let parsedSong: ParsedSong
+    var setEntry: SetEntry?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -244,19 +252,23 @@ struct SongHeaderView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     // Key and Tempo row
                     HStack(spacing: 20) {
-                        if let key = parsedSong.key {
+                        if let key = effectiveKey {
                             MetadataItem(
                                 icon: "music.note",
                                 label: "Key",
-                                value: key
+                                value: key,
+                                isOverride: setEntry?.keyOverride != nil,
+                                originalValue: parsedSong.key
                             )
                         }
 
-                        if let tempo = parsedSong.tempo {
+                        if let tempo = effectiveTempo {
                             MetadataItem(
                                 icon: "metronome",
                                 label: "Tempo",
-                                value: "\(tempo) BPM"
+                                value: "\(tempo) BPM",
+                                isOverride: setEntry?.tempoOverride != nil,
+                                originalValue: parsedSong.tempo.map { "\($0) BPM" }
                             )
                         }
 
@@ -273,11 +285,13 @@ struct SongHeaderView: View {
                             )
                         }
 
-                        if let capo = parsedSong.capo, capo > 0 {
+                        if let capo = effectiveCapo, capo > 0 {
                             MetadataItem(
                                 icon: "guitar",
                                 label: "Capo",
-                                value: "\(capo)"
+                                value: "\(capo)",
+                                isOverride: setEntry?.capoOverride != nil,
+                                originalValue: parsedSong.capo.map { "\($0)" }
                             )
                         }
 
@@ -316,6 +330,20 @@ struct SongHeaderView: View {
         parsedSong.timeSignature != nil ||
         (parsedSong.capo != nil && parsedSong.capo! > 0)
     }
+
+    // MARK: - Effective Values (with overrides)
+
+    private var effectiveKey: String? {
+        setEntry?.keyOverride ?? parsedSong.key
+    }
+
+    private var effectiveCapo: Int? {
+        setEntry?.capoOverride ?? parsedSong.capo
+    }
+
+    private var effectiveTempo: Int? {
+        setEntry?.tempoOverride ?? parsedSong.tempo
+    }
 }
 
 // MARK: - Metadata Item
@@ -328,24 +356,46 @@ struct MetadataItem: View {
     let icon: String
     let label: String
     let value: String
+    var isOverride: Bool = false
+    var originalValue: String?
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Icon
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(.blue)
-                .frame(width: 20)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                // Icon
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(isOverride ? .indigo : .blue)
+                    .frame(width: 20)
 
-            // Label and Value
-            HStack(spacing: 4) {
-                Text(label)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                // Label and Value
+                HStack(spacing: 4) {
+                    Text(label)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
 
-                Text(value)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.primary)
+                    Text(value)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(isOverride ? .indigo : .primary)
+
+                    if isOverride {
+                        Image(systemName: "wand.and.stars")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.indigo)
+                    }
+                }
+            }
+
+            // Override indicator
+            if isOverride, let original = originalValue {
+                HStack(spacing: 3) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 8))
+                    Text("Original: \(original)")
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(.tertiary)
+                .padding(.leading, 28)
             }
         }
     }
@@ -611,6 +661,47 @@ struct ChordLineView: View {
             )
             return song
         }())
+    }
+}
+
+// MARK: - Set Context Banner
+
+struct SetContextBanner: View {
+    let setName: String
+    let songPosition: Int
+    let totalSongs: Int
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "music.note.list")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.white)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Viewing from Set")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.8))
+
+                Text(setName)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+
+            Spacer()
+
+            Text("Song \(songPosition) of \(totalSongs)")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.9))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            LinearGradient(
+                colors: [Color.green.opacity(0.8), Color.green],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
     }
 }
 

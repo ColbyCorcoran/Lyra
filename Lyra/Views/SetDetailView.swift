@@ -18,6 +18,8 @@ struct SetDetailView: View {
     @State private var showSongPicker: Bool = false
     @State private var showEditSet: Bool = false
     @State private var showDeleteConfirmation: Bool = false
+    @State private var showOverrideEditor: Bool = false
+    @State private var selectedEntry: SetEntry?
 
     private var entries: [SetEntry] {
         (performanceSet.songEntries ?? []).sorted { $0.orderIndex < $1.orderIndex }
@@ -116,8 +118,18 @@ struct SetDetailView: View {
                 } else {
                     ForEach(entries) { entry in
                         if let song = entry.song {
-                            NavigationLink(destination: SongDisplayView(song: song)) {
+                            NavigationLink(destination: SongDisplayView(song: song, setEntry: entry)) {
                                 SetEntryRowView(entry: entry, song: song, isEditing: isEditing)
+                            }
+                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                Button {
+                                    HapticManager.shared.selection()
+                                    selectedEntry = entry
+                                    showOverrideEditor = true
+                                } label: {
+                                    Label("Override", systemImage: "music.note.list")
+                                }
+                                .tint(.blue)
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
@@ -125,6 +137,22 @@ struct SetDetailView: View {
                                     removeEntry(entry)
                                 } label: {
                                     Label("Remove", systemImage: "trash")
+                                }
+                            }
+                            .contextMenu {
+                                Button {
+                                    selectedEntry = entry
+                                    showOverrideEditor = true
+                                } label: {
+                                    Label("Override Settings", systemImage: "music.note.list")
+                                }
+
+                                Divider()
+
+                                Button(role: .destructive) {
+                                    removeEntry(entry)
+                                } label: {
+                                    Label("Remove from Set", systemImage: "trash")
                                 }
                             }
                         }
@@ -177,6 +205,11 @@ struct SetDetailView: View {
         }
         .sheet(isPresented: $showEditSet) {
             EditPerformanceSetView(performanceSet: performanceSet)
+        }
+        .sheet(isPresented: $showOverrideEditor) {
+            if let entry = selectedEntry, let song = entry.song {
+                SetEntryOverrideView(entry: entry, song: song)
+            }
         }
         .alert("Delete Set?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
@@ -283,6 +316,10 @@ struct SetEntryRowView: View {
     let song: Song
     var isEditing: Bool = false
 
+    private var hasOverrides: Bool {
+        entry.keyOverride != nil || entry.capoOverride != nil || entry.tempoOverride != nil || (entry.notes != nil && !entry.notes!.isEmpty)
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             // Order number with styling
@@ -298,8 +335,25 @@ struct SetEntryRowView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(song.title)
-                    .font(.headline)
+                HStack(spacing: 8) {
+                    Text(song.title)
+                        .font(.headline)
+
+                    // Override indicator badge
+                    if hasOverrides {
+                        HStack(spacing: 3) {
+                            Image(systemName: "wand.and.stars")
+                                .font(.system(size: 9, weight: .semibold))
+                            Text("OVERRIDE")
+                                .font(.system(size: 9, weight: .bold))
+                        }
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.indigo.opacity(0.15))
+                        .foregroundStyle(.indigo)
+                        .clipShape(Capsule())
+                    }
+                }
 
                 if let artist = song.artist {
                     Text(artist)
@@ -310,10 +364,12 @@ struct SetEntryRowView: View {
                 // Show overrides or default values
                 HStack(spacing: 6) {
                     if let keyOverride = entry.keyOverride {
-                        SongMetadataBadge(
+                        OverrideBadge(
                             icon: "music.note",
                             text: keyOverride,
-                            color: .blue
+                            color: .blue,
+                            isOverride: true,
+                            originalValue: song.originalKey
                         )
                     } else if let key = song.originalKey {
                         SongMetadataBadge(
@@ -324,16 +380,28 @@ struct SetEntryRowView: View {
                     }
 
                     if let capoOverride = entry.capoOverride {
-                        SongMetadataBadge(
+                        OverrideBadge(
                             icon: "guitars",
-                            text: "Capo \(capoOverride)",
-                            color: .orange
+                            text: capoOverride > 0 ? "Capo \(capoOverride)" : "No Capo",
+                            color: .orange,
+                            isOverride: true,
+                            originalValue: song.capo.map { "Capo \($0)" }
                         )
                     } else if let capo = song.capo, capo > 0 {
                         SongMetadataBadge(
                             icon: "guitars",
                             text: "Capo \(capo)",
                             color: .orange
+                        )
+                    }
+
+                    if let tempoOverride = entry.tempoOverride {
+                        OverrideBadge(
+                            icon: "metronome",
+                            text: "\(tempoOverride) BPM",
+                            color: .purple,
+                            isOverride: true,
+                            originalValue: song.tempo.map { "\($0) BPM" }
                         )
                     }
 
@@ -395,6 +463,42 @@ struct SetEmptyStateView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
+    }
+}
+
+// MARK: - Override Badge
+
+struct OverrideBadge: View {
+    let icon: String
+    let text: String
+    let color: Color
+    var isOverride: Bool = false
+    var originalValue: String?
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .medium))
+
+            Text(text)
+                .font(.system(size: 11, weight: .semibold))
+
+            if isOverride {
+                Image(systemName: "wand.and.stars.inverse")
+                    .font(.system(size: 7, weight: .bold))
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(isOverride ? color.opacity(0.25) : color.opacity(0.15))
+        .foregroundStyle(color)
+        .clipShape(Capsule())
+        .overlay {
+            if isOverride {
+                Capsule()
+                    .strokeBorder(color.opacity(0.5), lineWidth: 1)
+            }
+        }
     }
 }
 

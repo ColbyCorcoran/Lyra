@@ -14,6 +14,7 @@ struct SettingsView: View {
     @AppStorage("globalSpacing") private var globalSpacing: Double = 8
 
     @State private var showLibraryStats: Bool = false
+    @State private var showOnSongImport: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -25,6 +26,19 @@ struct SettingsView: View {
                     } label: {
                         HStack {
                             Label("Library Statistics", systemImage: "chart.bar.fill")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+
+                    Button {
+                        showOnSongImport = true
+                    } label: {
+                        HStack {
+                            Label("Import from OnSong", systemImage: "arrow.down.doc.fill")
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption)
@@ -208,6 +222,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showLibraryStats) {
                 LibraryStatsView()
+            }
+            .sheet(isPresented: $showOnSongImport) {
+                OnSongImportView()
             }
         }
     }

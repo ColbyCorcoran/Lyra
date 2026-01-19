@@ -113,7 +113,7 @@ struct FolderPickerField: View {
                         .buttonStyle(.plain)
 
                         // Existing folders
-                        ForEach(availableFolders, id: \.self) { folder in
+                        ForEach(Array(availableFolders.enumerated()), id: \.element) { index, folder in
                             Button {
                                 selectedFolder = folder
                                 HapticManager.shared.selection()

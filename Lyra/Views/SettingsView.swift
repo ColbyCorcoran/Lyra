@@ -13,9 +13,29 @@ struct SettingsView: View {
     @AppStorage("globalLyricsColor") private var globalLyricsColor: String = "#000000"
     @AppStorage("globalSpacing") private var globalSpacing: Double = 8
 
+    @State private var showLibraryStats: Bool = false
+
     var body: some View {
         NavigationStack {
             Form {
+                // Library Section
+                Section {
+                    Button {
+                        showLibraryStats = true
+                    } label: {
+                        HStack {
+                            Label("Library Statistics", systemImage: "chart.bar.fill")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                } header: {
+                    Label("Library", systemImage: "books.vertical")
+                }
+
                 // Display Defaults Section
                 Section {
                     // Font Size
@@ -185,6 +205,9 @@ struct SettingsView: View {
             }
             .onChange(of: globalSpacing) { _, _ in
                 saveGlobalSettings()
+            }
+            .sheet(isPresented: $showLibraryStats) {
+                LibraryStatsView()
             }
         }
     }

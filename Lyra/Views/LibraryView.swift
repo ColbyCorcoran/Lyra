@@ -44,6 +44,9 @@ struct LibraryView: View {
     @State private var pasteErrorMessage: String = ""
     @State private var pasteRecoverySuggestion: String = ""
 
+    // Stats state
+    @State private var showLibraryStats: Bool = false
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -69,6 +72,15 @@ struct LibraryView: View {
             }
             .navigationTitle("Library")
             .toolbar {
+                // Stats button
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showLibraryStats = true
+                    } label: {
+                        Label("Statistics", systemImage: "chart.bar.fill")
+                    }
+                }
+
                 // Import button (Songs only)
                 if selectedSection == .allSongs {
                     ToolbarItem(placement: .topBarLeading) {
@@ -105,12 +117,13 @@ struct LibraryView: View {
                 AddSongView()
             }
             .sheet(isPresented: $showAddBookSheet) {
-                // TODO: AddBookView
-                Text("Add Book - Coming Soon")
+                AddBookView()
             }
             .sheet(isPresented: $showAddSetSheet) {
-                // TODO: AddSetView
-                Text("Add Set - Coming Soon")
+                AddPerformanceSetView()
+            }
+            .sheet(isPresented: $showLibraryStats) {
+                LibraryStatsView()
             }
             .fileImporter(
                 isPresented: $showFileImporter,

@@ -15,7 +15,7 @@ struct AddPerformanceSetView: View {
     @State private var name: String = ""
     @State private var setDescription: String = ""
     @State private var venue: String = ""
-    @State private var folder: String = ""
+    @State private var folder: String? = nil
     @State private var scheduledDate: Date = Date()
     @State private var hasScheduledDate: Bool = false
     @State private var showErrorAlert: Bool = false
@@ -52,8 +52,7 @@ struct AddPerformanceSetView: View {
                     TextField("Venue", text: $venue)
                         .autocorrectionDisabled()
 
-                    TextField("Folder/Category", text: $folder)
-                        .autocorrectionDisabled()
+                    FolderPickerField(selectedFolder: $folder)
 
                     // Date toggle and picker
                     Toggle("Schedule Date & Time", isOn: $hasScheduledDate)
@@ -133,7 +132,7 @@ struct AddPerformanceSetView: View {
 
         newSet.setDescription = setDescription.isEmpty ? nil : setDescription
         newSet.venue = venue.isEmpty ? nil : venue
-        newSet.folder = folder.isEmpty ? nil : folder
+        newSet.folder = folder
 
         modelContext.insert(newSet)
 

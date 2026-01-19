@@ -20,6 +20,8 @@ struct SongDisplayView: View {
     @State private var showDisplaySettings: Bool = false
     @State private var displaySettings: DisplaySettings
     @State private var isLoadingSong: Bool = false
+    @State private var showQuickBookPicker: Bool = false
+    @State private var showQuickSetPicker: Bool = false
 
     init(song: Song, setEntry: SetEntry? = nil) {
         self.song = song
@@ -36,7 +38,7 @@ struct SongDisplayView: View {
 
             // Sticky Header
             if let parsed = parsedSong {
-                SongHeaderView(parsedSong: parsed, setEntry: setEntry)
+                SongHeaderView(parsedSong: parsed, song: song, setEntry: setEntry)
                     .background(Color(.systemBackground))
                     .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
             }
@@ -119,6 +121,17 @@ struct SongDisplayView: View {
                 .accessibilityHint("Adjust font size, colors, and spacing")
             }
 
+            // Organization menu
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    OrganizationMenuView(song: song)
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                }
+                .accessibilityLabel("Add to collection")
+                .accessibilityHint("Add this song to books or sets")
+            }
+
             // More menu
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -185,6 +198,26 @@ struct SongDisplayView: View {
                     displaySettings = song.displaySettings
                 }
         }
+        .sheet(isPresented: $showQuickBookPicker) {
+            QuickOrganizationPicker(song: song, mode: .book)
+        }
+        .sheet(isPresented: $showQuickSetPicker) {
+            QuickOrganizationPicker(song: song, mode: .set)
+        }
+        .background {
+            // Keyboard shortcuts (invisible buttons)
+            Button("") {
+                showQuickBookPicker = true
+            }
+            .keyboardShortcut("b", modifiers: .command)
+            .hidden()
+
+            Button("") {
+                showQuickSetPicker = true
+            }
+            .keyboardShortcut("s", modifiers: [.command, .shift])
+            .hidden()
+        }
         .onAppear {
             parseSong()
             trackSongView()
@@ -241,6 +274,7 @@ struct SongDisplayView: View {
  */
 struct SongHeaderView: View {
     let parsedSong: ParsedSong
+    let song: Song
     var setEntry: SetEntry?
 
     var body: some View {
@@ -274,6 +308,9 @@ struct SongHeaderView: View {
                     }
                 }
             }
+
+            // Organization pills (books/sets this song belongs to)
+            OrganizationPillsView(song: song)
 
             // Musical Metadata Card
             if hasMusicalMetadata {

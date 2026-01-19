@@ -234,44 +234,6 @@ struct AddBookView: View {
     }
 }
 
-// MARK: - Color Swatch
-
-struct ColorSwatch: View {
-    let name: String
-    let hex: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: hex) ?? .gray)
-                        .frame(width: 40, height: 40)
-
-                    if isSelected {
-                        Circle()
-                            .strokeBorder(Color.primary, lineWidth: 3)
-                            .frame(width: 40, height: 40)
-
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.3), radius: 2)
-                    }
-                }
-
-                Text(name)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 // MARK: - Icon Button
 
 struct IconButton: View {

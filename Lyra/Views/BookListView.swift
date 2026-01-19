@@ -9,16 +9,34 @@ import SwiftUI
 import SwiftData
 
 struct BookListView: View {
-    @Query(sort: \Book.name, order: .forward) private var books: [Book]
+    @Query private var allBooks: [Book]
     @State private var showAddBookSheet: Bool = false
+    @State private var searchText: String = ""
+
+    private var filteredBooks: [Book] {
+        var result = allBooks
+
+        // Apply search filter
+        if !searchText.isEmpty {
+            result = result.filter { book in
+                book.name.localizedCaseInsensitiveContains(searchText) ||
+                (book.bookDescription?.localizedCaseInsensitiveContains(searchText) ?? false)
+            }
+        }
+
+        // Sort alphabetically
+        result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+
+        return result
+    }
 
     var body: some View {
         Group {
-            if books.isEmpty {
+            if allBooks.isEmpty {
                 EnhancedBookEmptyStateView(showAddBookSheet: $showAddBookSheet)
             } else {
                 List {
-                    ForEach(books) { book in
+                    ForEach(filteredBooks) { book in
                         NavigationLink(destination: BookDetailView(book: book)) {
                             BookRowView(book: book)
                         }
@@ -27,6 +45,7 @@ struct BookListView: View {
                 .listStyle(.plain)
             }
         }
+        .searchable(text: $searchText, prompt: "Search books")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

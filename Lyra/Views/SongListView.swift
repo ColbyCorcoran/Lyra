@@ -33,6 +33,9 @@ struct SongListView: View {
     @State private var searchText: String = ""
     @State private var selectedSort: SortOption = .titleAZ
     @State private var showAddSongSheet: Bool = false
+    @State private var showQuickBookPicker: Bool = false
+    @State private var showQuickSetPicker: Bool = false
+    @State private var selectedSong: Song?
 
     var body: some View {
         Group {
@@ -59,6 +62,16 @@ struct SongListView: View {
         }
         .sheet(isPresented: $showAddSongSheet) {
             AddSongView()
+        }
+        .sheet(isPresented: $showQuickBookPicker) {
+            if let song = selectedSong {
+                QuickOrganizationPicker(song: song, mode: .book)
+            }
+        }
+        .sheet(isPresented: $showQuickSetPicker) {
+            if let song = selectedSong {
+                QuickOrganizationPicker(song: song, mode: .set)
+            }
         }
     }
 
@@ -94,6 +107,30 @@ struct SongListView: View {
                     }
                     .tint(.blue)
                     .disabled(true)
+                }
+                .contextMenu {
+                    Button {
+                        selectedSong = song
+                        showQuickBookPicker = true
+                    } label: {
+                        Label("Add to Book", systemImage: "folder.badge.plus")
+                    }
+
+                    Button {
+                        selectedSong = song
+                        showQuickSetPicker = true
+                    } label: {
+                        Label("Add to Set", systemImage: "calendar.badge.plus")
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive) {
+                        HapticManager.shared.swipeAction()
+                        deleteSong(song)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
                 }
             }
         }
@@ -195,18 +232,18 @@ struct EnhancedSongRowView: View {
                 }
 
                 // Badges row
-                if song.originalKey != nil || (song.capo ?? 0) > 0 {
-                    HStack(spacing: 6) {
-                        if let key = song.originalKey {
-                            KeyBadge(key: key)
-                        }
-
-                        if let capo = song.capo, capo > 0 {
-                            CapoBadge(fret: capo)
-                        }
+                HStack(spacing: 6) {
+                    if let key = song.originalKey {
+                        KeyBadge(key: key)
                     }
-                    .padding(.top, 2)
+
+                    if let capo = song.capo, capo > 0 {
+                        CapoBadge(fret: capo)
+                    }
+
+                    OrganizationBadge(song: song)
                 }
+                .padding(.top, 2)
             }
 
             Spacer()

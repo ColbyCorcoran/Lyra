@@ -50,6 +50,10 @@ struct LibraryView: View {
     // Search state
     @State private var showSearch: Bool = false
 
+    // Dropbox import state
+    @State private var showDropboxImport: Bool = false
+    @StateObject private var dropboxManager = DropboxManager.shared
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -97,11 +101,30 @@ struct LibraryView: View {
                     }
                 }
 
-                // Import button (Songs only)
+                // Import menu (Songs only)
                 if selectedSection == .allSongs {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            showFileImporter = true
+                        Menu {
+                            Button {
+                                showFileImporter = true
+                            } label: {
+                                Label("Import from Files", systemImage: "folder")
+                            }
+
+                            if dropboxManager.isAuthenticated {
+                                Button {
+                                    showDropboxImport = true
+                                } label: {
+                                    Label("Import from Dropbox", systemImage: "cloud")
+                                }
+                            } else {
+                                Button {
+                                    // Show connection message or navigate to settings
+                                    showDropboxImport = true
+                                } label: {
+                                    Label("Connect Dropbox...", systemImage: "cloud")
+                                }
+                            }
                         } label: {
                             Label("Import", systemImage: "square.and.arrow.down")
                         }
@@ -143,6 +166,13 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $showSearch) {
                 LibrarySearchView()
+            }
+            .sheet(isPresented: $showDropboxImport) {
+                if dropboxManager.isAuthenticated {
+                    DropboxImportView()
+                } else {
+                    DropboxAuthView()
+                }
             }
             .fileImporter(
                 isPresented: $showFileImporter,

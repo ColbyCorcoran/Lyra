@@ -15,6 +15,8 @@ struct SettingsView: View {
 
     @State private var showLibraryStats: Bool = false
     @State private var showOnSongImport: Bool = false
+    @State private var showDropboxAuth: Bool = false
+    @StateObject private var dropboxManager = DropboxManager.shared
 
     var body: some View {
         NavigationStack {
@@ -48,6 +50,60 @@ struct SettingsView: View {
                     }
                 } header: {
                     Label("Library", systemImage: "books.vertical")
+                }
+
+                // Cloud Services Section
+                Section {
+                    Button {
+                        showDropboxAuth = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            // Dropbox icon
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.blue)
+                                    .frame(width: 32, height: 32)
+
+                                Image(systemName: "cloud.fill")
+                                    .foregroundStyle(.white)
+                                    .font(.system(size: 16))
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Dropbox")
+                                    .font(.body)
+
+                                if dropboxManager.isAuthenticated {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.caption2)
+                                            .foregroundStyle(.green)
+
+                                        Text("Connected")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                } else {
+                                    Text("Not connected")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                    .accessibilityLabel(dropboxManager.isAuthenticated ? "Dropbox: Connected" : "Dropbox: Not connected")
+                    .accessibilityHint("Tap to manage Dropbox connection")
+                } header: {
+                    Label("Cloud Services", systemImage: "cloud")
+                } footer: {
+                    Text("Connect cloud storage services to import your chord charts and song files.")
                 }
 
                 // Display Defaults Section
@@ -225,6 +281,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showOnSongImport) {
                 OnSongImportView()
+            }
+            .sheet(isPresented: $showDropboxAuth) {
+                DropboxAuthView()
             }
         }
     }

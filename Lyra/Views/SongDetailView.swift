@@ -16,6 +16,7 @@ struct SongDetailView: View {
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
     @State private var showError: Bool = false
+    @State private var showAttachments: Bool = false
 
     var body: some View {
         ScrollView {
@@ -71,6 +72,67 @@ struct SongDetailView: View {
                 }
                 .padding(.horizontal)
 
+                // Attachments section
+                if let attachments = song.attachments, !attachments.isEmpty {
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Attachments")
+                                .font(.headline)
+
+                            Spacer()
+
+                            Button {
+                                showAttachments = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text("View All")
+                                        .font(.subheadline)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                }
+                            }
+                        }
+
+                        ForEach(attachments.prefix(3)) { attachment in
+                            HStack(spacing: 12) {
+                                Image(systemName: attachment.fileIcon)
+                                    .foregroundStyle(attachmentIconColor(attachment))
+                                    .frame(width: 24)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 6) {
+                                        Text(attachment.displayName)
+                                            .font(.subheadline)
+                                            .lineLimit(1)
+
+                                        if attachment.isDefault {
+                                            Image(systemName: "star.fill")
+                                                .font(.caption2)
+                                                .foregroundStyle(.yellow)
+                                        }
+                                    }
+
+                                    Text(attachment.formattedFileSize)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+                            }
+                            .padding(.vertical, 4)
+                        }
+
+                        if attachments.count > 3 {
+                            Text("+ \(attachments.count - 3) more")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+
                 Spacer()
             }
             .padding(.vertical)
@@ -120,12 +182,27 @@ struct SongDetailView: View {
         .sheet(item: $shareItem) { item in
             ShareSheet(activityItems: item.items)
         }
+        .sheet(isPresented: $showAttachments) {
+            AttachmentsView(song: song)
+        }
         .alert("Export Error", isPresented: $showError) {
             Button("OK", role: .cancel) {}
         } message: {
             if let error = exportError {
                 Text(error.localizedDescription)
             }
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private func attachmentIconColor(_ attachment: Attachment) -> Color {
+        switch attachment.fileCategory {
+        case .pdf: return .red
+        case .image: return .blue
+        case .audio: return .purple
+        case .video: return .orange
+        case .other: return .gray
         }
     }
 

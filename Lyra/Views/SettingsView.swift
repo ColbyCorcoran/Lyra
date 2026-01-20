@@ -19,6 +19,7 @@ struct SettingsView: View {
     @State private var showDropboxAuth: Bool = false
     @State private var showGoogleDriveAuth: Bool = false
     @State private var showExportLibrary: Bool = false
+    @State private var showAttachmentStorage: Bool = false
     @State private var shareItem: ShareItem?
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
@@ -75,6 +76,19 @@ struct SettingsView: View {
                     } label: {
                         HStack {
                             Label("Export Library", systemImage: "square.and.arrow.up.on.square")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+
+                    Button {
+                        showAttachmentStorage = true
+                    } label: {
+                        HStack {
+                            Label("Attachment Storage", systemImage: "externaldrive")
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption)
@@ -380,6 +394,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showExportLibrary) {
                 LibraryExportView()
+            }
+            .sheet(isPresented: $showAttachmentStorage) {
+                AttachmentStorageView()
             }
             .sheet(item: $shareItem) { item in
                 ShareSheet(activityItems: item.items)

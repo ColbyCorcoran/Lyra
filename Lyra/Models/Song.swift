@@ -68,6 +68,12 @@ final class Song {
     var importSource: String? // e.g., "Dropbox", "SongSelect", "Manual"
     var importedAt: Date?
     var originalFilename: String?
+    var cloudFileId: String? // Dropbox/Drive file ID for sync
+    var cloudFileModifiedDate: Date? // Last modified date from cloud
+    var cloudFilePath: String? // Full path in cloud storage
+
+    @Relationship(deleteRule: .nullify, inverse: \ImportRecord.importedSongs)
+    var importRecord: ImportRecord?
 
     // MARK: - Initializer
     init(

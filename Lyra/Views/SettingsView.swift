@@ -15,6 +15,7 @@ struct SettingsView: View {
 
     @State private var showLibraryStats: Bool = false
     @State private var showOnSongImport: Bool = false
+    @State private var showImportHistory: Bool = false
     @State private var showDropboxAuth: Bool = false
     @State private var showGoogleDriveAuth: Bool = false
     @StateObject private var dropboxManager = DropboxManager.shared
@@ -43,6 +44,19 @@ struct SettingsView: View {
                     } label: {
                         HStack {
                             Label("Import from OnSong", systemImage: "arrow.down.doc.fill")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+
+                    Button {
+                        showImportHistory = true
+                    } label: {
+                        HStack {
+                            Label("Import History", systemImage: "clock.arrow.circlepath")
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption)
@@ -336,6 +350,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showOnSongImport) {
                 OnSongImportView()
+            }
+            .sheet(isPresented: $showImportHistory) {
+                ImportHistoryView()
             }
             .sheet(isPresented: $showDropboxAuth) {
                 DropboxAuthView()

@@ -78,6 +78,12 @@ class ImportQueueManager: ObservableObject {
     var checkDuplicates: Bool = true
     var duplicateSimilarityThreshold: Double = 0.90 // 90% similarity
 
+    // Import tracking
+    var importSource: String = "Files"
+    var importMethod: String = "Bulk Import"
+    var cloudFolderPath: String?
+    private var importStartTime: Date?
+
     // MARK: - Constants
 
     static let maxBatchSize: Int = 100
@@ -126,6 +132,7 @@ class ImportQueueManager: ObservableObject {
         isImporting = true
         isCancelled = false
         currentFileIndex = 0
+        importStartTime = Date()
 
         // Get all existing songs for duplicate detection
         let existingSongs = checkDuplicates ? fetchExistingSongs(from: modelContext) : []
@@ -191,6 +198,9 @@ class ImportQueueManager: ObservableObject {
 
         isImporting = false
 
+        // Create import record
+        createImportRecord(modelContext: modelContext)
+
         // Final haptic feedback
         if isCancelled {
             HapticManager.shared.warning()
@@ -199,6 +209,45 @@ class ImportQueueManager: ObservableObject {
         } else {
             HapticManager.shared.warning()
         }
+    }
+
+    // MARK: - Import Record Creation
+
+    private func createImportRecord(modelContext: ModelContext) {
+        let duration = importStartTime.map { Date().timeIntervalSince($0) }
+
+        // Create import record
+        let record = ImportRecord(
+            importSource: importSource,
+            importMethod: importMethod,
+            totalFileCount: totalFiles,
+            successCount: importedSongs.count,
+            failedCount: failedItems.count,
+            duplicateCount: duplicateItems.count,
+            skippedCount: queue.filter { $0.status == .skipped }.count,
+            originalFilePaths: queue.map { $0.url.path },
+            fileTypes: Array(Set(queue.map { $0.url.pathExtension })),
+            cloudFolderPath: cloudFolderPath,
+            cloudSyncEnabled: cloudFolderPath != nil
+        )
+
+        record.importDuration = duration
+
+        // Add error messages
+        for item in failedItems {
+            if let error = item.error {
+                record.addError("\(item.fileName): \(error)")
+            }
+        }
+
+        // Link imported songs to record
+        for song in importedSongs {
+            record.addImportedSong(song)
+        }
+
+        // Save to database
+        modelContext.insert(record)
+        try? modelContext.save()
     }
 
     // MARK: - Duplicate Detection

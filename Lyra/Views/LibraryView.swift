@@ -58,6 +58,10 @@ struct LibraryView: View {
     @State private var showGoogleDriveImport: Bool = false
     @StateObject private var driveManager = GoogleDriveManager.shared
 
+    // Bulk import state
+    @State private var showBulkImportProgress: Bool = false
+    @StateObject private var queueManager = ImportQueueManager.shared
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -200,10 +204,13 @@ struct LibraryView: View {
                     GoogleDriveAuthView()
                 }
             }
+            .sheet(isPresented: $showBulkImportProgress) {
+                BulkImportProgressView()
+            }
             .fileImporter(
                 isPresented: $showFileImporter,
                 allowedContentTypes: ImportManager.supportedTypes,
-                allowsMultipleSelection: false
+                allowsMultipleSelection: true
             ) { result in
                 handleFileImport(result: result)
             }
@@ -313,8 +320,17 @@ struct LibraryView: View {
     private func handleFileImport(result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
-            guard let url = urls.first else { return }
-            importFile(from: url)
+            guard !urls.isEmpty else { return }
+
+            // If multiple files, use bulk import
+            if urls.count > 1 {
+                queueManager.clearQueue()
+                queueManager.addToQueue(urls: urls)
+                showBulkImportProgress = true
+            } else {
+                // Single file, use regular import
+                importFile(from: urls[0])
+            }
 
         case .failure(let error):
             showError(

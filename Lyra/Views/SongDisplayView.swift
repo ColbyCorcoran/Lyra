@@ -8,6 +8,12 @@
 
 import SwiftUI
 import SwiftData
+import PDFKit
+
+enum SongViewMode {
+    case text
+    case pdf
+}
 
 struct SongDisplayView: View {
     @Environment(\.modelContext) private var modelContext
@@ -22,11 +28,30 @@ struct SongDisplayView: View {
     @State private var isLoadingSong: Bool = false
     @State private var showQuickBookPicker: Bool = false
     @State private var showQuickSetPicker: Bool = false
+    @State private var viewMode: SongViewMode = .text
 
     init(song: Song, setEntry: SetEntry? = nil) {
         self.song = song
         self.setEntry = setEntry
         _displaySettings = State(initialValue: song.displaySettings)
+    }
+
+    // MARK: - Computed Properties
+
+    private var hasPDFAttachment: Bool {
+        song.attachments?.contains(where: { $0.fileType.lowercased() == "pdf" }) ?? false
+    }
+
+    private var pdfAttachment: Attachment? {
+        song.attachments?.first(where: { $0.fileType.lowercased() == "pdf" })
+    }
+
+    private var hasTextContent: Bool {
+        !song.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var showViewModePicker: Bool {
+        hasPDFAttachment && hasTextContent
     }
 
     var body: some View {
@@ -36,89 +61,65 @@ struct SongDisplayView: View {
                 SetContextBanner(setName: set.name, songPosition: entry.orderIndex + 1, totalSongs: set.songEntries?.count ?? 0)
             }
 
-            // Sticky Header
-            if let parsed = parsedSong {
-                SongHeaderView(parsedSong: parsed, song: song, setEntry: setEntry)
-                    .background(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
+            // View mode picker (if both PDF and text exist)
+            if showViewModePicker {
+                viewModePicker
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 8)
+                    .background(.regularMaterial)
             }
 
-            // Scrollable Content
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if isLoadingSong {
-                        // Loading state
-                        VStack(spacing: 16) {
-                            ProgressView()
-                            Text("Loading song...")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding()
-                    } else if let parsed = parsedSong {
-                        // Sections
-                        ForEach(Array(parsed.sections.enumerated()), id: \.element.id) { index, section in
-                            SongSectionView(section: section, settings: displaySettings)
-                                .padding(.horizontal)
-                                .padding(.bottom, index < parsed.sections.count - 1 ? 32 : 16)
-                        }
-                    } else {
-                        // Empty state
-                        VStack(spacing: 16) {
-                            Image(systemName: "music.note")
-                                .font(.system(size: 48))
-                                .foregroundStyle(.secondary)
-
-                            Text("No content available")
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding()
-                    }
-                }
-                .padding(.top, 20)
-                .padding(.bottom, 20)
+            // Content based on view mode
+            if viewMode == .pdf, let attachment = pdfAttachment {
+                pdfContentView(attachment: attachment)
+            } else {
+                textContentView
             }
         }
         .background(Color(.systemBackground))
         .navigationTitle(song.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Edit button
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    // TODO: Edit song functionality
-                } label: {
-                    Image(systemName: "pencil")
+            // Edit button (only for text view)
+            if viewMode == .text {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        // TODO: Edit song functionality
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .disabled(true)
+                    .accessibilityLabel("Edit song")
+                    .accessibilityHint("Opens song editor. Currently unavailable.")
                 }
-                .disabled(true)
-                .accessibilityLabel("Edit song")
-                .accessibilityHint("Opens song editor. Currently unavailable.")
             }
 
-            // Transpose button
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    // TODO: Transpose functionality
-                } label: {
-                    Image(systemName: "arrow.up.arrow.down")
+            // Transpose button (only for text view)
+            if viewMode == .text {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        // TODO: Transpose functionality
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
+                    .disabled(true)
+                    .accessibilityLabel("Transpose")
+                    .accessibilityHint("Transpose song to a different key. Currently unavailable.")
                 }
-                .disabled(true)
-                .accessibilityLabel("Transpose")
-                .accessibilityHint("Transpose song to a different key. Currently unavailable.")
             }
 
-            // Display Settings button
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showDisplaySettings = true
-                } label: {
-                    Image(systemName: "textformat.size")
+            // Display Settings button (only for text view)
+            if viewMode == .text {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showDisplaySettings = true
+                    } label: {
+                        Image(systemName: "textformat.size")
+                    }
+                    .accessibilityLabel("Display settings")
+                    .accessibilityHint("Adjust font size, colors, and spacing")
                 }
-                .accessibilityLabel("Display settings")
-                .accessibilityHint("Adjust font size, colors, and spacing")
             }
 
             // Organization menu
@@ -221,6 +222,10 @@ struct SongDisplayView: View {
         .onAppear {
             parseSong()
             trackSongView()
+            // Default to PDF view if no text content exists
+            if hasPDFAttachment && !hasTextContent {
+                viewMode = .pdf
+            }
         }
         .onChange(of: song.content) { _, _ in
             parseSong()
@@ -228,6 +233,141 @@ struct SongDisplayView: View {
         .onChange(of: displaySettings) { _, _ in
             // Update when display settings change
             fontSize = displaySettings.fontSize
+        }
+    }
+
+    // MARK: - View Components
+
+    @ViewBuilder
+    private var viewModePicker: some View {
+        Picker("View Mode", selection: $viewMode) {
+            if hasTextContent {
+                Label("Text", systemImage: "text.alignleft")
+                    .tag(SongViewMode.text)
+            }
+            if hasPDFAttachment {
+                Label("PDF", systemImage: "doc.fill")
+                    .tag(SongViewMode.pdf)
+            }
+        }
+        .pickerStyle(.segmented)
+        .accessibilityLabel("View mode")
+        .accessibilityHint("Switch between text and PDF views")
+    }
+
+    @ViewBuilder
+    private func pdfContentView(attachment: Attachment) -> some View {
+        Group {
+            if let pdfData = attachment.fileData ?? loadPDFData(from: attachment),
+               let pdfDocument = PDFDocument(data: pdfData) {
+                PDFViewerView(pdfDocument: pdfDocument, filename: attachment.filename)
+            } else {
+                // PDF loading error
+                VStack(spacing: 16) {
+                    Image(systemName: "doc.badge.exclamationmark")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.red)
+
+                    Text("Unable to load PDF")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    Text("The PDF file may be corrupted or missing.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+
+                    if hasTextContent {
+                        Button("View Text Version") {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                viewMode = .text
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var textContentView: some View {
+        VStack(spacing: 0) {
+            // Sticky Header
+            if let parsed = parsedSong {
+                SongHeaderView(parsedSong: parsed, song: song, setEntry: setEntry)
+                    .background(Color(.systemBackground))
+                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
+            }
+
+            // Scrollable Content
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if isLoadingSong {
+                        // Loading state
+                        VStack(spacing: 16) {
+                            ProgressView()
+                            Text("Loading song...")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding()
+                    } else if let parsed = parsedSong {
+                        // Sections
+                        ForEach(Array(parsed.sections.enumerated()), id: \.element.id) { index, section in
+                            SongSectionView(section: section, settings: displaySettings)
+                                .padding(.horizontal)
+                                .padding(.bottom, index < parsed.sections.count - 1 ? 32 : 16)
+                        }
+                    } else {
+                        // Empty state
+                        VStack(spacing: 16) {
+                            Image(systemName: "music.note")
+                                .font(.system(size: 48))
+                                .foregroundStyle(.secondary)
+
+                            Text("No content available")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+
+                            if hasPDFAttachment {
+                                Button("View PDF") {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        viewMode = .pdf
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                .padding(.top, 8)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding()
+                    }
+                }
+                .padding(.top, 20)
+                .padding(.bottom, 20)
+            }
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private func loadPDFData(from attachment: Attachment) -> Data? {
+        guard let filePath = attachment.filePath else { return nil }
+
+        // Construct full path in documents directory
+        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileURL = documentsDirectory.appendingPathComponent(filePath)
+
+        do {
+            return try Data(contentsOf: fileURL)
+        } catch {
+            print("❌ Error loading PDF from \(filePath): \(error.localizedDescription)")
+            return nil
         }
     }
 

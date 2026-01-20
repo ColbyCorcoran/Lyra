@@ -61,6 +61,7 @@ class ImportManager {
     static let supportedTypes: [UTType] = [
         .plainText,           // .txt
         .text,                // Generic text
+        .pdf,                 // .pdf
         UTType(filenameExtension: "cho") ?? .text,       // .cho
         UTType(filenameExtension: "chordpro") ?? .text,  // .chordpro
         UTType(filenameExtension: "chopro") ?? .text,    // .chopro (alternative)
@@ -69,13 +70,19 @@ class ImportManager {
 
     private init() {}
 
-    /// Import a ChordPro file and create a Song
+    /// Import a ChordPro file or PDF and create a Song
     func importFile(
         from url: URL,
         to modelContext: ModelContext,
         progress: ((Double) -> Void)? = nil
     ) throws -> ImportResult {
         progress?(0.1)  // Starting
+
+        // Check if it's a PDF file
+        let fileExtension = url.pathExtension.lowercased()
+        if fileExtension == "pdf" {
+            return try importPDF(from: url, to: modelContext, progress: progress)
+        }
 
         // Start accessing security-scoped resource
         guard url.startAccessingSecurityScopedResource() else {
@@ -156,6 +163,115 @@ class ImportManager {
             song: song,
             filename: filename,
             hadParsingWarnings: hadWarnings
+        )
+    }
+
+    /// Import a PDF file and create a Song with attachment
+    func importPDF(
+        from url: URL,
+        to modelContext: ModelContext,
+        progress: ((Double) -> Void)? = nil
+    ) throws -> ImportResult {
+        progress?(0.1)  // Starting
+
+        // Start accessing security-scoped resource
+        guard url.startAccessingSecurityScopedResource() else {
+            throw ImportError.fileNotReadable
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+
+        progress?(0.3)  // File accessed
+
+        // Read PDF data
+        let pdfData: Data
+        do {
+            pdfData = try Data(contentsOf: url)
+        } catch {
+            throw ImportError.fileNotReadable
+        }
+
+        guard !pdfData.isEmpty else {
+            throw ImportError.emptyContent
+        }
+
+        let filename = url.lastPathComponent
+        let fileSize = pdfData.count
+
+        progress?(0.5)  // PDF read
+
+        // Determine storage strategy:
+        // - Small files (<5MB): Store inline in fileData
+        // - Large files (>=5MB): Save to documents directory and store path
+        let maxInlineSize = 5 * 1024 * 1024 // 5 MB
+        let attachment: Attachment
+
+        if fileSize < maxInlineSize {
+            // Store inline
+            attachment = Attachment(
+                filename: filename,
+                fileType: "pdf",
+                fileSize: fileSize
+            )
+            attachment.fileData = pdfData
+            attachment.isDefault = true
+        } else {
+            // Store in documents directory
+            let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let attachmentsDirectory = documentsDirectory.appendingPathComponent("Attachments", isDirectory: true)
+
+            // Create attachments directory if needed
+            try? FileManager.default.createDirectory(at: attachmentsDirectory, withIntermediateDirectories: true)
+
+            // Generate unique filename
+            let uniqueFilename = "\(UUID().uuidString)_\(filename)"
+            let fileURL = attachmentsDirectory.appendingPathComponent(uniqueFilename)
+
+            // Save PDF to disk
+            try pdfData.write(to: fileURL)
+
+            // Store relative path
+            attachment = Attachment(
+                filename: filename,
+                fileType: "pdf",
+                fileSize: fileSize
+            )
+            attachment.filePath = "Attachments/\(uniqueFilename)"
+            attachment.isDefault = true
+        }
+
+        progress?(0.7)  // Attachment created
+
+        // Extract title from filename
+        let title = filenameWithoutExtension(filename)
+
+        progress?(0.9)  // Creating song
+
+        // Create Song with minimal text content
+        let song = Song(
+            title: title,
+            content: "PDF attachment: \(filename)",
+            contentFormat: .plainText
+        )
+
+        // Set import metadata
+        song.importSource = "Files (PDF)"
+        song.importedAt = Date()
+        song.originalFilename = filename
+
+        // Link attachment to song
+        attachment.song = song
+
+        // Insert into SwiftData
+        modelContext.insert(song)
+        modelContext.insert(attachment)
+        try modelContext.save()
+
+        progress?(1.0)  // Complete
+
+        return ImportResult(
+            song: song,
+            filename: filename,
+            hadParsingWarnings: false
         )
     }
 

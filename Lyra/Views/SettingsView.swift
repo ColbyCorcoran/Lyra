@@ -16,9 +16,11 @@ struct SettingsView: View {
     @State private var showLibraryStats: Bool = false
     @State private var showOnSongImport: Bool = false
     @State private var showDropboxAuth: Bool = false
+    @State private var showGoogleDriveAuth: Bool = false
     @StateObject private var dropboxManager = DropboxManager.shared
+    @StateObject private var driveManager = GoogleDriveManager.shared
 
-    var body: some View {
+    var body: some View{
         NavigationStack {
             Form {
                 // Library Section
@@ -100,6 +102,59 @@ struct SettingsView: View {
                     }
                     .accessibilityLabel(dropboxManager.isAuthenticated ? "Dropbox: Connected" : "Dropbox: Not connected")
                     .accessibilityHint("Tap to manage Dropbox connection")
+
+                    Button {
+                        showGoogleDriveAuth = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            // Google Drive icon
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.blue, .green, .yellow, .red],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 32, height: 32)
+
+                                Image(systemName: "internaldrive")
+                                    .foregroundStyle(.white)
+                                    .font(.system(size: 16))
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Google Drive")
+                                    .font(.body)
+
+                                if driveManager.isAuthenticated {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.caption2)
+                                            .foregroundStyle(.green)
+
+                                        Text("Connected")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                } else {
+                                    Text("Not connected")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                    .accessibilityLabel(driveManager.isAuthenticated ? "Google Drive: Connected" : "Google Drive: Not connected")
+                    .accessibilityHint("Tap to manage Google Drive connection")
                 } header: {
                     Label("Cloud Services", systemImage: "cloud")
                 } footer: {
@@ -284,6 +339,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showDropboxAuth) {
                 DropboxAuthView()
+            }
+            .sheet(isPresented: $showGoogleDriveAuth) {
+                GoogleDriveAuthView()
             }
         }
     }

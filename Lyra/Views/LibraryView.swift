@@ -54,6 +54,10 @@ struct LibraryView: View {
     @State private var showDropboxImport: Bool = false
     @StateObject private var dropboxManager = DropboxManager.shared
 
+    // Google Drive import state
+    @State private var showGoogleDriveImport: Bool = false
+    @StateObject private var driveManager = GoogleDriveManager.shared
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -125,6 +129,21 @@ struct LibraryView: View {
                                     Label("Connect Dropbox...", systemImage: "cloud")
                                 }
                             }
+
+                            if driveManager.isAuthenticated {
+                                Button {
+                                    showGoogleDriveImport = true
+                                } label: {
+                                    Label("Import from Google Drive", systemImage: "internaldrive")
+                                }
+                            } else {
+                                Button {
+                                    // Show connection message or navigate to settings
+                                    showGoogleDriveImport = true
+                                } label: {
+                                    Label("Connect Google Drive...", systemImage: "internaldrive")
+                                }
+                            }
                         } label: {
                             Label("Import", systemImage: "square.and.arrow.down")
                         }
@@ -172,6 +191,13 @@ struct LibraryView: View {
                     DropboxImportView()
                 } else {
                     DropboxAuthView()
+                }
+            }
+            .sheet(isPresented: $showGoogleDriveImport) {
+                if driveManager.isAuthenticated {
+                    GoogleDriveImportView()
+                } else {
+                    GoogleDriveAuthView()
                 }
             }
             .fileImporter(

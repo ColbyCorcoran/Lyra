@@ -29,6 +29,7 @@
 
 import Foundation
 import Security
+import Combine
 
 // NOTE: This code assumes SwiftyDropbox is installed
 // Uncomment the following line after adding the package:

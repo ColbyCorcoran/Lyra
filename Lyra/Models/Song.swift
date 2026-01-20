@@ -72,7 +72,6 @@ final class Song {
     var cloudFileModifiedDate: Date? // Last modified date from cloud
     var cloudFilePath: String? // Full path in cloud storage
 
-    @Relationship(deleteRule: .nullify, inverse: \ImportRecord.importedSongs)
     var importRecord: ImportRecord?
 
     // MARK: - Initializer

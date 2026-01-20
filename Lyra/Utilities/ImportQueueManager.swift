@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 import SwiftUI
+import Combine
 
 /// Represents a file in the import queue
 struct ImportQueueItem: Identifiable, Equatable {
@@ -179,7 +180,7 @@ class ImportQueueManager: ObservableObject {
                 queue[index] = item
                 importedSongs.append(result.song)
 
-                HapticManager.shared.lightImpact()
+                HapticManager.shared.light()
 
             } catch {
                 item.status = .failed
@@ -187,7 +188,7 @@ class ImportQueueManager: ObservableObject {
                 queue[index] = item
                 failedItems.append(item)
 
-                HapticManager.shared.lightImpact()
+                HapticManager.shared.light()
             }
 
             progress = Double(currentFileIndex) / Double(totalFiles)

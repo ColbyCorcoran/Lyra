@@ -87,14 +87,23 @@ struct ScanProcessingView: View {
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            ForEach(Array(scannedImages.enumerated()), id: \.offset) { index, image in
+                            ForEach(scannedImages.indices, id: \.self) { index in
                                 VStack(spacing: 8) {
-                                    Image(uiImage: image)
+                                    #if canImport(UIKit)
+                                    Image(uiImage: scannedImages[index])
                                         .resizable()
                                         .scaledToFit()
                                         .frame(height: 200)
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
                                         .shadow(color: Color.black.opacity(0.2), radius: 4)
+                                    #else
+                                    Image(nsImage: scannedImages[index])
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 200)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .shadow(color: Color.black.opacity(0.2), radius: 4)
+                                    #endif
 
                                     Text("Page \(index + 1)")
                                         .font(.caption)
@@ -349,13 +358,18 @@ struct ScanProcessingView: View {
 
                 // Create PDF attachment
                 let attachment = Attachment(
-                    fileName: "scanned-\(Date().timeIntervalSince1970).pdf",
-                    fileSize: Int64(pdfData.count),
-                    mimeType: "application/pdf",
-                    data: pdfData
+                    filename: "scanned-\(Date().timeIntervalSince1970).pdf",
+                    fileType: "pdf",
+                    fileSize: pdfData.count,
+                    originalSource: "Camera Scan"
                 )
+                attachment.fileData = pdfData
+                attachment.song = song
 
-                song.attachment = attachment
+                if song.attachments == nil {
+                    song.attachments = []
+                }
+                song.attachments?.append(attachment)
                 modelContext.insert(song)
                 try modelContext.save()
 
@@ -395,13 +409,18 @@ struct ScanProcessingView: View {
         // Create PDF attachment from scanned images
         let pdfData = createPDF(from: scannedImages)
         let attachment = Attachment(
-            fileName: "scanned-\(Date().timeIntervalSince1970).pdf",
-            fileSize: Int64(pdfData.count),
-            mimeType: "application/pdf",
-            data: pdfData
+            filename: "scanned-\(Date().timeIntervalSince1970).pdf",
+            fileType: "pdf",
+            fileSize: pdfData.count,
+            originalSource: "Camera Scan"
         )
+        attachment.fileData = pdfData
+        attachment.song = song
 
-        song.attachment = attachment
+        if song.attachments == nil {
+            song.attachments = []
+        }
+        song.attachments?.append(attachment)
 
         // Insert and save
         modelContext.insert(song)

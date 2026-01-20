@@ -450,7 +450,7 @@ struct ImportRecordDetailView: View {
 
 // MARK: - Stat Row Component
 
-struct StatRow: View {
+private struct StatRow: View {
     let icon: String
     let label: String
     let value: String

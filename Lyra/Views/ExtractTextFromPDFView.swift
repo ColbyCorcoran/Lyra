@@ -380,11 +380,9 @@ struct ExtractTextFromPDFView: View {
                     from: pdfDocument,
                     useOCR: useOCR || !hasEmbeddedText,
                     pageLimit: pageLimit,
-                    progress: { progress, message in
-                        await MainActor.run {
-                            self.extractionProgress = progress
-                            self.progressMessage = message
-                        }
+                    progress: { @MainActor progress, message in
+                        self.extractionProgress = progress
+                        self.progressMessage = message
                     }
                 )
 

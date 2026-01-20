@@ -28,4 +28,8 @@ final class PerformanceSet {
         self.scheduledDate = scheduledDate
         self.isArchived = false
     }
+
+    var sortedSongEntries: [SetEntry]? {
+        songEntries?.sorted { $0.orderIndex < $1.orderIndex }
+    }
 }

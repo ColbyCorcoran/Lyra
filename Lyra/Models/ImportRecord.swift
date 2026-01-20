@@ -32,7 +32,7 @@ final class ImportRecord {
     var cloudSyncEnabled: Bool // Whether to check for updates
 
     // MARK: - Relationships
-    @Relationship(deleteRule: .nullify, inverse: \Song.importRecord)
+    @Relationship(deleteRule: .nullify)
     var importedSongs: [Song]?
 
     // MARK: - Computed Properties

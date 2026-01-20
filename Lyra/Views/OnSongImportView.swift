@@ -611,7 +611,7 @@ struct InstructionRow: View {
 
 // MARK: - Stat Row
 
-struct StatRow: View {
+private struct StatRow: View {
     let icon: String
     let label: String
     let value: String

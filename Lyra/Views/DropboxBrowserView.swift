@@ -107,28 +107,9 @@ struct DropboxBrowserView: View {
 
     @ViewBuilder
     private var breadcrumbView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(Array(pathComponents.enumerated()), id: \.offset) { index, component in
-                    if index > 0 {
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Button {
-                        navigateToIndex(index)
-                    } label: {
-                        Text(component)
-                            .font(.subheadline)
-                            .fontWeight(index == pathComponents.count - 1 ? .semibold : .regular)
-                            .foregroundStyle(index == pathComponents.count - 1 ? .primary : .blue)
-                    }
-                    .disabled(index == pathComponents.count - 1)
-                }
-            }
-        }
+        BreadcrumbsView(components: pathComponents, onNavigate: navigateToIndex)
     }
+
 
     // MARK: - File List View
 
@@ -451,6 +432,50 @@ struct FileRow: View {
         default:
             return .gray
         }
+    }
+}
+
+// MARK: - Breadcrumbs Helper View
+
+private struct BreadcrumbsView: View {
+    let components: [String]
+    let onNavigate: (Int) -> Void
+
+    private struct BreadcrumbItem: Identifiable {
+        let id = UUID()
+        let position: Int
+        let text: String
+        let isLast: Bool
+    }
+
+    var body: some View {
+        let items = components.enumerated().map { idx, text in
+            BreadcrumbItem(position: idx, text: text, isLast: idx == components.count - 1)
+        }
+
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(items) { (item: BreadcrumbItem) in
+                    if item.position > 0 {
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Button {
+                        onNavigate(item.position)
+                    } label: {
+                        Text(item.text)
+                            .font(.subheadline)
+                            .fontWeight(item.isLast ? .semibold : .regular)
+                            .foregroundStyle(item.isLast ? Color.primary : Color.blue)
+                    }
+                    .disabled(item.isLast)
+                }
+            }
+            .padding(.horizontal)
+        }
+        .frame(height: 40)
     }
 }
 

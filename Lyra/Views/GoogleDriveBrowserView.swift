@@ -129,41 +129,7 @@ struct GoogleDriveBrowserView: View {
 
     @ViewBuilder
     private var navigationBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(Array(navigationStack.enumerated()), id: \.offset) { index, item in
-                    if index > 0 {
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Button {
-                        navigateToIndex(index)
-                    } label: {
-                        HStack(spacing: 4) {
-                            if index == 0 {
-                                Image(systemName: "person")
-                                    .font(.caption)
-                            } else if index == navigationStack.count - 1 {
-                                Image(systemName: "folder.fill")
-                                    .font(.caption)
-                            }
-
-                            Text(item.name)
-                                .font(.subheadline)
-                                .fontWeight(index == navigationStack.count - 1 ? .semibold : .regular)
-                                .lineLimit(1)
-                        }
-                        .foregroundStyle(index == navigationStack.count - 1 ? .primary : .blue)
-                    }
-                    .disabled(index == navigationStack.count - 1)
-                }
-            }
-            .padding(.horizontal)
-        }
-        .frame(height: 40)
-        .background(Color(.systemGray6))
+        NavigationBarView(navigationStack: navigationStack, onNavigate: navigateToIndex)
     }
 
     // MARK: - File List View
@@ -505,6 +471,68 @@ struct GoogleDriveFileRow: View {
         case "green": return .green
         default: return .gray
         }
+    }
+}
+
+// MARK: - Navigation Bar Helper View
+
+private struct NavigationBarView: View {
+    let navigationStack: [(id: String?, name: String)]
+    let onNavigate: (Int) -> Void
+
+    private struct NavItem: Identifiable {
+        let id = UUID()
+        let position: Int
+        let name: String
+        let isFirst: Bool
+        let isLast: Bool
+    }
+
+    var body: some View {
+        let items = navigationStack.enumerated().map { idx, stackItem in
+            NavItem(
+                position: idx,
+                name: stackItem.name,
+                isFirst: idx == 0,
+                isLast: idx == navigationStack.count - 1
+            )
+        }
+
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(items) { (item: NavItem) in
+                    if item.position > 0 {
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Button {
+                        onNavigate(item.position)
+                    } label: {
+                        HStack(spacing: 4) {
+                            if item.isFirst {
+                                Image(systemName: "person")
+                                    .font(.caption)
+                            } else if item.isLast {
+                                Image(systemName: "folder.fill")
+                                    .font(.caption)
+                            }
+
+                            Text(item.name)
+                                .font(.subheadline)
+                                .fontWeight(item.isLast ? .semibold : .regular)
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(item.isLast ? Color.primary : Color.blue)
+                    }
+                    .disabled(item.isLast)
+                }
+            }
+            .padding(.horizontal)
+        }
+        .frame(height: 40)
+        .background(Color(.systemGray6))
     }
 }
 

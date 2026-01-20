@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 import ZipArchive
+import Combine
 
 @MainActor
 class ExportManager: ObservableObject {

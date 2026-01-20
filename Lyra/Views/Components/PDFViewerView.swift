@@ -7,6 +7,9 @@
 
 import SwiftUI
 import PDFKit
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct PDFViewerView: View {
     let pdfDocument: PDFDocument
@@ -200,8 +203,8 @@ struct PDFKitView: UIViewRepresentable {
             object: pdfView,
             queue: .main
         ) { _ in
-            if let page = pdfView.currentPage,
-               let pageIndex = document.index(for: page) {
+            if let page = pdfView.currentPage {
+                let pageIndex = document.index(for: page)
                 DispatchQueue.main.async {
                     currentPage = pageIndex
                 }
@@ -223,15 +226,30 @@ struct PDFKitView: UIViewRepresentable {
         }
 
         // Update current page if changed externally
-        if let currentPDFPage = pdfView.currentPage,
-           let currentIndex = document.index(for: currentPDFPage),
-           currentIndex != currentPage {
-            if let targetPage = document.page(at: currentPage) {
-                pdfView.go(to: targetPage)
+        if let currentPDFPage = pdfView.currentPage {
+            let currentIndex = document.index(for: currentPDFPage)
+            if currentIndex != currentPage {
+                if let targetPage = document.page(at: currentPage) {
+                    pdfView.go(to: targetPage)
+                }
             }
         }
     }
 }
+
+// MARK: - Share Sheet
+
+#if canImport(UIKit)
+private struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+#endif
 
 // MARK: - Preview
 

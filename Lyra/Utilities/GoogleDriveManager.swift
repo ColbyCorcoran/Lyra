@@ -22,6 +22,13 @@
 
 import Foundation
 import Security
+import Combine
+#if canImport(UIKit)
+import UIKit
+typealias PlatformViewController = UIViewController
+#else
+typealias PlatformViewController = NSObject
+#endif
 
 // NOTE: This code assumes GoogleSignIn and GoogleAPIClientForREST are installed
 // Uncomment the following lines after adding the packages:
@@ -157,7 +164,7 @@ class GoogleDriveManager: ObservableObject {
     }
 
     /// Start OAuth authentication flow
-    func authenticate(presentingViewController: UIViewController) {
+    func authenticate(presentingViewController: PlatformViewController) {
         // TODO: Uncomment after adding GoogleSignIn
         /*
         let scopes = [

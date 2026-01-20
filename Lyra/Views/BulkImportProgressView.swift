@@ -686,7 +686,7 @@ struct QuickAddToBookView: View {
                         Picker("Select Book", selection: $selectedBook) {
                             Text("Select a book").tag(nil as Book?)
                             ForEach(books) { book in
-                                Text(book.title).tag(book as Book?)
+                                Text(book.name).tag(book as Book?)
                             }
                         }
                     }
@@ -730,7 +730,7 @@ struct QuickAddToBookView: View {
         let book: Book
 
         if createNew {
-            book = Book(title: newBookName)
+            book = Book(name: newBookName)
             modelContext.insert(book)
         } else {
             guard let selectedBook else { return }
@@ -738,7 +738,10 @@ struct QuickAddToBookView: View {
         }
 
         for song in songs {
-            book.songs.append(song)
+            if book.songs == nil {
+                book.songs = []
+            }
+            book.songs?.append(song)
         }
 
         try? modelContext.save()
@@ -794,18 +797,22 @@ struct QuickCreateSetView: View {
 
     private func createSet() {
         let performanceSet = PerformanceSet(
-            title: setName,
-            date: setDate
+            name: setName,
+            scheduledDate: setDate
         )
 
         modelContext.insert(performanceSet)
 
         for (index, song) in songs.enumerated() {
-            let setItem = SetItem(
+            let setEntry = SetEntry(
                 song: song,
-                order: index
+                orderIndex: index
             )
-            performanceSet.items.append(setItem)
+            modelContext.insert(setEntry)
+            if performanceSet.songEntries == nil {
+                performanceSet.songEntries = []
+            }
+            performanceSet.songEntries?.append(setEntry)
         }
 
         try? modelContext.save()

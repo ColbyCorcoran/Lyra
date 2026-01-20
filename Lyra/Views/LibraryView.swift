@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+import AVFoundation
 
 enum LibrarySection: String, CaseIterable {
     case allSongs = "All Songs"
@@ -487,8 +488,6 @@ struct LibraryView: View {
     // MARK: - Scanner Handling
 
     private func checkCameraPermissionAndScan() {
-        import AVFoundation
-
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             // Permission already granted

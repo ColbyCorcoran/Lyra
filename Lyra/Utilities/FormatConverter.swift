@@ -7,6 +7,11 @@
 
 import Foundation
 import UniformTypeIdentifiers
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 /// Errors that can occur during format conversion
 enum FormatConversionError: LocalizedError {
@@ -109,10 +114,12 @@ class FormatConverter {
 
         // Check for inline chords [C]word
         let inlineChordPattern = #"\[[A-G][#b]?(?:m|maj|dim|aug|sus)?[0-9]?\]"#
-        if content.range(of: inlineChordPattern, options: .regularExpression) != nil {
-            let matches = content.matches(of: inlineChordPattern, options: .regularExpression)
-            let confidence = min(Double(matches) / Double(lines.count), 1.0)
-            return DetectedFormat(type: .inlineChords, confidence: confidence)
+        if let regex = try? NSRegularExpression(pattern: inlineChordPattern, options: []) {
+            let matches = regex.numberOfMatches(in: content, options: [], range: NSRange(content.startIndex..., in: content))
+            if matches > 0 {
+                let confidence = min(Double(matches) / Double(lines.count), 1.0)
+                return DetectedFormat(type: .inlineChords, confidence: confidence)
+            }
         }
 
         // Check for chords over lyrics
@@ -134,13 +141,24 @@ class FormatConverter {
     // MARK: - RTF Conversion
 
     func convertRTFToChordPro(from url: URL) throws -> String {
+        #if canImport(UIKit)
         guard let attributedString = try? NSAttributedString(
             url: url,
-            options: [.documentType: NSAttributedString.DocumentType.rtf],
+            options: [.documentType: NSAttributedString.DocumentType.rtf as Any],
             documentAttributes: nil
         ) else {
             throw FormatConversionError.unableToReadFile
         }
+        #elseif canImport(AppKit)
+        guard let attributedString = try? NSAttributedString(
+            url: url,
+            documentAttributes: nil
+        ) else {
+            throw FormatConversionError.unableToReadFile
+        }
+        #else
+        throw FormatConversionError.unableToReadFile
+        #endif
 
         let plainText = attributedString.string
         return try convertTextToChordPro(plainText)
@@ -156,14 +174,15 @@ class FormatConverter {
 
         // For .doc (older binary format), try reading as RTF or plain text
         // This is a best-effort approach
+        #if canImport(UIKit) || canImport(AppKit)
         if let attributedString = try? NSAttributedString(
             url: url,
-            options: [:],
             documentAttributes: nil
         ) {
             let plainText = attributedString.string
             return try convertTextToChordPro(plainText)
         }
+        #endif
 
         throw FormatConversionError.unableToReadFile
     }
@@ -171,21 +190,23 @@ class FormatConverter {
     private func convertDocxToChordPro(from url: URL) throws -> String {
         // .docx is a ZIP file containing XML files
         // The main content is in word/document.xml
-        // For simplicity, we'll extract text using NSAttributedString
-        guard let attributedString = try? NSAttributedString(
-            url: url,
-            options: [.documentType: NSAttributedString.DocumentType.officeOpenXML],
-            documentAttributes: nil
-        ) else {
-            // Fallback: try to read as plain text
-            if let content = try? String(contentsOf: url, encoding: .utf8) {
-                return try convertTextToChordPro(content)
+        // Note: NSAttributedString doesn't support .docx on iOS
+        // This is a simplified fallback that attempts to read as plain text
+
+        // Try to read as plain text (won't preserve formatting)
+        if let content = try? String(contentsOf: url, encoding: .utf8) {
+            // Clean up XML if present
+            if content.contains("<?xml") {
+                // Extract text between XML tags (very basic)
+                let cleanedContent = content.replacingOccurrences(of: "<[^>]+>", with: "\n", options: .regularExpression)
+                    .replacingOccurrences(of: "\n\n+", with: "\n\n", options: .regularExpression)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                return try convertTextToChordPro(cleanedContent)
             }
-            throw FormatConversionError.unableToReadFile
+            return try convertTextToChordPro(content)
         }
 
-        let plainText = attributedString.string
-        return try convertTextToChordPro(plainText)
+        throw FormatConversionError.unableToReadFile
     }
 
     // MARK: - OpenSong XML Conversion

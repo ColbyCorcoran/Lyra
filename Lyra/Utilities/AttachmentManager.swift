@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 import UIKit
 import PDFKit
+import Combine
 
 @MainActor
 class AttachmentManager: ObservableObject {

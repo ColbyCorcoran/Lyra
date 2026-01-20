@@ -863,7 +863,7 @@ class PDFExporter {
                 withAttributes: entryAttributes
             )
 
-            currentY += entryAttributes[.font] as! UIFont pointSize + 15
+            currentY += (entryAttributes[.font] as! UIFont).pointSize + 15
             currentPage += 1
         }
 

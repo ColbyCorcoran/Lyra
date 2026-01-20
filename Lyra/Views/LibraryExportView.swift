@@ -8,6 +8,10 @@
 import SwiftUI
 import SwiftData
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 struct LibraryExportView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -27,155 +31,11 @@ struct LibraryExportView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Library Summary
-                Section {
-                    HStack {
-                        Image(systemName: "music.note")
-                            .foregroundStyle(.blue)
-                        Text("Songs")
-                        Spacer()
-                        Text("\(songs.count)")
-                            .foregroundStyle(.secondary)
-                    }
-
-                    HStack {
-                        Image(systemName: "book")
-                            .foregroundStyle(.blue)
-                        Text("Books")
-                        Spacer()
-                        Text("\(books.count)")
-                            .foregroundStyle(.secondary)
-                    }
-
-                    HStack {
-                        Image(systemName: "list.bullet.rectangle")
-                            .foregroundStyle(.blue)
-                        Text("Sets")
-                        Spacer()
-                        Text("\(sets.count)")
-                            .foregroundStyle(.secondary)
-                    }
-                } header: {
-                    Text("Library Contents")
-                } footer: {
-                    Text("All items will be exported and packaged as a compressed archive")
-                }
-
-                // Format Selection
-                Section {
-                    ForEach(ExportManager.ExportFormat.allCases, id: \.self) { format in
-                        Button {
-                            selectedFormat = format
-                        } label: {
-                            HStack {
-                                Image(systemName: format.icon)
-                                    .foregroundStyle(selectedFormat == format ? .blue : .primary)
-                                    .frame(width: 30)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(format.rawValue)
-                                        .foregroundStyle(selectedFormat == format ? .blue : .primary)
-                                        .fontWeight(selectedFormat == format ? .semibold : .regular)
-
-                                    Text(format.description)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Spacer()
-
-                                if selectedFormat == format {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.blue)
-                                }
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Export Format")
-                }
-
-                // Export Info
-                Section {
-                    HStack {
-                        Image(systemName: "archivebox")
-                            .foregroundStyle(.blue)
-                        Text("Archive Type")
-                        Spacer()
-                        Text("ZIP")
-                            .foregroundStyle(.secondary)
-                    }
-
-                    HStack {
-                        Image(systemName: "folder.fill")
-                            .foregroundStyle(.blue)
-                        Text("Structure")
-                        Spacer()
-                        Text("Songs / Books / Sets")
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
-                    }
-
-                    HStack {
-                        Image(systemName: "doc.text")
-                            .foregroundStyle(.blue)
-                        Text("Includes")
-                        Spacer()
-                        Text("README.txt")
-                            .foregroundStyle(.secondary)
-                    }
-                } header: {
-                    Text("Archive Details")
-                }
-
-                // Export Button
-                if !isExporting {
-                    Section {
-                        Button {
-                            startExport()
-                        } label: {
-                            HStack {
-                                Spacer()
-                                Label("Export Library", systemImage: "arrow.down.doc.fill")
-                                    .fontWeight(.semibold)
-                                Spacer()
-                            }
-                        }
-                        .disabled(songs.isEmpty && books.isEmpty && sets.isEmpty)
-                    }
-                } else {
-                    Section {
-                        VStack(spacing: 16) {
-                            ProgressView(value: exportProgress)
-                                .progressViewStyle(.linear)
-
-                            HStack {
-                                ProgressView()
-                                    .controlSize(.small)
-
-                                Text(exportStatus)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    } header: {
-                        Text("Exporting...")
-                    }
-                }
-
-                // Warning if empty
-                if songs.isEmpty && books.isEmpty && sets.isEmpty {
-                    Section {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle")
-                                .foregroundStyle(.orange)
-                            Text("Your library is empty. Add songs, books, or sets before exporting.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
+                librarySummarySection
+                formatSelectionSection
+                archiveDetailsSection
+                exportButtonSection
+                emptyLibraryWarningSection
             }
             .navigationTitle("Export Library")
             .navigationBarTitleDisplayMode(.inline)
@@ -195,6 +55,168 @@ struct LibraryExportView: View {
             } message: {
                 if let error = exportError {
                     Text(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    // MARK: - View Components
+
+    @ViewBuilder
+    private var librarySummarySection: some View {
+        Section {
+            HStack {
+                Image(systemName: "music.note")
+                    .foregroundStyle(.blue)
+                Text("Songs")
+                Spacer()
+                Text("\(songs.count)")
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack {
+                Image(systemName: "book")
+                    .foregroundStyle(.blue)
+                Text("Books")
+                Spacer()
+                Text("\(books.count)")
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack {
+                Image(systemName: "list.bullet.rectangle")
+                    .foregroundStyle(.blue)
+                Text("Sets")
+                Spacer()
+                Text("\(sets.count)")
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Library Contents")
+        } footer: {
+            Text("All items will be exported and packaged as a compressed archive")
+        }
+    }
+
+    @ViewBuilder
+    private var formatSelectionSection: some View {
+        Section {
+            ForEach(ExportManager.ExportFormat.allCases, id: \.self) { format in
+                Button {
+                    selectedFormat = format
+                } label: {
+                    HStack {
+                        Image(systemName: format.icon)
+                            .foregroundStyle(selectedFormat == format ? .blue : .primary)
+                            .frame(width: 30)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(format.rawValue)
+                                .foregroundStyle(selectedFormat == format ? .blue : .primary)
+                                .fontWeight(selectedFormat == format ? .semibold : .regular)
+
+                            Text(format.description)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        if selectedFormat == format {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Export Format")
+        }
+    }
+
+    @ViewBuilder
+    private var archiveDetailsSection: some View {
+        Section {
+            HStack {
+                Image(systemName: "archivebox")
+                    .foregroundStyle(.blue)
+                Text("Archive Type")
+                Spacer()
+                Text("ZIP")
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack {
+                Image(systemName: "folder.fill")
+                    .foregroundStyle(.blue)
+                Text("Structure")
+                Spacer()
+                Text("Songs / Books / Sets")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+            }
+
+            HStack {
+                Image(systemName: "doc.text")
+                    .foregroundStyle(.blue)
+                Text("Includes")
+                Spacer()
+                Text("README.txt")
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Archive Details")
+        }
+    }
+
+    @ViewBuilder
+    private var exportButtonSection: some View {
+        if !isExporting {
+            Section {
+                Button {
+                    startExport()
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label("Export Library", systemImage: "arrow.down.doc.fill")
+                            .fontWeight(.semibold)
+                        Spacer()
+                    }
+                }
+                .disabled(songs.isEmpty && books.isEmpty && sets.isEmpty)
+            }
+        } else {
+            Section {
+                VStack(spacing: 16) {
+                    ProgressView(value: exportProgress)
+                        .progressViewStyle(.linear)
+
+                    HStack {
+                        ProgressView()
+                            .controlSize(.small)
+
+                        Text(exportStatus)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 8)
+            } header: {
+                Text("Exporting...")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var emptyLibraryWarningSection: some View {
+        if songs.isEmpty && books.isEmpty && sets.isEmpty {
+            Section {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                    Text("Your library is empty. Add songs, books, or sets before exporting.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -269,6 +291,25 @@ struct LibraryExportView: View {
         }
     }
 }
+
+// MARK: - Share Sheet
+
+private struct ShareItem: Identifiable {
+    let id = UUID()
+    let items: [Any]
+}
+
+#if canImport(UIKit)
+private struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+#endif
 
 // MARK: - Preview
 

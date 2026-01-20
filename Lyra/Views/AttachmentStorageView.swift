@@ -295,7 +295,7 @@ struct AttachmentStorageView: View {
         isLoading = true
 
         Task {
-            await Task.sleep(nanoseconds: 100_000_000) // Small delay for UI
+            try? await Task.sleep(nanoseconds: 100_000_000) // Small delay for UI
 
             let loadedStats = attachmentManager.getStorageStats(modelContext: modelContext)
 

@@ -62,6 +62,12 @@ struct LibraryView: View {
     @State private var showBulkImportProgress: Bool = false
     @StateObject private var queueManager = ImportQueueManager.shared
 
+    // Scanner state
+    @State private var showScanner: Bool = false
+    @State private var showCameraPermission: Bool = false
+    @State private var scannedImages: [UIImage] = []
+    @State private var showScanProcessing: Bool = false
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -148,6 +154,14 @@ struct LibraryView: View {
                                     Label("Connect Google Drive...", systemImage: "internaldrive")
                                 }
                             }
+
+                            Divider()
+
+                            Button {
+                                checkCameraPermissionAndScan()
+                            } label: {
+                                Label("Scan Paper Chart", systemImage: "doc.viewfinder")
+                            }
                         } label: {
                             Label("Import", systemImage: "square.and.arrow.down")
                         }
@@ -206,6 +220,18 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $showBulkImportProgress) {
                 BulkImportProgressView()
+            }
+            .sheet(isPresented: $showScanner) {
+                DocumentScannerView { images in
+                    scannedImages = images
+                    showScanProcessing = true
+                }
+            }
+            .sheet(isPresented: $showScanProcessing) {
+                ScanProcessingView(scannedImages: scannedImages)
+            }
+            .sheet(isPresented: $showCameraPermission) {
+                CameraPermissionView()
             }
             .fileImporter(
                 isPresented: $showFileImporter,
@@ -455,6 +481,37 @@ struct LibraryView: View {
             pasteErrorMessage = "Paste failed"
             pasteRecoverySuggestion = error.localizedDescription
             showPasteError = true
+        }
+    }
+
+    // MARK: - Scanner Handling
+
+    private func checkCameraPermissionAndScan() {
+        import AVFoundation
+
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            // Permission already granted
+            showScanner = true
+
+        case .notDetermined:
+            // Request permission
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        showScanner = true
+                    } else {
+                        showCameraPermission = true
+                    }
+                }
+            }
+
+        case .denied, .restricted:
+            // Permission denied - show settings prompt
+            showCameraPermission = true
+
+        @unknown default:
+            showCameraPermission = true
         }
     }
 }

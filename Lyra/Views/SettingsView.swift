@@ -18,6 +18,11 @@ struct SettingsView: View {
     @State private var showImportHistory: Bool = false
     @State private var showDropboxAuth: Bool = false
     @State private var showGoogleDriveAuth: Bool = false
+    @State private var showExportLibrary: Bool = false
+    @State private var shareItem: ShareItem?
+    @State private var isExporting: Bool = false
+    @State private var exportError: Error?
+    @State private var showError: Bool = false
     @StateObject private var dropboxManager = DropboxManager.shared
     @StateObject private var driveManager = GoogleDriveManager.shared
 
@@ -57,6 +62,19 @@ struct SettingsView: View {
                     } label: {
                         HStack {
                             Label("Import History", systemImage: "clock.arrow.circlepath")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+
+                    Button {
+                        showExportLibrary = true
+                    } label: {
+                        HStack {
+                            Label("Export Library", systemImage: "square.and.arrow.up.on.square")
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption)
@@ -359,6 +377,19 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showGoogleDriveAuth) {
                 GoogleDriveAuthView()
+            }
+            .sheet(isPresented: $showExportLibrary) {
+                LibraryExportView()
+            }
+            .sheet(item: $shareItem) { item in
+                ShareSheet(activityItems: item.items)
+            }
+            .alert("Export Error", isPresented: $showError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                if let error = exportError {
+                    Text(error.localizedDescription)
+                }
             }
         }
     }

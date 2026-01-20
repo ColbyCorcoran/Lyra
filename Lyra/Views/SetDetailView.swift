@@ -21,6 +21,10 @@ struct SetDetailView: View {
     @State private var showOverrideEditor: Bool = false
     @State private var selectedEntry: SetEntry?
     @State private var cachedEntries: [SetEntry] = []
+    @State private var showExportOptions: Bool = false
+    @State private var shareItem: ShareItem?
+    @State private var exportError: Error?
+    @State private var showError: Bool = false
 
     private var songCount: Int {
         cachedEntries.count
@@ -188,6 +192,20 @@ struct SetDetailView: View {
 
                     Divider()
 
+                    Button {
+                        showExportOptions = true
+                    } label: {
+                        Label("Export Set", systemImage: "square.and.arrow.up")
+                    }
+
+                    Button {
+                        printSet()
+                    } label: {
+                        Label("Print Set", systemImage: "printer")
+                    }
+
+                    Divider()
+
                     Button(role: .destructive) {
                         showDeleteConfirmation = true
                     } label: {
@@ -210,6 +228,17 @@ struct SetDetailView: View {
                 SetEntryOverrideView(entry: entry, song: song)
             }
         }
+        .sheet(isPresented: $showExportOptions) {
+            ExportOptionsView(
+                exportType: .set(performanceSet),
+                onExport: { format, configuration in
+                    exportSet(format: format, configuration: configuration)
+                }
+            )
+        }
+        .sheet(item: $shareItem) { item in
+            ShareSheet(activityItems: item.items)
+        }
         .alert("Delete Set?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -217,6 +246,13 @@ struct SetDetailView: View {
             }
         } message: {
             Text("This will permanently delete \"\(performanceSet.name)\". Songs will not be deleted.")
+        }
+        .alert("Export Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let error = exportError {
+                Text(error.localizedDescription)
+            }
         }
         .onAppear {
             refreshEntries()
@@ -349,6 +385,61 @@ struct SetDetailView: View {
         }
 
         return label
+    }
+
+    // MARK: - Export Actions
+
+    private func exportSet(format: ExportManager.ExportFormat, configuration: PDFExporter.PDFConfiguration) {
+        Task {
+            do {
+                let data = try ExportManager.shared.exportSet(performanceSet, format: format, configuration: configuration)
+                let filename = "\(performanceSet.name).\(format.fileExtension)"
+
+                // Save to temporary file
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+                try data.write(to: tempURL)
+
+                // Show share sheet
+                await MainActor.run {
+                    shareItem = ShareItem(items: [tempURL])
+                    HapticManager.shared.success()
+                }
+            } catch {
+                await MainActor.run {
+                    exportError = error
+                    showError = true
+                    HapticManager.shared.operationFailed()
+                }
+            }
+        }
+    }
+
+    private func printSet() {
+        Task {
+            do {
+                let data = try ExportManager.shared.exportSet(performanceSet, format: .pdf)
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(performanceSet.name).pdf")
+                try data.write(to: tempURL)
+
+                await MainActor.run {
+                    let printController = UIPrintInteractionController.shared
+                    printController.printingItem = tempURL
+
+                    let printInfo = UIPrintInfo.printInfo()
+                    printInfo.outputType = .general
+                    printInfo.jobName = performanceSet.name
+                    printController.printInfo = printInfo
+
+                    printController.present(animated: true) { _, _, _ in }
+                }
+            } catch {
+                await MainActor.run {
+                    exportError = error
+                    showError = true
+                    HapticManager.shared.operationFailed()
+                }
+            }
+        }
     }
 }
 

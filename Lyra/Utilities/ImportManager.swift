@@ -62,10 +62,15 @@ class ImportManager {
         .plainText,           // .txt
         .text,                // Generic text
         .pdf,                 // .pdf
+        .rtf,                 // .rtf (Rich Text Format)
+        .xml,                 // .xml (OpenSong format)
+        UTType(filenameExtension: "doc") ?? .text,       // .doc (Word)
+        UTType(filenameExtension: "docx") ?? .text,      // .docx (Word)
         UTType(filenameExtension: "cho") ?? .text,       // .cho
         UTType(filenameExtension: "chordpro") ?? .text,  // .chordpro
         UTType(filenameExtension: "chopro") ?? .text,    // .chopro (alternative)
-        UTType(filenameExtension: "crd") ?? .text        // .crd (chord files)
+        UTType(filenameExtension: "crd") ?? .text,       // .crd (chord files)
+        UTType(filenameExtension: "onsong") ?? .text     // .onsong
     ]
 
     private init() {}
@@ -92,22 +97,54 @@ class ImportManager {
 
         progress?(0.3)  // File accessed
 
-        // Read file contents
+        // Try to convert to ChordPro format if needed
         let content: String
-        do {
-            content = try String(contentsOf: url, encoding: .utf8)
-        } catch {
-            // Try alternative encodings
-            if let altContent = try? String(contentsOf: url, encoding: .ascii) {
-                content = altContent
-            } else if let altContent = try? String(contentsOf: url, encoding: .isoLatin1) {
-                content = altContent
-            } else {
-                throw ImportError.invalidEncoding
+        let needsConversion = ["rtf", "doc", "docx", "xml"].contains(fileExtension)
+
+        if needsConversion {
+            // Use FormatConverter for non-standard formats
+            do {
+                content = try FormatConverter.shared.convertToChordPro(from: url)
+            } catch let conversionError as FormatConversionError {
+                // Wrap conversion error in import error
+                throw ImportError.unknownError(conversionError)
+            } catch {
+                throw ImportError.unknownError(error)
+            }
+        } else {
+            // Read file contents directly
+            do {
+                var fileContent = try String(contentsOf: url, encoding: .utf8)
+
+                // Try format conversion for plain text files
+                if fileExtension == "txt" || fileExtension == "onsong" || fileExtension == "crd" {
+                    let format = FormatConverter.shared.detectFormat(fileContent)
+
+                    // Convert if not already ChordPro
+                    if format.type != .chordPro {
+                        do {
+                            fileContent = try FormatConverter.shared.convertTextToChordPro(fileContent)
+                        } catch {
+                            // If conversion fails, use original content
+                            print("⚠️ Format conversion failed, using original content: \(error)")
+                        }
+                    }
+                }
+
+                content = fileContent
+            } catch {
+                // Try alternative encodings
+                if let altContent = try? String(contentsOf: url, encoding: .ascii) {
+                    content = altContent
+                } else if let altContent = try? String(contentsOf: url, encoding: .isoLatin1) {
+                    content = altContent
+                } else {
+                    throw ImportError.invalidEncoding
+                }
             }
         }
 
-        progress?(0.5)  // File read
+        progress?(0.5)  // File read and converted
 
         // Check for empty content
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

@@ -29,6 +29,7 @@ struct SongDisplayView: View {
     @State private var showQuickBookPicker: Bool = false
     @State private var showQuickSetPicker: Bool = false
     @State private var viewMode: SongViewMode = .text
+    @State private var showExtractText: Bool = false
 
     init(song: Song, setEntry: SetEntry? = nil) {
         self.song = song
@@ -122,6 +123,19 @@ struct SongDisplayView: View {
                 }
             }
 
+            // Extract Text button (only for PDF view)
+            if viewMode == .pdf, hasPDFAttachment {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showExtractText = true
+                    } label: {
+                        Image(systemName: "doc.text.magnifyingglass")
+                    }
+                    .accessibilityLabel("Extract text from PDF")
+                    .accessibilityHint("Convert PDF to editable text")
+                }
+            }
+
             // Organization menu
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -204,6 +218,22 @@ struct SongDisplayView: View {
         }
         .sheet(isPresented: $showQuickSetPicker) {
             QuickOrganizationPicker(song: song, mode: .set)
+        }
+        .sheet(isPresented: $showExtractText) {
+            if let attachment = pdfAttachment,
+               let pdfData = attachment.fileData ?? loadPDFData(from: attachment),
+               let pdfDocument = PDFDocument(data: pdfData) {
+                ExtractTextFromPDFView(pdfDocument: pdfDocument, song: song)
+                    .onDisappear {
+                        // Refresh song content and switch to text view if extraction was successful
+                        if hasTextContent {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                viewMode = .text
+                            }
+                            parseSong()
+                        }
+                    }
+            }
         }
         .background {
             // Keyboard shortcuts (invisible buttons)

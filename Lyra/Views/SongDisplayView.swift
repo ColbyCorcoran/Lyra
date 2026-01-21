@@ -31,6 +31,12 @@ struct SongDisplayView: View {
     @State private var showQuickSetPicker: Bool = false
     @State private var viewMode: SongViewMode = .text
     @State private var showExtractText: Bool = false
+    @State private var showAutoscrollDuration: Bool = false
+    @State private var contentHeight: CGFloat = 0
+    @State private var visibleHeight: CGFloat = 0
+    @State private var scrollOffset: CGFloat = 0
+
+    @StateObject private var autoscrollManager = AutoscrollManager()
 
     init(song: Song, setEntry: SetEntry? = nil) {
         self.song = song
@@ -173,6 +179,29 @@ struct SongDisplayView: View {
 
                     Divider()
 
+                    // Autoscroll
+                    if viewMode == .text {
+                        Section("Autoscroll") {
+                            Button {
+                                showAutoscrollDuration = true
+                            } label: {
+                                Label("Configure Autoscroll", systemImage: "timer")
+                            }
+
+                            Toggle(isOn: Binding(
+                                get: { song.autoscrollEnabled },
+                                set: { enabled in
+                                    song.autoscrollEnabled = enabled
+                                    try? modelContext.save()
+                                }
+                            )) {
+                                Label("Enable Autoscroll", systemImage: song.autoscrollEnabled ? "play.circle.fill" : "play.circle")
+                            }
+                        }
+                    }
+
+                    Divider()
+
                     // Future features
                     Section {
                         Button {
@@ -237,6 +266,9 @@ struct SongDisplayView: View {
                         }
                     }
             }
+        }
+        .sheet(isPresented: $showAutoscrollDuration) {
+            AutoscrollDurationView(song: song)
         }
         .background {
             // Keyboard shortcuts (invisible buttons)
@@ -328,61 +360,128 @@ struct SongDisplayView: View {
 
     @ViewBuilder
     private var textContentView: some View {
-        VStack(spacing: 0) {
-            // Sticky Header
-            if let parsed = parsedSong {
-                SongHeaderView(parsedSong: parsed, song: song, setEntry: setEntry)
-                    .background(Color(.systemBackground))
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
-            }
+        ZStack {
+            VStack(spacing: 0) {
+                // Sticky Header
+                if let parsed = parsedSong {
+                    SongHeaderView(parsedSong: parsed, song: song, setEntry: setEntry)
+                        .background(Color(.systemBackground))
+                        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
+                }
 
-            // Scrollable Content
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if isLoadingSong {
-                        // Loading state
-                        VStack(spacing: 16) {
-                            ProgressView()
-                            Text("Loading song...")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding()
-                    } else if let parsed = parsedSong {
-                        // Sections
-                        ForEach(Array(parsed.sections.enumerated()), id: \.element.id) { index, section in
-                            SongSectionView(section: section, settings: displaySettings)
-                                .padding(.horizontal)
-                                .padding(.bottom, index < parsed.sections.count - 1 ? 32 : 16)
-                        }
-                    } else {
-                        // Empty state
-                        VStack(spacing: 16) {
-                            Image(systemName: "music.note")
-                                .font(.system(size: 48))
-                                .foregroundStyle(.secondary)
+                // Scrollable Content with ScrollViewReader
+                ScrollViewReader { proxy in
+                    GeometryReader { geometryOuter in
+                        ScrollView {
+                            GeometryReader { geometryInner in
+                                Color.clear
+                                    .preference(key: ScrollOffsetPreferenceKey.self, value: geometryInner.frame(in: .named("scrollView")).minY)
+                            }
+                            .frame(height: 0)
 
-                            Text("No content available")
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
-
-                            if hasPDFAttachment {
-                                Button("View PDF") {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        viewMode = .pdf
+                            VStack(alignment: .leading, spacing: 0) {
+                                if isLoadingSong {
+                                    // Loading state
+                                    VStack(spacing: 16) {
+                                        ProgressView()
+                                        Text("Loading song...")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
                                     }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .padding()
+                                } else if let parsed = parsedSong {
+                                    // Sections
+                                    ForEach(Array(parsed.sections.enumerated()), id: \.element.id) { index, section in
+                                        SongSectionView(section: section, settings: displaySettings)
+                                            .padding(.horizontal)
+                                            .padding(.bottom, index < parsed.sections.count - 1 ? 32 : 16)
+                                            .id("section-\(index)")
+                                    }
+                                } else {
+                                    // Empty state
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "music.note")
+                                            .font(.system(size: 48))
+                                            .foregroundStyle(.secondary)
+
+                                        Text("No content available")
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
+
+                                        if hasPDFAttachment {
+                                            Button("View PDF") {
+                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                    viewMode = .pdf
+                                                }
+                                            }
+                                            .buttonStyle(.bordered)
+                                            .padding(.top, 8)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    .padding()
                                 }
-                                .buttonStyle(.bordered)
-                                .padding(.top, 8)
+                            }
+                            .padding(.top, 20)
+                            .padding(.bottom, 20)
+                            .id("scrollContent")
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear
+                                        .preference(key: ContentHeightPreferenceKey.self, value: geo.size.height)
+                                }
+                            )
+                        }
+                        .coordinateSpace(name: "scrollView")
+                        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
+                            scrollOffset = -value
+                            if scrollOffset > 0 {
+                                autoscrollManager.handleManualScroll()
                             }
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding()
+                        .onPreferenceChange(ContentHeightPreferenceKey.self) { height in
+                            contentHeight = height
+                            visibleHeight = geometryOuter.size.height
+                            configureAutoscroll()
+                        }
+                        .onAppear {
+                            configureAutoscroll()
+                        }
+                        .onTapGesture {
+                            autoscrollManager.handleTap()
+                        }
+                    }
+                    .onChange(of: autoscrollManager.isScrolling) { _, _ in
+                        configureAutoscrollProxy(proxy: proxy)
                     }
                 }
-                .padding(.top, 20)
-                .padding(.bottom, 20)
+            }
+
+            // Autoscroll controls overlay
+            if song.autoscrollEnabled && viewMode == .text {
+                AutoscrollControlsView(
+                    autoscrollManager: autoscrollManager,
+                    onJumpToTop: {
+                        // Handled by manager
+                    },
+                    onConfigureDuration: {
+                        showAutoscrollDuration = true
+                    }
+                )
+            }
+
+            // Autoscroll indicator
+            if song.autoscrollEnabled && viewMode == .text {
+                VStack {
+                    HStack {
+                        Spacer()
+                        AutoscrollIndicatorView(autoscrollManager: autoscrollManager)
+                            .padding(.top, 8)
+                            .padding(.trailing, 12)
+                    }
+                    Spacer()
+                }
             }
         }
     }
@@ -430,6 +529,52 @@ struct SongDisplayView: View {
         } catch {
             print("Error tracking song view: \(error)")
         }
+    }
+
+    // MARK: - Autoscroll Methods
+
+    private func configureAutoscroll() {
+        let duration = TimeInterval(song.autoscrollDuration ?? 180)
+
+        autoscrollManager.configure(
+            duration: duration,
+            contentHeight: contentHeight,
+            visibleHeight: visibleHeight,
+            onScrollToPosition: { _ in
+                // Handled by proxy in configureAutoscrollProxy
+            }
+        )
+    }
+
+    private func configureAutoscrollProxy(proxy: ScrollViewProxy) {
+        autoscrollManager.configure(
+            duration: TimeInterval(song.autoscrollDuration ?? 180),
+            contentHeight: contentHeight,
+            visibleHeight: visibleHeight,
+            onScrollToPosition: { position in
+                withAnimation(.linear(duration: 0.016)) { // 60fps
+                    proxy.scrollTo("scrollContent", anchor: UnitPoint(x: 0, y: min(1.0, position / contentHeight)))
+                }
+            }
+        )
+    }
+}
+
+// MARK: - Preference Keys
+
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+struct ContentHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 

@@ -20,6 +20,7 @@ struct SettingsView: View {
     @State private var showGoogleDriveAuth: Bool = false
     @State private var showExportLibrary: Bool = false
     @State private var showAttachmentStorage: Bool = false
+    @State private var showAutoscrollSettings: Bool = false
     @State private var shareItem: SettingsShareItem?
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
@@ -98,6 +99,26 @@ struct SettingsView: View {
                     }
                 } header: {
                     Label("Library", systemImage: "books.vertical")
+                }
+
+                // Performance Section
+                Section {
+                    Button {
+                        showAutoscrollSettings = true
+                    } label: {
+                        HStack {
+                            Label("Autoscroll Settings", systemImage: "play.circle")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                } header: {
+                    Label("Performance", systemImage: "music.note")
+                } footer: {
+                    Text("Configure autoscroll for hands-free performance")
                 }
 
                 // Cloud Services Section
@@ -397,6 +418,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showAttachmentStorage) {
                 AttachmentStorageView()
+            }
+            .sheet(isPresented: $showAutoscrollSettings) {
+                AutoscrollSettingsView()
             }
             .sheet(item: $shareItem) { (item: SettingsShareItem) in
                 SettingsShareSheet(activityItems: item.items)

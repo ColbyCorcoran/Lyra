@@ -36,6 +36,9 @@ struct SongDisplayView: View {
     @State private var showTimelineRecording: Bool = false
     @State private var showMarkers: Bool = false
     @State private var showPresets: Bool = false
+    @State private var showTranspose: Bool = false
+    @State private var temporaryTransposeSemitones: Int = 0
+    @State private var temporaryTransposePreferSharps: Bool = true
     @State private var contentHeight: CGFloat = 0
     @State private var visibleHeight: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
@@ -64,6 +67,19 @@ struct SongDisplayView: View {
 
     private var showViewModePicker: Bool {
         hasPDFAttachment && hasTextContent
+    }
+
+    /// Get displayed content (either original or temporarily transposed)
+    private var displayedContent: String {
+        guard temporaryTransposeSemitones != 0 else {
+            return song.content
+        }
+
+        return TransposeEngine.transposeContent(
+            song.content,
+            by: temporaryTransposeSemitones,
+            preferSharps: temporaryTransposePreferSharps
+        )
     }
 
     var body: some View {
@@ -110,13 +126,22 @@ struct SongDisplayView: View {
             if viewMode == .text {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        // TODO: Transpose functionality
+                        showTranspose = true
                     } label: {
-                        Image(systemName: "arrow.up.arrow.down")
+                        ZStack {
+                            Image(systemName: "arrow.up.arrow.down")
+
+                            // Show indicator if temporarily transposed
+                            if temporaryTransposeSemitones != 0 {
+                                Circle()
+                                    .fill(.blue)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 8, y: -8)
+                            }
+                        }
                     }
-                    .disabled(true)
                     .accessibilityLabel("Transpose")
-                    .accessibilityHint("Transpose song to a different key. Currently unavailable.")
+                    .accessibilityHint(temporaryTransposeSemitones != 0 ? "Currently transposed by \(temporaryTransposeSemitones) semitones" : "Transpose this song")
                 }
             }
 
@@ -313,6 +338,11 @@ struct SongDisplayView: View {
         }
         .sheet(isPresented: $showPresets) {
             AutoscrollPresetsView(song: song, autoscrollManager: autoscrollManager)
+        }
+        .sheet(isPresented: $showTranspose) {
+            TransposeView(song: song) { semitones, preferSharps, saveMode in
+                handleTransposition(semitones: semitones, preferSharps: preferSharps, saveMode: saveMode)
+            }
         }
         .background {
             // Keyboard shortcuts (invisible buttons)
@@ -551,8 +581,11 @@ struct SongDisplayView: View {
         isLoadingSong = true
 
         Task {
+            // Capture displayed content (may be transposed)
+            let contentToParse = displayedContent
+
             let parsed = await Task.detached(priority: .userInitiated) {
-                return ChordProParser.parse(song.content)
+                return ChordProParser.parse(contentToParse)
             }.value
 
             await MainActor.run {
@@ -572,6 +605,135 @@ struct SongDisplayView: View {
             try modelContext.save()
         } catch {
             print("Error tracking song view: \(error)")
+        }
+    }
+
+    // MARK: - Transposition Methods
+
+    /// Handle transposition based on save mode
+    private func handleTransposition(semitones: Int, preferSharps: Bool, saveMode: TransposeSaveMode) {
+        switch saveMode {
+        case .temporary:
+            // Apply temporary transposition (session only)
+            temporaryTransposeSemitones = semitones
+            temporaryTransposePreferSharps = preferSharps
+
+            // Update parsed song with transposed content
+            parseSong()
+
+            HapticManager.shared.success()
+
+        case .permanent:
+            // Permanently transpose the song
+            applyPermanentTransposition(semitones: semitones, preferSharps: preferSharps)
+
+        case .duplicate:
+            // Create a new song with transposed content
+            duplicateSongWithTransposition(semitones: semitones, preferSharps: preferSharps)
+        }
+    }
+
+    /// Apply permanent transposition to the song
+    private func applyPermanentTransposition(semitones: Int, preferSharps: Bool) {
+        // Preserve original key if not already set
+        if song.originalKey == nil {
+            song.originalKey = song.currentKey ?? "C"
+        }
+
+        // Transpose content
+        song.content = TransposeEngine.transposeContent(
+            song.content,
+            by: semitones,
+            preferSharps: preferSharps
+        )
+
+        // Update current key
+        let oldKey = song.currentKey ?? song.originalKey ?? "C"
+        song.currentKey = TransposeEngine.transpose(oldKey, by: semitones, preferSharps: preferSharps)
+
+        // Update capo if transposing down
+        if semitones < 0 {
+            let suggestedCapo = TransposeEngine.calculateCapo(for: semitones)
+            if suggestedCapo > 0 {
+                song.capo = suggestedCapo
+            }
+        }
+
+        // Reset temporary transposition
+        temporaryTransposeSemitones = 0
+
+        // Update timestamp
+        song.modifiedAt = Date()
+
+        // Save to database
+        do {
+            try modelContext.save()
+
+            // Reparse song
+            parseSong()
+
+            HapticManager.shared.success()
+        } catch {
+            print("Error saving transposed song: \(error)")
+            HapticManager.shared.operationFailed()
+        }
+    }
+
+    /// Create a duplicate song with transposed content
+    private func duplicateSongWithTransposition(semitones: Int, preferSharps: Bool) {
+        // Create new song
+        let newSong = Song(
+            title: song.title,
+            artist: song.artist,
+            content: TransposeEngine.transposeContent(
+                song.content,
+                by: semitones,
+                preferSharps: preferSharps
+            ),
+            contentFormat: song.contentFormat,
+            originalKey: song.originalKey ?? song.currentKey
+        )
+
+        // Copy metadata
+        newSong.album = song.album
+        newSong.year = song.year
+        newSong.copyright = song.copyright
+        newSong.ccliNumber = song.ccliNumber
+        newSong.tempo = song.tempo
+        newSong.timeSignature = song.timeSignature
+        newSong.notes = song.notes
+        newSong.tags = song.tags
+
+        // Set transposed key
+        let oldKey = song.currentKey ?? song.originalKey ?? "C"
+        newSong.currentKey = TransposeEngine.transpose(oldKey, by: semitones, preferSharps: preferSharps)
+
+        // Set capo if transposing down
+        if semitones < 0 {
+            let suggestedCapo = TransposeEngine.calculateCapo(for: semitones)
+            if suggestedCapo > 0 {
+                newSong.capo = suggestedCapo
+            }
+        }
+
+        // Copy display settings
+        if song.hasCustomDisplaySettings {
+            newSong.displaySettingsData = song.displaySettingsData
+        }
+
+        // Update title to indicate transposition
+        let transposedKey = newSong.currentKey ?? "Unknown"
+        newSong.title += " (\(transposedKey))"
+
+        // Insert into database
+        modelContext.insert(newSong)
+
+        do {
+            try modelContext.save()
+            HapticManager.shared.success()
+        } catch {
+            print("Error creating duplicate song: \(error)")
+            HapticManager.shared.operationFailed()
         }
     }
 

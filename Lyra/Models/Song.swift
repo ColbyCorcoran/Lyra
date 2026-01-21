@@ -46,6 +46,7 @@ final class Song {
     // MARK: - Performance Settings
     var autoscrollDuration: Int? // Seconds
     var autoscrollEnabled: Bool
+    var autoscrollConfigData: Data? // Encoded AdvancedAutoscrollConfig
 
     // MARK: - Display Settings
     var fontSize: Int? // Override default (deprecated - use displaySettings)

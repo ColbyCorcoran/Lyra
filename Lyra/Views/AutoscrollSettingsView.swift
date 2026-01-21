@@ -121,6 +121,63 @@ struct AutoscrollSettingsView: View {
                     Text("Tips")
                 }
 
+                // Advanced Features
+                Section {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "sparkles")
+                                .font(.title2)
+                                .foregroundStyle(.yellow)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Advanced Features")
+                                    .font(.headline)
+
+                                Text("Professional autoscroll tools available per-song")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            AdvancedFeatureRow(
+                                icon: "gauge.with.dots.needle.67percent",
+                                title: "Speed Zones",
+                                description: "Set different speeds for each section (verse, chorus, bridge)",
+                                color: .blue
+                            )
+
+                            AdvancedFeatureRow(
+                                icon: "waveform",
+                                title: "Timeline Recording",
+                                description: "Record and replay your exact scroll pattern",
+                                color: .purple
+                            )
+
+                            AdvancedFeatureRow(
+                                icon: "mappin.circle",
+                                title: "Smart Markers",
+                                description: "Auto-pause at specific points with optional auto-resume",
+                                color: .orange
+                            )
+
+                            AdvancedFeatureRow(
+                                icon: "square.stack.3d.up",
+                                title: "Presets",
+                                description: "Save complete configurations for quick access",
+                                color: .green
+                            )
+                        }
+                    }
+                    .padding(.vertical, 8)
+                } header: {
+                    Text("Professional Tools")
+                } footer: {
+                    Text("Access these features when viewing a song through the autoscroll menu. Each song can have its own configuration.")
+                }
+
                 // Performance Note
                 Section {
                     HStack(spacing: 12) {
@@ -198,6 +255,39 @@ struct TipRow: View {
                 .font(.title3)
                 .foregroundStyle(.blue)
                 .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Text(description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+// MARK: - Advanced Feature Row
+
+struct AdvancedFeatureRow: View {
+    let icon: String
+    let title: String
+    let description: String
+    let color: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.2))
+                    .frame(width: 32, height: 32)
+
+                Image(systemName: icon)
+                    .font(.caption)
+                    .foregroundStyle(color)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)

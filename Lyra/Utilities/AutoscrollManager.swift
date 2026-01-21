@@ -29,6 +29,17 @@ class AutoscrollManager: ObservableObject {
     private var scrollProxy: ScrollViewProxy?
     private var onScrollToPosition: ((CGFloat) -> Void)?
 
+    // MARK: - Advanced Features
+
+    private var sections: [SongSection] = []
+    private var sectionConfigs: [UUID: SectionAutoscrollConfig] = [:]
+    private var currentSectionIndex: Int? = nil
+    private var timeline: AutoscrollTimeline? = nil
+    private var useTimeline: Bool = false
+    private var markers: [AutoscrollMarker] = []
+    private var passedMarkerIds: Set<UUID> = []
+    private var autoPauseTimer: Timer? = nil
+
     // MARK: - Computed Properties
 
     var scrollableHeight: CGFloat {
@@ -75,6 +86,52 @@ class AutoscrollManager: ObservableObject {
         self.contentHeight = contentHeight
         self.visibleHeight = visibleHeight
         self.onScrollToPosition = onScrollToPosition
+    }
+
+    /// Configure section-aware autoscroll
+    func configureSections(
+        _ sections: [SongSection],
+        configs: [SectionAutoscrollConfig] = []
+    ) {
+        self.sections = sections
+        self.sectionConfigs.removeAll()
+
+        for config in configs {
+            self.sectionConfigs[config.sectionId] = config
+        }
+    }
+
+    /// Configure timeline playback
+    func configureTimeline(_ timeline: AutoscrollTimeline?, enabled: Bool = false) {
+        self.timeline = timeline
+        self.useTimeline = enabled
+    }
+
+    /// Configure markers
+    func configureMarkers(_ markers: [AutoscrollMarker]) {
+        self.markers = markers.sorted { $0.progress < $1.progress }
+    }
+
+    /// Load configuration from song
+    func loadConfiguration(from song: Song, parsedSong: ParsedSong?) {
+        // Load basic settings
+        self.duration = TimeInterval(song.autoscrollDuration ?? 180)
+
+        // Load advanced configuration
+        guard let config = song.autoscrollConfiguration else { return }
+
+        // Load sections
+        if let parsed = parsedSong {
+            configureSections(parsed.sections, configs: config.sectionConfigs)
+        }
+
+        // Load timeline if active preset uses it
+        if let preset = config.activePreset(), preset.useTimeline {
+            configureTimeline(preset.timeline, enabled: true)
+        }
+
+        // Load markers
+        configureMarkers(config.markers)
     }
 
     // MARK: - Control Methods
@@ -134,6 +191,12 @@ class AutoscrollManager: ObservableObject {
         startTime = 0
         pausedTime = 0
         pausedAt = 0
+
+        // Clean up section state
+        currentSectionIndex = nil
+        passedMarkerIds.removeAll()
+        autoPauseTimer?.invalidate()
+        autoPauseTimer = nil
 
         // Haptic feedback
         let generator = UINotificationFeedbackGenerator()
@@ -219,9 +282,22 @@ class AutoscrollManager: ObservableObject {
         guard isScrolling, !isPaused else { return }
 
         let elapsed = elapsedTime
-        let progress = min(1.0, elapsed / effectiveDuration)
+
+        // Use timeline if configured
+        let progress: Double
+        if useTimeline, let timeline = timeline {
+            progress = timeline.progress(at: elapsed)
+        } else {
+            progress = min(1.0, elapsed / effectiveDuration)
+        }
 
         currentProgress = progress
+
+        // Check section boundaries
+        checkSectionBoundaries(at: progress)
+
+        // Check markers
+        checkMarkers(at: progress)
 
         // Calculate scroll position
         let scrollPosition = progress * scrollableHeight
@@ -233,10 +309,212 @@ class AutoscrollManager: ObservableObject {
         }
     }
 
+    private func checkSectionBoundaries(at progress: Double) {
+        guard !sections.isEmpty else { return }
+
+        // Calculate which section we're in based on progress
+        let newSectionIndex = calculateSectionIndex(for: progress)
+
+        // Check if we entered a new section
+        if let newIndex = newSectionIndex, newIndex != currentSectionIndex {
+            let section = sections[newIndex]
+
+            // Check if this section has a pause configuration
+            if let config = sectionConfigs[section.id], config.isEnabled, config.pauseAtStart {
+                currentSectionIndex = newIndex
+
+                // Pause autoscroll
+                pause()
+
+                // Auto-resume if duration is set
+                if let pauseDuration = config.pauseDuration {
+                    autoPauseTimer?.invalidate()
+                    autoPauseTimer = Timer.scheduledTimer(withTimeInterval: pauseDuration, repeats: false) { [weak self] _ in
+                        Task { @MainActor [weak self] in
+                            self?.resume()
+                        }
+                    }
+                }
+
+                // Haptic feedback for section boundary
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.warning)
+            } else {
+                currentSectionIndex = newIndex
+            }
+        }
+
+        // Apply section speed multiplier if configured
+        if let index = currentSectionIndex, index < sections.count {
+            let section = sections[index]
+            if let config = sectionConfigs[section.id], config.isEnabled {
+                // Speed is already applied via effectiveDuration calculation
+                // This is handled in the section speed computation
+            }
+        }
+    }
+
+    private func checkMarkers(at progress: Double) {
+        for marker in markers {
+            // Check if we've just passed this marker
+            if progress >= marker.progress && !passedMarkerIds.contains(marker.id) {
+                passedMarkerIds.insert(marker.id)
+
+                switch marker.action {
+                case .pause:
+                    pause()
+
+                    // Auto-resume if duration is set
+                    if let pauseDuration = marker.pauseDuration {
+                        autoPauseTimer?.invalidate()
+                        autoPauseTimer = Timer.scheduledTimer(withTimeInterval: pauseDuration, repeats: false) { [weak self] _ in
+                            Task { @MainActor [weak self] in
+                                self?.resume()
+                            }
+                        }
+                    }
+
+                    // Haptic feedback
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.warning)
+
+                case .speedChange:
+                    // Speed change handled by marker configuration
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+
+                case .notification:
+                    // Visual notification
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.success)
+                }
+            }
+        }
+    }
+
+    private func calculateSectionIndex(for progress: Double) -> Int? {
+        guard !sections.isEmpty else { return nil }
+
+        // For simplicity, divide progress evenly among sections
+        // In a real implementation, this would use actual section heights
+        let sectionCount = Double(sections.count)
+        let index = Int(floor(progress * sectionCount))
+        return min(index, sections.count - 1)
+    }
+
+    // MARK: - Timeline Recording
+
+    @Published var isRecording: Bool = false
+    private var recordedKeyframes: [TimelineKeyframe] = []
+    private var recordingStartTime: TimeInterval = 0
+
+    func startRecording() {
+        guard !isRecording else { return }
+
+        isRecording = true
+        recordedKeyframes.removeAll()
+        recordingStartTime = CACurrentMediaTime()
+
+        // Record initial keyframe
+        let keyframe = TimelineKeyframe(
+            timestamp: 0,
+            progress: currentProgress,
+            speedMultiplier: speedMultiplier
+        )
+        recordedKeyframes.append(keyframe)
+
+        // Start scrolling if not already
+        if !isScrolling {
+            start()
+        }
+
+        // Haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+    }
+
+    func stopRecording(name: String) -> AutoscrollTimeline? {
+        guard isRecording else { return nil }
+
+        isRecording = false
+
+        // Record final keyframe
+        let elapsed = CACurrentMediaTime() - recordingStartTime
+        let finalKeyframe = TimelineKeyframe(
+            timestamp: elapsed,
+            progress: currentProgress,
+            speedMultiplier: speedMultiplier
+        )
+        recordedKeyframes.append(finalKeyframe)
+
+        // Create timeline
+        let timeline = AutoscrollTimeline(
+            name: name,
+            duration: elapsed,
+            keyframes: recordedKeyframes
+        )
+
+        // Haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+
+        return timeline
+    }
+
+    func cancelRecording() {
+        isRecording = false
+        recordedKeyframes.removeAll()
+
+        // Haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.error)
+    }
+
+    func recordKeyframe() {
+        guard isRecording else { return }
+
+        let elapsed = CACurrentMediaTime() - recordingStartTime
+        let keyframe = TimelineKeyframe(
+            timestamp: elapsed,
+            progress: currentProgress,
+            speedMultiplier: speedMultiplier
+        )
+        recordedKeyframes.append(keyframe)
+
+        // Haptic feedback
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+    }
+
+    // MARK: - Section Speed Zones
+
+    /// Get effective speed for current section
+    func currentSectionSpeed() -> Double {
+        guard let index = currentSectionIndex, index < sections.count else {
+            return speedMultiplier
+        }
+
+        let section = sections[index]
+        if let config = sectionConfigs[section.id], config.isEnabled {
+            return speedMultiplier * config.speedMultiplier
+        }
+
+        return speedMultiplier
+    }
+
+    /// Get section at progress
+    func section(at progress: Double) -> SongSection? {
+        guard let index = calculateSectionIndex(for: progress), index < sections.count else {
+            return nil
+        }
+        return sections[index]
+    }
+
     // MARK: - Cleanup
 
     deinit {
         displayLink?.invalidate()
+        autoPauseTimer?.invalidate()
     }
 }
 

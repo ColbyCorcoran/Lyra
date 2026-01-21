@@ -32,6 +32,10 @@ struct SongDisplayView: View {
     @State private var viewMode: SongViewMode = .text
     @State private var showExtractText: Bool = false
     @State private var showAutoscrollDuration: Bool = false
+    @State private var showSpeedZones: Bool = false
+    @State private var showTimelineRecording: Bool = false
+    @State private var showMarkers: Bool = false
+    @State private var showPresets: Bool = false
     @State private var contentHeight: CGFloat = 0
     @State private var visibleHeight: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
@@ -185,7 +189,7 @@ struct SongDisplayView: View {
                             Button {
                                 showAutoscrollDuration = true
                             } label: {
-                                Label("Configure Autoscroll", systemImage: "timer")
+                                Label("Configure Duration", systemImage: "timer")
                             }
 
                             Toggle(isOn: Binding(
@@ -196,6 +200,32 @@ struct SongDisplayView: View {
                                 }
                             )) {
                                 Label("Enable Autoscroll", systemImage: song.autoscrollEnabled ? "play.circle.fill" : "play.circle")
+                            }
+                        }
+
+                        Section("Advanced Autoscroll") {
+                            Button {
+                                showSpeedZones = true
+                            } label: {
+                                Label("Speed Zones", systemImage: "gauge.with.dots.needle.67percent")
+                            }
+
+                            Button {
+                                showTimelineRecording = true
+                            } label: {
+                                Label("Timeline Recording", systemImage: "waveform")
+                            }
+
+                            Button {
+                                showMarkers = true
+                            } label: {
+                                Label("Smart Markers", systemImage: "mappin.circle")
+                            }
+
+                            Button {
+                                showPresets = true
+                            } label: {
+                                Label("Presets", systemImage: "square.stack.3d.up")
                             }
                         }
                     }
@@ -269,6 +299,20 @@ struct SongDisplayView: View {
         }
         .sheet(isPresented: $showAutoscrollDuration) {
             AutoscrollDurationView(song: song)
+        }
+        .sheet(isPresented: $showSpeedZones) {
+            if let parsed = parsedSong {
+                SectionSpeedZoneEditorView(song: song, parsedSong: parsed)
+            }
+        }
+        .sheet(isPresented: $showTimelineRecording) {
+            TimelineRecordingView(song: song, autoscrollManager: autoscrollManager)
+        }
+        .sheet(isPresented: $showMarkers) {
+            AutoscrollMarkersView(song: song)
+        }
+        .sheet(isPresented: $showPresets) {
+            AutoscrollPresetsView(song: song, autoscrollManager: autoscrollManager)
         }
         .background {
             // Keyboard shortcuts (invisible buttons)
@@ -544,6 +588,9 @@ struct SongDisplayView: View {
                 // Handled by proxy in configureAutoscrollProxy
             }
         )
+
+        // Load advanced configuration (sections, timeline, markers)
+        autoscrollManager.loadConfiguration(from: song, parsedSong: parsedSong)
     }
 
     private func configureAutoscrollProxy(proxy: ScrollViewProxy) {

@@ -39,11 +39,18 @@ struct SongDisplayView: View {
     @State private var showTranspose: Bool = false
     @State private var temporaryTransposeSemitones: Int = 0
     @State private var temporaryTransposePreferSharps: Bool = true
+    @State private var showCapo: Bool = false
+    @State private var capoDisplayMode: CapoDisplayMode = .capo
     @State private var contentHeight: CGFloat = 0
     @State private var visibleHeight: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
 
     @StateObject private var autoscrollManager = AutoscrollManager()
+
+    /// Get the active capo position (from set override or song)
+    private var activeCapo: Int {
+        setEntry?.capoOverride ?? song.capo ?? 0
+    }
 
     init(song: Song, setEntry: SetEntry? = nil) {
         self.song = song
@@ -69,17 +76,29 @@ struct SongDisplayView: View {
         hasPDFAttachment && hasTextContent
     }
 
-    /// Get displayed content (either original or temporarily transposed)
+    /// Get displayed content (with transpose and/or capo applied)
     private var displayedContent: String {
-        guard temporaryTransposeSemitones != 0 else {
-            return song.content
+        var content = song.content
+
+        // Step 1: Apply transpose if active
+        if temporaryTransposeSemitones != 0 {
+            content = TransposeEngine.transposeContent(
+                content,
+                by: temporaryTransposeSemitones,
+                preferSharps: temporaryTransposePreferSharps
+            )
         }
 
-        return TransposeEngine.transposeContent(
-            song.content,
-            by: temporaryTransposeSemitones,
-            preferSharps: temporaryTransposePreferSharps
-        )
+        // Step 2: Apply capo chords if in capo display mode
+        if capoDisplayMode == .capo && activeCapo > 0 {
+            content = CapoEngine.capoContent(
+                content,
+                capoFret: activeCapo,
+                preferSharps: temporaryTransposePreferSharps
+            )
+        }
+
+        return content
     }
 
     var body: some View {
@@ -96,6 +115,14 @@ struct SongDisplayView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 8)
                     .background(.regularMaterial)
+            }
+
+            // Capo badge (when capo is active)
+            if activeCapo > 0 && viewMode == .text {
+                capoBadge
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .background(Color.orange.opacity(0.1))
             }
 
             // Content based on view mode
@@ -142,6 +169,29 @@ struct SongDisplayView: View {
                     }
                     .accessibilityLabel("Transpose")
                     .accessibilityHint(temporaryTransposeSemitones != 0 ? "Currently transposed by \(temporaryTransposeSemitones) semitones" : "Transpose this song")
+                }
+            }
+
+            // Capo button (only for text view)
+            if viewMode == .text {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showCapo = true
+                    } label: {
+                        ZStack {
+                            Image(systemName: "guitars")
+
+                            // Show indicator if capo is active
+                            if activeCapo > 0 {
+                                Circle()
+                                    .fill(.orange)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 8, y: -8)
+                            }
+                        }
+                    }
+                    .accessibilityLabel("Capo")
+                    .accessibilityHint(activeCapo > 0 ? "Capo on fret \(activeCapo)" : "Set capo position")
                 }
             }
 
@@ -344,6 +394,11 @@ struct SongDisplayView: View {
                 handleTransposition(semitones: semitones, preferSharps: preferSharps, saveMode: saveMode)
             }
         }
+        .sheet(isPresented: $showCapo) {
+            CapoView(song: song, setEntry: setEntry) { capoFret in
+                handleCapoChange(capoFret: capoFret)
+            }
+        }
         .background {
             // Keyboard shortcuts (invisible buttons)
             Button("") {
@@ -392,6 +447,54 @@ struct SongDisplayView: View {
         .pickerStyle(.segmented)
         .accessibilityLabel("View mode")
         .accessibilityHint("Switch between text and PDF views")
+    }
+
+    private var capoBadge: some View {
+        HStack(spacing: 12) {
+            // Capo indicator
+            HStack(spacing: 6) {
+                Image(systemName: "guitars")
+                    .foregroundStyle(.orange)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Capo Fret \(activeCapo)")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    if let key = song.currentKey {
+                        let playKey = CapoEngine.writtenKey(soundingKey: key, capoFret: activeCapo) ?? "?"
+                        Text("Play \(playKey) shapes")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Display mode toggle
+            Menu {
+                Picker("Display", selection: $capoDisplayMode) {
+                    ForEach(CapoDisplayMode.allCases) { mode in
+                        Label(mode.rawValue, systemImage: mode.icon)
+                            .tag(mode)
+                    }
+                }
+                .onChange(of: capoDisplayMode) { _, _ in
+                    parseSong()
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: capoDisplayMode.icon)
+                    Text(capoDisplayMode == .actual ? "Actual" : capoDisplayMode == .capo ? "Capo" : "Both")
+                        .font(.caption)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color(.systemGray5))
+                .clipShape(Capsule())
+            }
+        }
     }
 
     @ViewBuilder
@@ -733,6 +836,34 @@ struct SongDisplayView: View {
             HapticManager.shared.success()
         } catch {
             print("Error creating duplicate song: \(error)")
+            HapticManager.shared.operationFailed()
+        }
+    }
+
+    // MARK: - Capo Methods
+
+    /// Handle capo position change
+    private func handleCapoChange(capoFret: Int) {
+        if let entry = setEntry {
+            // If viewing in a set, update the set-specific override
+            entry.capoOverride = capoFret == 0 ? nil : capoFret
+            entry.modifiedAt = Date()
+        } else {
+            // Otherwise update the song's default capo
+            song.capo = capoFret == 0 ? nil : capoFret
+            song.modifiedAt = Date()
+        }
+
+        // Save to database
+        do {
+            try modelContext.save()
+
+            // Reparse song with new capo settings
+            parseSong()
+
+            HapticManager.shared.success()
+        } catch {
+            print("Error saving capo: \(error)")
             HapticManager.shared.operationFailed()
         }
     }

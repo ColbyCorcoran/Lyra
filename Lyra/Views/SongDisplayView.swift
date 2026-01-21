@@ -135,7 +135,8 @@ struct SongDisplayView: View {
                 textContentView
             }
         }
-        .background(Color(.systemBackground))
+        .background(displaySettings.backgroundColorValue())
+        .preferredColorScheme(displaySettings.darkModePreference.colorScheme)
         .navigationTitle(song.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -1220,11 +1221,11 @@ struct SongSectionView: View {
     let settings: DisplaySettings
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: settings.actualLineSpacing) {
             // Section Label
             Text(section.label)
-                .font(.system(size: settings.fontSize + 2, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .font(settings.titleFont(size: settings.fontSize + 2))
+                .foregroundStyle(settings.sectionLabelColorValue())
                 .padding(.bottom, 4)
 
             // Section Lines
@@ -1233,6 +1234,7 @@ struct SongSectionView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, settings.sectionSpacing)
     }
 }
 
@@ -1279,10 +1281,10 @@ struct ChordLineView: View {
             renderChordsOnly()
         case .blank:
             Text(" ")
-                .font(.system(size: fontSize, design: .monospaced))
+                .font(settings.lyricsFont())
         case .comment:
             Text(line.text)
-                .font(.system(size: fontSize - 2))
+                .font(settings.lyricsFont(size: fontSize - 2))
                 .foregroundStyle(.tertiary)
                 .italic()
         case .directive:
@@ -1305,7 +1307,7 @@ struct ChordLineView: View {
         } else {
             // No chords, just render lyrics
             Text(line.text)
-                .font(.system(size: fontSize, design: .monospaced))
+                .font(settings.lyricsFont())
                 .foregroundStyle(lyricsColor)
         }
     }
@@ -1320,14 +1322,14 @@ struct ChordLineView: View {
         ZStack(alignment: .topLeading) {
             // Invisible text to set the height and width of the chord layer
             Text(line.text)
-                .font(.system(size: fontSize - 2, design: .monospaced))
+                .font(settings.chordsFont())
                 .opacity(0)
 
             // Position each chord precisely
             ForEach(Array(line.segments.enumerated()), id: \.offset) { _, segment in
                 if let chord = segment.displayChord {
                     Text(chord)
-                        .font(.system(size: fontSize + chordFontSizeOffset, weight: .medium, design: .monospaced))
+                        .font(settings.chordsFont())
                         .foregroundStyle(chordColor)
                         .offset(x: CGFloat(segment.position) * charWidth, y: 0)
                 }
@@ -1340,7 +1342,7 @@ struct ChordLineView: View {
     @ViewBuilder
     private var lyricsLayer: some View {
         Text(line.text)
-            .font(.system(size: fontSize, design: .monospaced))
+            .font(settings.lyricsFont())
             .foregroundStyle(lyricsColor)
     }
 
@@ -1353,14 +1355,14 @@ struct ChordLineView: View {
             // Create an invisible baseline using spaces
             let maxPosition = line.segments.map { $0.position + ($0.chord?.count ?? 0) }.max() ?? 0
             Text(String(repeating: " ", count: maxPosition))
-                .font(.system(size: fontSize + chordFontSizeOffset, design: .monospaced))
+                .font(settings.chordsFont())
                 .opacity(0)
 
             // Position each chord
             ForEach(Array(line.segments.enumerated()), id: \.offset) { _, segment in
                 if let chord = segment.displayChord {
                     Text(chord)
-                        .font(.system(size: fontSize + chordFontSizeOffset, weight: .medium, design: .monospaced))
+                        .font(settings.chordsFont())
                         .foregroundStyle(chordColor)
                         .offset(x: CGFloat(segment.position) * charWidth, y: 0)
                 }

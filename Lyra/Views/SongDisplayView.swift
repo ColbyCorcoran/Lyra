@@ -45,6 +45,7 @@ struct SongDisplayView: View {
     @State private var visibleHeight: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
     @State private var isAnnotationMode: Bool = false
+    @State private var isDrawingMode: Bool = false
     @State private var containerSize: CGSize = .zero
 
     @StateObject private var autoscrollManager = AutoscrollManager()
@@ -215,6 +216,9 @@ struct SongDisplayView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         isAnnotationMode.toggle()
+                        if isAnnotationMode {
+                            isDrawingMode = false // Exit drawing mode
+                        }
                         HapticManager.shared.selection()
                     } label: {
                         ZStack {
@@ -231,6 +235,33 @@ struct SongDisplayView: View {
                     }
                     .accessibilityLabel("Annotations")
                     .accessibilityHint(isAnnotationMode ? "Exit annotation mode" : "Add sticky notes")
+                }
+            }
+
+            // Draw button (only for text view)
+            if viewMode == .text {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isDrawingMode.toggle()
+                        if isDrawingMode {
+                            isAnnotationMode = false // Exit annotation mode
+                        }
+                        HapticManager.shared.selection()
+                    } label: {
+                        ZStack {
+                            Image(systemName: isDrawingMode ? "pencil.tip.crop.circle.badge.plus" : "pencil.tip.crop.circle")
+
+                            // Show indicator if drawing mode is active
+                            if isDrawingMode {
+                                Circle()
+                                    .fill(.green)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 8, y: -8)
+                            }
+                        }
+                    }
+                    .accessibilityLabel("Drawing")
+                    .accessibilityHint(isDrawingMode ? "Exit drawing mode" : "Draw on chart")
                 }
             }
 
@@ -637,6 +668,7 @@ struct SongDisplayView: View {
                             )
                         }
                         .coordinateSpace(name: "scrollView")
+                        .disabled(isDrawingMode) // Disable scrolling in drawing mode
                         .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
                             scrollOffset = -value
                             if scrollOffset > 0 {
@@ -704,6 +736,18 @@ struct SongDisplayView: View {
                 .onChange(of: geometry.size) { _, newSize in
                     containerSize = newSize
                 }
+            }
+
+            // Drawing overlay
+            GeometryReader { geometry in
+                DrawingOverlayView(
+                    song: song,
+                    containerSize: geometry.size,
+                    isDrawingMode: isDrawingMode,
+                    onExitDrawingMode: {
+                        isDrawingMode = false
+                    }
+                )
             }
         }
     }

@@ -24,7 +24,7 @@ struct LibraryExportView: View {
     @State private var isExporting: Bool = false
     @State private var exportProgress: Double = 0.0
     @State private var exportStatus: String = ""
-    @State private var shareItem: ShareItem?
+    @State private var shareItem: LibraryExportShareItem?
     @State private var exportError: Error?
     @State private var showError: Bool = false
 
@@ -47,8 +47,8 @@ struct LibraryExportView: View {
                     .disabled(isExporting)
                 }
             }
-            .sheet(item: $shareItem) { item in
-                ShareSheet(activityItems: item.items)
+            .sheet(item: $shareItem) { (item: LibraryExportShareItem) in
+                LibraryExportShareSheet(activityItems: item.items)
             }
             .alert("Export Error", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
@@ -276,7 +276,7 @@ struct LibraryExportView: View {
 
                 // Show share sheet
                 await MainActor.run {
-                    shareItem = ShareItem(items: [zipURL])
+                    shareItem = LibraryExportShareItem(items: [zipURL])
                     isExporting = false
                     HapticManager.shared.success()
                 }
@@ -294,13 +294,13 @@ struct LibraryExportView: View {
 
 // MARK: - Share Sheet
 
-private struct ShareItem: Identifiable {
+private struct LibraryExportShareItem: Identifiable {
     let id = UUID()
     let items: [Any]
 }
 
 #if canImport(UIKit)
-private struct ShareSheet: UIViewControllerRepresentable {
+private struct LibraryExportShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {

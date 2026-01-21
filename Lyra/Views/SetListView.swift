@@ -30,25 +30,10 @@ struct SetListView: View {
     @State private var showAddSetSheet: Bool = false
     @State private var showArchived: Bool = false
     @State private var selectedSort: SetSortOption = .date
-    @State private var searchText: String = ""
 
     private var filteredSets: [PerformanceSet] {
-        var result = allSets
-
         // Apply archived filter
-        result = result.filter { showArchived || !$0.isArchived }
-
-        // Apply search filter
-        if !searchText.isEmpty {
-            result = result.filter { set in
-                set.name.localizedCaseInsensitiveContains(searchText) ||
-                (set.setDescription?.localizedCaseInsensitiveContains(searchText) ?? false) ||
-                (set.venue?.localizedCaseInsensitiveContains(searchText) ?? false) ||
-                (set.folder?.localizedCaseInsensitiveContains(searchText) ?? false)
-            }
-        }
-
-        return result
+        allSets.filter { showArchived || !$0.isArchived }
     }
 
     private var sortedSets: [PerformanceSet] {
@@ -109,7 +94,6 @@ struct SetListView: View {
                 setListContent
             }
         }
-        .searchable(text: $searchText, prompt: "Search sets")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -127,16 +111,6 @@ struct SetListView: View {
                     Image(systemName: "ellipsis.circle")
                 }
                 .accessibilityLabel("Sort and filter options")
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showAddSetSheet = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .accessibilityLabel("Add set")
-                .accessibilityHint("Create a new performance set")
             }
         }
         .sheet(isPresented: $showAddSetSheet) {

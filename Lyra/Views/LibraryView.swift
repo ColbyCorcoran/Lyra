@@ -51,6 +51,9 @@ struct LibraryView: View {
     // Search state
     @State private var showSearch: Bool = false
 
+    // Help state
+    @State private var showImportHelp: Bool = false
+
     // Dropbox import state
     @State private var showDropboxImport: Bool = false
     @StateObject private var dropboxManager = DropboxManager.shared
@@ -116,10 +119,21 @@ struct LibraryView: View {
                     }
                 }
 
-                // Import menu (Songs only)
-                if selectedSection == .allSongs {
-                    ToolbarItem(placement: .topBarLeading) {
+                // Add button - Menu for Songs, simple button for Books/Sets
+                ToolbarItem(placement: .topBarTrailing) {
+                    if selectedSection == .allSongs {
+                        // Comprehensive add/import menu for songs
                         Menu {
+                            // New Song option
+                            Button {
+                                showAddSongSheet = true
+                            } label: {
+                                Label("New Song", systemImage: "music.note")
+                            }
+
+                            Divider()
+
+                            // Import options
                             Button {
                                 showFileImporter = true
                             } label: {
@@ -134,7 +148,6 @@ struct LibraryView: View {
                                 }
                             } else {
                                 Button {
-                                    // Show connection message or navigate to settings
                                     showDropboxImport = true
                                 } label: {
                                     Label("Connect Dropbox...", systemImage: "cloud")
@@ -149,7 +162,6 @@ struct LibraryView: View {
                                 }
                             } else {
                                 Button {
-                                    // Show connection message or navigate to settings
                                     showGoogleDriveImport = true
                                 } label: {
                                     Label("Connect Google Drive...", systemImage: "internaldrive")
@@ -158,35 +170,43 @@ struct LibraryView: View {
 
                             Divider()
 
+                            // Scan option
                             Button {
                                 checkCameraPermissionAndScan()
                             } label: {
                                 Label("Scan Paper Chart", systemImage: "doc.viewfinder")
                             }
-                        } label: {
-                            Label("Import", systemImage: "square.and.arrow.down")
-                        }
-                    }
-                }
 
-                // Paste button (Songs only)
-                if selectedSection == .allSongs {
-                    ToolbarItem(placement: .topBarTrailing) {
+                            Divider()
+
+                            // Paste option
+                            Button {
+                                handlePaste()
+                            } label: {
+                                Label("Paste from Clipboard", systemImage: "doc.on.clipboard")
+                            }
+                            .disabled(!ClipboardManager.shared.hasClipboardContent())
+
+                            Divider()
+
+                            // Help option
+                            Button {
+                                showImportHelp = true
+                            } label: {
+                                Label("Import Help", systemImage: "questionmark.circle")
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .accessibilityLabel("Add or import song")
+                    } else {
+                        // Simple add button for Books and Sets
                         Button {
-                            handlePaste()
+                            handleAddButton()
                         } label: {
-                            Label("Paste", systemImage: "doc.on.clipboard")
+                            Image(systemName: "plus")
                         }
-                        .disabled(!ClipboardManager.shared.hasClipboardContent())
-                    }
-                }
-
-                // Add button
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        handleAddButton()
-                    } label: {
-                        Image(systemName: "plus")
+                        .accessibilityLabel(selectedSection == .books ? "Add book" : "Add set")
                     }
                 }
             }
@@ -204,6 +224,9 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $showSearch) {
                 LibrarySearchView()
+            }
+            .sheet(isPresented: $showImportHelp) {
+                ImportHelpView()
             }
             .sheet(isPresented: $showDropboxImport) {
                 if dropboxManager.isAuthenticated {

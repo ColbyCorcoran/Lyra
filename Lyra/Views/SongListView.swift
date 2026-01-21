@@ -30,9 +30,9 @@ struct SongListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allSongs: [Song]
 
-    @State private var searchText: String = ""
     @State private var selectedSort: SortOption = .titleAZ
     @State private var showAddSongSheet: Bool = false
+    @State private var showEditSongSheet: Bool = false
     @State private var showQuickBookPicker: Bool = false
     @State private var showQuickSetPicker: Bool = false
     @State private var selectedSong: Song?
@@ -45,7 +45,6 @@ struct SongListView: View {
                 songListContent
             }
         }
-        .searchable(text: $searchText, prompt: "Search songs or artists")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -62,6 +61,11 @@ struct SongListView: View {
         }
         .sheet(isPresented: $showAddSongSheet) {
             AddSongView()
+        }
+        .sheet(isPresented: $showEditSongSheet) {
+            if let song = selectedSong {
+                EditSongView(song: song)
+            }
         }
         .sheet(isPresented: $showQuickBookPicker) {
             if let song = selectedSong {
@@ -80,7 +84,7 @@ struct SongListView: View {
     @ViewBuilder
     private var songListContent: some View {
         List {
-            ForEach(filteredAndSortedSongs) { song in
+            ForEach(sortedSongs) { song in
                 NavigationLink(destination: SongDisplayView(song: song)) {
                     EnhancedSongRowView(song: song)
                 }
@@ -101,12 +105,12 @@ struct SongListView: View {
                 }
                 .swipeActions(edge: .leading, allowsFullSwipe: false) {
                     Button {
-                        // TODO: Edit song functionality
+                        selectedSong = song
+                        showEditSongSheet = true
                     } label: {
                         Label("Edit", systemImage: "pencil")
                     }
                     .tint(.blue)
-                    .disabled(true)
                 }
                 .contextMenu {
                     Button {
@@ -135,7 +139,7 @@ struct SongListView: View {
             }
         }
         .listStyle(.plain)
-        .animation(.easeInOut(duration: 0.2), value: filteredAndSortedSongs.count)
+        .animation(.easeInOut(duration: 0.2), value: sortedSongs.count)
     }
 
     /// Create accessibility label for song row
@@ -157,18 +161,10 @@ struct SongListView: View {
         return parts.joined(separator: ", ")
     }
 
-    // MARK: - Filtering & Sorting
+    // MARK: - Sorting
 
-    private var filteredAndSortedSongs: [Song] {
+    private var sortedSongs: [Song] {
         var songs = allSongs
-
-        // Filter by search text
-        if !searchText.isEmpty {
-            songs = songs.filter { song in
-                song.title.lowercased().contains(searchText.lowercased()) ||
-                (song.artist?.lowercased().contains(searchText.lowercased()) ?? false)
-            }
-        }
 
         // Sort
         switch selectedSort {

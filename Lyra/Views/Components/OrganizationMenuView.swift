@@ -31,84 +31,93 @@ struct OrganizationMenuView: View {
 
     var body: some View {
         Group {
-            // Books Section
-            Section("Add to Book") {
-                if allBooks.isEmpty {
-                    Button {
-                        showNewBookSheet = true
-                    } label: {
-                        Label("Create First Book", systemImage: "folder.badge.plus")
-                    }
-                } else {
-                    ForEach(allBooks) { book in
-                        Button {
-                            toggleBookMembership(book)
-                        } label: {
-                            Label {
-                                Text(book.name)
-                            } icon: {
-                                if songBooks.contains(where: { $0.id == book.id }) {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.accentColor)
-                                }
-                            }
-                        }
-                    }
-
-                    Divider()
-
-                    Button {
-                        showNewBookSheet = true
-                    } label: {
-                        Label("New Book...", systemImage: "plus.circle")
-                    }
-                }
-            }
-
-            // Sets Section
-            Section("Add to Set") {
-                if allSets.isEmpty {
-                    Button {
-                        showNewSetSheet = true
-                    } label: {
-                        Label("Create First Set", systemImage: "calendar.badge.plus")
-                    }
-                } else {
-                    ForEach(allSets) { set in
-                        Button {
-                            toggleSetMembership(set)
-                        } label: {
-                            Label {
-                                Text(set.name)
-                            } icon: {
-                                if songSets.contains(where: { $0.id == set.id }) {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.accentColor)
-                                }
-                            }
-                        }
-                    }
-
-                    Divider()
-
-                    Button {
-                        showNewSetSheet = true
-                    } label: {
-                        Label("New Set...", systemImage: "plus.circle")
-                    }
-                }
-            }
+            booksSection
+            setsSection
         }
         .sheet(isPresented: $showNewBookSheet) {
             AddBookView()
         }
         .sheet(isPresented: $showNewSetSheet) {
-            AddSetView()
+            AddPerformanceSetView()
         }
         .alert("Error", isPresented: $showErrorAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+    }
+
+    // MARK: - View Components
+
+    @ViewBuilder
+    private var booksSection: some View {
+        Section("Add to Book") {
+            if allBooks.isEmpty {
+                Button {
+                    showNewBookSheet = true
+                } label: {
+                    Label("Create First Book", systemImage: "folder.badge.plus")
+                }
+            } else {
+                ForEach(allBooks) { book in
+                    Button {
+                        toggleBookMembership(book)
+                    } label: {
+                        Label {
+                            Text(book.name)
+                        } icon: {
+                            if songBooks.contains(where: { $0.id == book.id }) {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button {
+                    showNewBookSheet = true
+                } label: {
+                    Label("New Book...", systemImage: "plus.circle")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var setsSection: some View {
+        Section("Add to Set") {
+            if allSets.isEmpty {
+                Button {
+                    showNewSetSheet = true
+                } label: {
+                    Label("Create First Set", systemImage: "calendar.badge.plus")
+                }
+            } else {
+                ForEach(allSets) { set in
+                    Button {
+                        toggleSetMembership(set)
+                    } label: {
+                        Label {
+                            Text(set.name)
+                        } icon: {
+                            if songSets.contains(where: { $0.id == set.id }) {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                Button {
+                    showNewSetSheet = true
+                } label: {
+                    Label("New Set...", systemImage: "plus.circle")
+                }
+            }
         }
     }
 

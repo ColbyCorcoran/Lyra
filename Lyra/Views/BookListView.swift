@@ -8,24 +8,40 @@
 import SwiftUI
 import SwiftData
 
+enum BookSortOption: String, CaseIterable {
+    case nameAZ = "Name (A-Z)"
+    case nameZA = "Name (Z-A)"
+    case songCount = "Song Count"
+    case recentlyModified = "Recently Modified"
+
+    var icon: String {
+        switch self {
+        case .nameAZ: return "textformat.abc"
+        case .nameZA: return "textformat.abc"
+        case .songCount: return "music.note.list"
+        case .recentlyModified: return "clock"
+        }
+    }
+}
+
 struct BookListView: View {
     @Query private var allBooks: [Book]
     @State private var showAddBookSheet: Bool = false
-    @State private var searchText: String = ""
+    @State private var selectedSort: BookSortOption = .nameAZ
 
-    private var filteredBooks: [Book] {
+    private var sortedBooks: [Book] {
         var result = allBooks
 
-        // Apply search filter
-        if !searchText.isEmpty {
-            result = result.filter { book in
-                book.name.localizedCaseInsensitiveContains(searchText) ||
-                (book.bookDescription?.localizedCaseInsensitiveContains(searchText) ?? false)
-            }
+        switch selectedSort {
+        case .nameAZ:
+            result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        case .nameZA:
+            result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedDescending }
+        case .songCount:
+            result.sort { ($0.songs?.count ?? 0) > ($1.songs?.count ?? 0) }
+        case .recentlyModified:
+            result.sort { $0.modifiedAt > $1.modifiedAt }
         }
-
-        // Sort alphabetically
-        result.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 
         return result
     }
@@ -36,7 +52,7 @@ struct BookListView: View {
                 EnhancedBookEmptyStateView(showAddBookSheet: $showAddBookSheet)
             } else {
                 List {
-                    ForEach(filteredBooks) { book in
+                    ForEach(sortedBooks) { book in
                         NavigationLink(destination: BookDetailView(book: book)) {
                             BookRowView(book: book)
                         }
@@ -45,16 +61,19 @@ struct BookListView: View {
                 .listStyle(.plain)
             }
         }
-        .searchable(text: $searchText, prompt: "Search books")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showAddBookSheet = true
+                Menu {
+                    Picker("Sort By", selection: $selectedSort) {
+                        ForEach(BookSortOption.allCases, id: \.self) { option in
+                            Label(option.rawValue, systemImage: option.icon)
+                                .tag(option)
+                        }
+                    }
                 } label: {
-                    Image(systemName: "plus")
+                    Image(systemName: "arrow.up.arrow.down")
                 }
-                .accessibilityLabel("Add book")
-                .accessibilityHint("Create a new book collection")
+                .accessibilityLabel("Sort books")
             }
         }
         .sheet(isPresented: $showAddBookSheet) {

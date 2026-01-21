@@ -50,96 +50,8 @@ struct FolderPickerField: View {
     private var folderPickerSheet: some View {
         NavigationStack {
             List {
-                // Create new folder section
-                Section {
-                    if showNewFolderField {
-                        HStack {
-                            TextField("New Folder Name", text: $newFolderName)
-                                .textFieldStyle(.plain)
-                                .autocorrectionDisabled()
-
-                            Button {
-                                createNewFolder()
-                            } label: {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                            }
-                            .disabled(newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                            Button {
-                                showNewFolderField = false
-                                newFolderName = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.red)
-                            }
-                        }
-                    } else {
-                        Button {
-                            showNewFolderField = true
-                        } label: {
-                            Label("Create New Folder", systemImage: "plus.circle.fill")
-                                .foregroundStyle(.blue)
-                        }
-                    }
-                } header: {
-                    Text("Create")
-                }
-
-                // Existing folders section
-                if !availableFolders.isEmpty {
-                    Section {
-                        // None option
-                        Button {
-                            selectedFolder = nil
-                            HapticManager.shared.selection()
-                            showPicker = false
-                        } label: {
-                            HStack {
-                                Image(systemName: "folder.badge.minus")
-                                    .foregroundStyle(.secondary)
-
-                                Text("None")
-                                    .foregroundStyle(.primary)
-
-                                Spacer()
-
-                                if selectedFolder == nil || selectedFolder?.isEmpty == true {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.blue)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-
-                        // Existing folders
-                        ForEach(Array(availableFolders.enumerated()), id: \.element) { index, folder in
-                            Button {
-                                selectedFolder = folder
-                                HapticManager.shared.selection()
-                                showPicker = false
-                            } label: {
-                                HStack {
-                                    Image(systemName: "folder.fill")
-                                        .foregroundStyle(.blue)
-
-                                    Text(folder)
-                                        .foregroundStyle(.primary)
-
-                                    Spacer()
-
-                                    if selectedFolder == folder {
-                                        Image(systemName: "checkmark")
-                                            .foregroundStyle(.accentColor)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    } header: {
-                        Text("Existing Folders")
-                    }
-                }
+                createFolderSection
+                existingFoldersSection
             }
             .navigationTitle("Select Folder")
             .navigationBarTitleDisplayMode(.inline)
@@ -155,6 +67,108 @@ struct FolderPickerField: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    @ViewBuilder
+    private var createFolderSection: some View {
+        Section {
+            if showNewFolderField {
+                HStack {
+                    TextField("New Folder Name", text: $newFolderName)
+                        .textFieldStyle(.plain)
+                        .autocorrectionDisabled()
+
+                    Button {
+                        createNewFolder()
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    }
+                    .disabled(newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                    Button {
+                        showNewFolderField = false
+                        newFolderName = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.red)
+                    }
+                }
+            } else {
+                Button {
+                    showNewFolderField = true
+                } label: {
+                    Label("Create New Folder", systemImage: "plus.circle.fill")
+                        .foregroundStyle(.blue)
+                }
+            }
+        } header: {
+            Text("Create")
+        }
+    }
+
+    @ViewBuilder
+    private var existingFoldersSection: some View {
+        if !availableFolders.isEmpty {
+            Section {
+                noneOptionButton
+                existingFoldersList
+            } header: {
+                Text("Existing Folders")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var noneOptionButton: some View {
+        Button {
+            selectedFolder = nil
+            HapticManager.shared.selection()
+            showPicker = false
+        } label: {
+            HStack {
+                Image(systemName: "folder.badge.minus")
+                    .foregroundStyle(.secondary)
+
+                Text("None")
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                if selectedFolder == nil || selectedFolder?.isEmpty == true {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.blue)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var existingFoldersList: some View {
+        ForEach(Array(availableFolders.enumerated()), id: \.element) { index, folder in
+            Button {
+                selectedFolder = folder
+                HapticManager.shared.selection()
+                showPicker = false
+            } label: {
+                HStack {
+                    Image(systemName: "folder.fill")
+                        .foregroundStyle(.blue)
+
+                    Text(folder)
+                        .foregroundStyle(.primary)
+
+                    Spacer()
+
+                    if selectedFolder == folder {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(Color.accentColor)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     private func loadFolders() {

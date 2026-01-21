@@ -26,6 +26,7 @@ struct SongDisplayView: View {
     @State private var showDisplaySettings: Bool = false
     @State private var displaySettings: DisplaySettings
     @State private var isLoadingSong: Bool = false
+    @State private var showEditSongSheet: Bool = false
     @State private var showQuickBookPicker: Bool = false
     @State private var showQuickSetPicker: Bool = false
     @State private var viewMode: SongViewMode = .text
@@ -86,13 +87,12 @@ struct SongDisplayView: View {
             if viewMode == .text {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        // TODO: Edit song functionality
+                        showEditSongSheet = true
                     } label: {
                         Image(systemName: "pencil")
                     }
-                    .disabled(true)
                     .accessibilityLabel("Edit song")
-                    .accessibilityHint("Opens song editor. Currently unavailable.")
+                    .accessibilityHint("Opens song metadata editor")
                 }
             }
 
@@ -212,6 +212,9 @@ struct SongDisplayView: View {
                     // Refresh display settings when sheet closes
                     displaySettings = song.displaySettings
                 }
+        }
+        .sheet(isPresented: $showEditSongSheet) {
+            EditSongView(song: song)
         }
         .sheet(isPresented: $showQuickBookPicker) {
             QuickOrganizationPicker(song: song, mode: .book)

@@ -49,187 +49,220 @@ struct AddAttachmentView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                // Source Selection
-                Section {
-                    Button {
-                        selectedSource = .files
-                        showFileImporter = true
-                    } label: {
-                        SourceRow(
-                            icon: "folder",
-                            title: "Files",
-                            description: "Import from Files app or iCloud Drive",
-                            color: .blue
-                        )
-                    }
+            formContent
+        }
+    }
 
-                    Button {
-                        checkCameraPermissionAndShow()
-                    } label: {
-                        SourceRow(
-                            icon: "camera",
-                            title: "Camera",
-                            description: "Take a photo or scan a document",
-                            color: .gray
-                        )
-                    }
+    @ViewBuilder
+    private var formContent: some View {
+        Form {
+            localSourcesSection
+            cloudSourcesSection
+            fileTypesInfoSection
+        }
+        .navigationTitle("Add Attachment")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            toolbarContent
+        }
+        .fileImporter(
+            isPresented: $showFileImporter,
+            allowedContentTypes: [.pdf, .image, .audio],
+            allowsMultipleSelection: false
+        ) { result in
+            handleFileImport(result: result)
+        }
+        .photosPicker(
+            isPresented: $showPhotoPicker,
+            selection: $selectedPhotos,
+            maxSelectionCount: 1,
+            matching: .images
+        )
+        .onChange(of: selectedPhotos) { oldValue, newValue in
+            handlePhotoSelection(newValue)
+        }
+        .sheet(isPresented: $showCamera) {
+            cameraSheet
+        }
+        .sheet(isPresented: $showVersionNamePrompt) {
+            versionNameSheet
+        }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+        .overlay {
+            importingOverlay
+        }
+    }
 
-                    Button {
-                        selectedSource = .photos
-                        showPhotoPicker = true
-                    } label: {
-                        SourceRow(
-                            icon: "photo.on.rectangle",
-                            title: "Photos",
-                            description: "Choose from your photo library",
-                            color: .purple
-                        )
-                    }
-                } header: {
-                    Text("Local Sources")
-                }
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel") {
+                dismiss()
+            }
+        }
+    }
 
-                // Cloud Sources
-                Section {
-                    Button {
-                        selectedSource = .dropbox
-                        showDropboxPicker = true
-                    } label: {
-                        SourceRow(
-                            icon: "cloud",
-                            title: "Dropbox",
-                            description: "Import from Dropbox",
-                            color: .blue
-                        )
-                    }
+    @ViewBuilder
+    private var cameraSheet: some View {
+        DocumentScannerView { images in
+            handleScannedImages(images)
+            showCamera = false
+        }
+    }
 
-                    Button {
-                        selectedSource = .googleDrive
-                        showDrivePicker = true
-                    } label: {
-                        SourceRow(
-                            icon: "internaldrive",
-                            title: "Google Drive",
-                            description: "Import from Google Drive",
-                            color: .green
-                        )
-                    }
-                } header: {
-                    Text("Cloud Sources")
-                }
+    // MARK: - View Components
 
-                // Info Section
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                                .font(.caption)
-                            Text("Supported file types:")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+    @ViewBuilder
+    private var localSourcesSection: some View {
+        Section {
+            Button {
+                selectedSource = .files
+                showFileImporter = true
+            } label: {
+                SourceRow(
+                    icon: "folder",
+                    title: "Files",
+                    description: "Import from Files app or iCloud Drive",
+                    color: .blue
+                )
+            }
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("• PDF documents")
-                            Text("• Images (JPG, PNG, HEIC)")
-                            Text("• Audio files (MP3, M4A, WAV)")
-                        }
+            Button {
+                checkCameraPermissionAndShow()
+            } label: {
+                SourceRow(
+                    icon: "camera",
+                    title: "Camera",
+                    description: "Take a photo or scan a document",
+                    color: .gray
+                )
+            }
+
+            Button {
+                selectedSource = .photos
+                showPhotoPicker = true
+            } label: {
+                SourceRow(
+                    icon: "photo.on.rectangle",
+                    title: "Photos",
+                    description: "Choose from your photo library",
+                    color: .purple
+                )
+            }
+        } header: {
+            Text("Local Sources")
+        }
+    }
+
+    @ViewBuilder
+    private var cloudSourcesSection: some View {
+        Section {
+            Button {
+                selectedSource = .dropbox
+                showDropboxPicker = true
+            } label: {
+                SourceRow(
+                    icon: "cloud",
+                    title: "Dropbox",
+                    description: "Import from Dropbox",
+                    color: .blue
+                )
+            }
+
+            Button {
+                selectedSource = .googleDrive
+                showDrivePicker = true
+            } label: {
+                SourceRow(
+                    icon: "internaldrive",
+                    title: "Google Drive",
+                    description: "Import from Google Drive",
+                    color: .green
+                )
+            }
+        } header: {
+            Text("Cloud Sources")
+        }
+    }
+
+    @ViewBuilder
+    private var fileTypesInfoSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.caption)
+                    Text("Supported file types:")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                } header: {
-                    Text("File Types")
                 }
-            }
-            .navigationTitle("Add Attachment")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-            .fileImporter(
-                isPresented: $showFileImporter,
-                allowedContentTypes: [.pdf, .image, .audio],
-                allowsMultipleSelection: false
-            ) { result in
-                handleFileImport(result: result)
-            }
-            .photosPicker(
-                isPresented: $showPhotoPicker,
-                selection: $selectedPhotos,
-                maxSelectionCount: 1,
-                matching: .images
-            )
-            .onChange(of: selectedPhotos) { oldValue, newValue in
-                handlePhotoSelection(newValue)
-            }
-            .sheet(isPresented: $showCamera) {
-                DocumentScannerView(
-                    onComplete: { images in
-                        handleScannedImages(images)
-                    },
-                    onCancel: {
-                        showCamera = false
-                    }
-                )
-            }
-            .sheet(isPresented: $showVersionNamePrompt) {
-                VersionNamePromptView(
-                    versionName: $versionName,
-                    onSave: {
-                        if let pending = pendingImport {
-                            importAttachment(
-                                from: pending.url,
-                                filename: pending.filename,
-                                fileType: pending.fileType,
-                                source: pending.source
-                            )
-                        }
-                    },
-                    onCancel: {
-                        // Import without version name
-                        if let pending = pendingImport {
-                            versionName = ""
-                            importAttachment(
-                                from: pending.url,
-                                filename: pending.filename,
-                                fileType: pending.fileType,
-                                source: pending.source
-                            )
-                        }
-                    }
-                )
-            }
-            .alert("Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage)
-            }
-            .overlay {
-                if isImporting {
-                    ZStack {
-                        Color.black.opacity(0.3)
-                            .ignoresSafeArea()
 
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .controlSize(.large)
-
-                            Text("Importing attachment...")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                        }
-                        .padding(32)
-                        .background(Color(.systemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("• PDF documents")
+                    Text("• Images (JPG, PNG, HEIC)")
+                    Text("• Audio files (MP3, M4A, WAV)")
                 }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text("File Types")
+        }
+    }
+
+    @ViewBuilder
+    private var versionNameSheet: some View {
+        VersionNamePromptView(
+            versionName: $versionName,
+            onSave: {
+                if let pending = pendingImport {
+                    importAttachment(
+                        from: pending.url,
+                        filename: pending.filename,
+                        fileType: pending.fileType,
+                        source: pending.source
+                    )
+                }
+            },
+            onCancel: {
+                // Import without version name
+                if let pending = pendingImport {
+                    versionName = ""
+                    importAttachment(
+                        from: pending.url,
+                        filename: pending.filename,
+                        fileType: pending.fileType,
+                        source: pending.source
+                    )
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var importingOverlay: some View {
+        if isImporting {
+            ZStack {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .controlSize(.large)
+
+                    Text("Importing attachment...")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                }
+                .padding(32)
+                .background(Color(.systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
         }
     }

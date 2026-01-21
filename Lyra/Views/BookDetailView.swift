@@ -18,7 +18,7 @@ struct BookDetailView: View {
     @State private var showEditBook: Bool = false
     @State private var showDeleteConfirmation: Bool = false
     @State private var showExportOptions: Bool = false
-    @State private var shareItem: ShareItem?
+    @State private var shareItem: BookDetailShareItem?
     @State private var exportError: Error?
     @State private var showError: Bool = false
 
@@ -152,8 +152,8 @@ struct BookDetailView: View {
                 }
             )
         }
-        .sheet(item: $shareItem) { item in
-            ShareSheet(activityItems: item.items)
+        .sheet(item: $shareItem) { (item: BookDetailShareItem) in
+            BookDetailShareSheet(activityItems: item.items)
         }
         .alert("Delete Book?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
@@ -217,7 +217,7 @@ struct BookDetailView: View {
 
                 // Show share sheet
                 await MainActor.run {
-                    shareItem = ShareItem(items: [tempURL])
+                    shareItem = BookDetailShareItem(items: [tempURL])
                     HapticManager.shared.success()
                 }
             } catch {
@@ -367,7 +367,12 @@ struct BookEmptyStateView: View {
 
 // MARK: - Share Sheet
 
-private struct ShareSheet: UIViewControllerRepresentable {
+private struct BookDetailShareItem: Identifiable {
+    let id = UUID()
+    let items: [Any]
+}
+
+private struct BookDetailShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {

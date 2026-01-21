@@ -20,7 +20,7 @@ struct SettingsView: View {
     @State private var showGoogleDriveAuth: Bool = false
     @State private var showExportLibrary: Bool = false
     @State private var showAttachmentStorage: Bool = false
-    @State private var shareItem: ShareItem?
+    @State private var shareItem: SettingsShareItem?
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
     @State private var showError: Bool = false
@@ -398,8 +398,8 @@ struct SettingsView: View {
             .sheet(isPresented: $showAttachmentStorage) {
                 AttachmentStorageView()
             }
-            .sheet(item: $shareItem) { item in
-                ShareSheet(activityItems: item.items)
+            .sheet(item: $shareItem) { (item: SettingsShareItem) in
+                SettingsShareSheet(activityItems: item.items)
             }
             .alert("Export Error", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
@@ -434,7 +434,12 @@ struct SettingsView: View {
 
 // MARK: - Share Sheet
 
-private struct ShareSheet: UIViewControllerRepresentable {
+private struct SettingsShareItem: Identifiable {
+    let id = UUID()
+    let items: [Any]
+}
+
+private struct SettingsShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {

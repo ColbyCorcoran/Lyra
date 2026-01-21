@@ -8,6 +8,11 @@
 import SwiftUI
 import SwiftData
 
+private struct SetDetailShareItem: Identifiable {
+    let id = UUID()
+    let items: [Any]
+}
+
 struct SetDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -22,7 +27,7 @@ struct SetDetailView: View {
     @State private var selectedEntry: SetEntry?
     @State private var cachedEntries: [SetEntry] = []
     @State private var showExportOptions: Bool = false
-    @State private var shareItem: ShareItem?
+    @State private var shareItem: SetDetailShareItem?
     @State private var exportError: Error?
     @State private var showError: Bool = false
 
@@ -35,187 +40,19 @@ struct SetDetailView: View {
     }
 
     var body: some View {
+        listContent
+    }
+
+    @ViewBuilder
+    private var listContent: some View {
         List {
-            // Set info section
-            Section {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Date and venue
-                    HStack(spacing: 16) {
-                        if let date = performanceSet.scheduledDate {
-                            HStack(spacing: 6) {
-                                Image(systemName: "calendar")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                Text(formatDate(date))
-                                    .font(.subheadline)
-                            }
-                        }
-
-                        if let venue = performanceSet.venue, !venue.isEmpty {
-                            HStack(spacing: 6) {
-                                Image(systemName: "location")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                Text(venue)
-                                    .font(.subheadline)
-                            }
-                        }
-                    }
-
-                    // Folder and song count
-                    HStack(spacing: 16) {
-                        if let folder = performanceSet.folder, !folder.isEmpty {
-                            HStack(spacing: 6) {
-                                Image(systemName: "folder")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                                Text(folder)
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-
-                        HStack(spacing: 6) {
-                            Image(systemName: "music.note.list")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                            Text("\(songCount) \(songCount == 1 ? "song" : "songs")")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-
-                    // Description
-                    if let description = performanceSet.setDescription, !description.isEmpty {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Description")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(description)
-                                .font(.body)
-                        }
-                        .padding(.top, 4)
-                    }
-
-                    // Notes
-                    if let notes = performanceSet.notes, !notes.isEmpty {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Notes")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(notes)
-                                .font(.body)
-                        }
-                        .padding(.top, 4)
-                    }
-                }
-                .padding(.vertical, 8)
-            }
-
-            // Songs section
-            Section {
-                if cachedEntries.isEmpty {
-                    SetEmptyStateView(showSongPicker: $showSongPicker)
-                } else {
-                    ForEach(cachedEntries) { entry in
-                        if let song = entry.song {
-                            NavigationLink(destination: SongDisplayView(song: song, setEntry: entry)) {
-                                SetEntryRowView(entry: entry, song: song, isEditing: isEditing)
-                            }
-                            .accessibilityLabel(accessibilityLabelForEntry(entry, song: song))
-                            .accessibilityHint(isEditing ? "Swipe up or down to reorder" : "Tap to view song")
-                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                Button {
-                                    HapticManager.shared.selection()
-                                    selectedEntry = entry
-                                    showOverrideEditor = true
-                                } label: {
-                                    Label("Override", systemImage: "music.note.list")
-                                }
-                                .tint(.blue)
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    HapticManager.shared.swipeAction()
-                                    removeEntry(entry)
-                                } label: {
-                                    Label("Remove", systemImage: "trash")
-                                }
-                            }
-                            .contextMenu {
-                                Button {
-                                    selectedEntry = entry
-                                    showOverrideEditor = true
-                                } label: {
-                                    Label("Override Settings", systemImage: "music.note.list")
-                                }
-
-                                Divider()
-
-                                Button(role: .destructive) {
-                                    removeEntry(entry)
-                                } label: {
-                                    Label("Remove from Set", systemImage: "trash")
-                                }
-                            }
-                        }
-                    }
-                    .onMove(perform: moveEntries)
-                }
-            } header: {
-                Text("Songs")
-            }
+            setInfoSection
+            songsSection
         }
         .navigationTitle(performanceSet.name)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                if !cachedEntries.isEmpty {
-                    EditButton()
-                        .accessibilityLabel(isEditing ? "Done reordering" : "Reorder songs")
-                }
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        showSongPicker = true
-                    } label: {
-                        Label("Add Songs", systemImage: "plus")
-                    }
-
-                    Button {
-                        showEditSet = true
-                    } label: {
-                        Label("Edit Set", systemImage: "pencil")
-                    }
-
-                    Divider()
-
-                    Button {
-                        showExportOptions = true
-                    } label: {
-                        Label("Export Set", systemImage: "square.and.arrow.up")
-                    }
-
-                    Button {
-                        printSet()
-                    } label: {
-                        Label("Print Set", systemImage: "printer")
-                    }
-
-                    Divider()
-
-                    Button(role: .destructive) {
-                        showDeleteConfirmation = true
-                    } label: {
-                        Label("Delete Set", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .accessibilityLabel("Set options")
-            }
+            toolbarContent
         }
         .sheet(isPresented: $showSongPicker) {
             SongPickerForSetView(performanceSet: performanceSet)
@@ -236,8 +73,8 @@ struct SetDetailView: View {
                 }
             )
         }
-        .sheet(item: $shareItem) { item in
-            ShareSheet(activityItems: item.items)
+        .sheet(item: $shareItem) { (item: SetDetailShareItem) in
+            SetDetailShareSheet(activityItems: item.items)
         }
         .alert("Delete Set?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
@@ -256,6 +93,207 @@ struct SetDetailView: View {
         }
         .onAppear {
             refreshEntries()
+        }
+        .onChange(of: performanceSet.songEntries) { _, _ in
+            refreshEntries()
+        }
+    }
+
+    @ViewBuilder
+    private var setInfoSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                dateAndVenueRow
+                folderAndCountRow
+                descriptionView
+                notesView
+            }
+            .padding(.vertical, 8)
+        }
+    }
+
+    @ViewBuilder
+    private var dateAndVenueRow: some View {
+        HStack(spacing: 16) {
+            if let date = performanceSet.scheduledDate {
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(formatDate(date))
+                        .font(.subheadline)
+                }
+            }
+
+            if let venue = performanceSet.venue, !venue.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "location")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(venue)
+                        .font(.subheadline)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var folderAndCountRow: some View {
+        HStack(spacing: 16) {
+            if let folder = performanceSet.folder, !folder.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "folder")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Text(folder)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            HStack(spacing: 6) {
+                Image(systemName: "music.note.list")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Text("\(songCount) \(songCount == 1 ? "song" : "songs")")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var descriptionView: some View {
+        if let description = performanceSet.setDescription, !description.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Description")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(description)
+                    .font(.body)
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    @ViewBuilder
+    private var notesView: some View {
+        if let notes = performanceSet.notes, !notes.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Notes")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(notes)
+                    .font(.body)
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    @ViewBuilder
+    private var songsSection: some View {
+        Section {
+            if cachedEntries.isEmpty {
+                SetEmptyStateView(showSongPicker: $showSongPicker)
+            } else {
+                ForEach(cachedEntries) { entry in
+                    if let song = entry.song {
+                        NavigationLink(destination: SongDisplayView(song: song, setEntry: entry)) {
+                            SetEntryRowView(entry: entry, song: song, isEditing: isEditing)
+                        }
+                        .accessibilityLabel(accessibilityLabelForEntry(entry, song: song))
+                        .accessibilityHint(isEditing ? "Swipe up or down to reorder" : "Tap to view song")
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            Button {
+                                HapticManager.shared.selection()
+                                selectedEntry = entry
+                                showOverrideEditor = true
+                            } label: {
+                                Label("Override", systemImage: "music.note.list")
+                            }
+                            .tint(.blue)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                HapticManager.shared.swipeAction()
+                                removeEntry(entry)
+                            } label: {
+                                Label("Remove", systemImage: "trash")
+                            }
+                        }
+                        .contextMenu {
+                            Button {
+                                selectedEntry = entry
+                                showOverrideEditor = true
+                            } label: {
+                                Label("Override Settings", systemImage: "music.note.list")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                removeEntry(entry)
+                            } label: {
+                                Label("Remove from Set", systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+                .onMove(perform: moveEntries)
+            }
+        } header: {
+            Text("Songs")
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            if !cachedEntries.isEmpty {
+                EditButton()
+                    .accessibilityLabel(isEditing ? "Done reordering" : "Reorder songs")
+            }
+        }
+
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Button {
+                    showSongPicker = true
+                } label: {
+                    Label("Add Songs", systemImage: "plus")
+                }
+
+                Button {
+                    showEditSet = true
+                } label: {
+                    Label("Edit Set", systemImage: "pencil")
+                }
+
+                Divider()
+
+                Button {
+                    showExportOptions = true
+                } label: {
+                    Label("Export Set", systemImage: "square.and.arrow.up")
+                }
+
+                Button {
+                    printSet()
+                } label: {
+                    Label("Print Set", systemImage: "printer")
+                }
+
+                Divider()
+
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Label("Delete Set", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .accessibilityLabel("Set options")
         }
     }
 
@@ -401,7 +439,7 @@ struct SetDetailView: View {
 
                 // Show share sheet
                 await MainActor.run {
-                    shareItem = ShareItem(items: [tempURL])
+                    shareItem = SetDetailShareItem(items: [tempURL])
                     HapticManager.shared.success()
                 }
             } catch {
@@ -635,6 +673,18 @@ struct OverrideBadge: View {
             }
         }
     }
+}
+
+// MARK: - Share Sheet
+
+private struct SetDetailShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Preview

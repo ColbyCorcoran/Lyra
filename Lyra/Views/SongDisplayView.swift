@@ -44,6 +44,8 @@ struct SongDisplayView: View {
     @State private var contentHeight: CGFloat = 0
     @State private var visibleHeight: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
+    @State private var isAnnotationMode: Bool = false
+    @State private var containerSize: CGSize = .zero
 
     @StateObject private var autoscrollManager = AutoscrollManager()
 
@@ -205,6 +207,30 @@ struct SongDisplayView: View {
                     }
                     .accessibilityLabel("Display settings")
                     .accessibilityHint("Adjust font size, colors, and spacing")
+                }
+            }
+
+            // Annotate button (only for text view)
+            if viewMode == .text {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isAnnotationMode.toggle()
+                        HapticManager.shared.selection()
+                    } label: {
+                        ZStack {
+                            Image(systemName: isAnnotationMode ? "note.text.badge.plus" : "note.text")
+
+                            // Show indicator if annotation mode is active
+                            if isAnnotationMode {
+                                Circle()
+                                    .fill(.orange)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 8, y: -8)
+                            }
+                        }
+                    }
+                    .accessibilityLabel("Annotations")
+                    .accessibilityHint(isAnnotationMode ? "Exit annotation mode" : "Add sticky notes")
                 }
             }
 
@@ -658,6 +684,25 @@ struct SongDisplayView: View {
                             .padding(.trailing, 12)
                     }
                     Spacer()
+                }
+            }
+
+            // Annotations overlay
+            GeometryReader { geometry in
+                AnnotationsOverlayView(
+                    song: song,
+                    containerSize: geometry.size,
+                    isAnnotationMode: isAnnotationMode,
+                    onExitAnnotationMode: {
+                        isAnnotationMode = false
+                    }
+                )
+                .allowsHitTesting(isAnnotationMode || !song.autoscrollEnabled || !autoscrollManager.isScrolling)
+                .onAppear {
+                    containerSize = geometry.size
+                }
+                .onChange(of: geometry.size) { _, newSize in
+                    containerSize = newSize
                 }
             }
         }

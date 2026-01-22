@@ -9,22 +9,39 @@ import SwiftUI
 import SwiftData
 
 struct MainTabView: View {
+    @AppStorage("onboarding.completed") private var hasCompletedOnboarding: Bool = false
+    @State private var showOnboarding: Bool = false
+
     var body: some View {
-        TabView {
-            LibraryView()
-                .tabItem {
-                    Label("Library", systemImage: "book.fill")
-                }
+        ZStack(alignment: .top) {
+            TabView {
+                LibraryView()
+                    .tabItem {
+                        Label("Library", systemImage: "book.fill")
+                    }
 
-            AnalyticsDashboardView()
-                .tabItem {
-                    Label("Analytics", systemImage: "chart.bar.fill")
-                }
+                AnalyticsDashboardView()
+                    .tabItem {
+                        Label("Analytics", systemImage: "chart.bar.fill")
+                    }
 
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
+                SettingsView()
+                    .tabItem {
+                        Label("Settings", systemImage: "gear")
+                    }
+            }
+
+            // Offline status banner
+            OfflineStatusBanner()
+        }
+        .onAppear {
+            if !hasCompletedOnboarding {
+                showOnboarding = true
+            }
+        }
+        .sheet(isPresented: $showOnboarding) {
+            OnboardingView()
+                .interactiveDismissDisabled()
         }
     }
 }

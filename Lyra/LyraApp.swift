@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct LyraApp: App {
+    @AppStorage("onboarding.completed") private var hasCompletedOnboarding: Bool = false
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Song.self,
@@ -23,10 +25,13 @@ struct LyraApp: App {
             SetPerformance.self
         ])
 
+        // Check if iCloud sync is enabled
+        let iCloudEnabled = CloudSyncManager.shared.isSyncEnabled
+
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
-            cloudKitDatabase: .none // Can be changed to .automatic for iCloud sync
+            cloudKitDatabase: iCloudEnabled ? .automatic : .none
         )
 
         do {

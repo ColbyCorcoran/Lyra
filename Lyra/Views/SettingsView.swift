@@ -23,6 +23,7 @@ struct SettingsView: View {
     @State private var showAutoscrollSettings: Bool = false
     @State private var showFootPedalSettings: Bool = false
     @State private var showShortcutsSettings: Bool = false
+    @State private var showSyncSettings: Bool = false
     @State private var shareItem: SettingsShareItem?
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
@@ -259,6 +260,26 @@ struct SettingsView: View {
                     Text("Connect cloud storage services to import your chord charts and song files.")
                 }
 
+                // Sync & Backup Section
+                Section {
+                    Button {
+                        showSyncSettings = true
+                    } label: {
+                        HStack {
+                            Label("Sync & Backup", systemImage: "icloud.and.arrow.up.and.down")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                } header: {
+                    Label("Data Management", systemImage: "externaldrive")
+                } footer: {
+                    Text("Configure iCloud sync, local backups, and offline mode settings.")
+                }
+
                 // Display Defaults Section
                 Section {
                     // Font Size
@@ -465,6 +486,9 @@ struct SettingsView: View {
                         gestureManager: gestureManager
                     )
                 }
+            }
+            .sheet(isPresented: $showSyncSettings) {
+                SyncSettingsView()
             }
             .sheet(item: $shareItem) { (item: SettingsShareItem) in
                 SettingsShareSheet(activityItems: item.items)

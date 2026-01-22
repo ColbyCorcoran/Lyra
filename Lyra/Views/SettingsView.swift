@@ -25,6 +25,8 @@ struct SettingsView: View {
     @State private var showShortcutsSettings: Bool = false
     @State private var showSyncSettings: Bool = false
     @State private var showMigrationStatus: Bool = false
+    @State private var showHelp: Bool = false
+    @State private var showWhatsNew: Bool = false
     @State private var shareItem: SettingsShareItem?
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
@@ -434,6 +436,32 @@ struct SettingsView: View {
 
                 // Support Section
                 Section {
+                    Button {
+                        showHelp = true
+                    } label: {
+                        HStack {
+                            Label("Help & Support", systemImage: "questionmark.circle.fill")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+
+                    Button {
+                        showWhatsNew = true
+                    } label: {
+                        HStack {
+                            Label("What's New", systemImage: "sparkles")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+
                     Link(destination: URL(string: "https://github.com/yourusername/lyra")!) {
                         HStack {
                             Label("GitHub Repository", systemImage: "link")
@@ -506,6 +534,12 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showMigrationStatus) {
                 MigrationStatusView()
+            }
+            .sheet(isPresented: $showHelp) {
+                HelpView()
+            }
+            .sheet(isPresented: $showWhatsNew) {
+                WhatsNewView()
             }
             .sheet(item: $shareItem) { (item: SettingsShareItem) in
                 SettingsShareSheet(activityItems: item.items)

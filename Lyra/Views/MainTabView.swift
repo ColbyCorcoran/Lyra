@@ -14,8 +14,10 @@ struct MainTabView: View {
 
     @State private var showOnboarding: Bool = false
     @State private var showMigrationStatus: Bool = false
+    @State private var showWhatsNew: Bool = false
     @State private var migrationManager = DataMigrationManager.shared
     @State private var offlineManager = OfflineManager.shared
+    @State private var whatsNewManager = WhatsNewManager.shared
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -50,6 +52,12 @@ struct MainTabView: View {
             // Check onboarding
             if !hasCompletedOnboarding {
                 showOnboarding = true
+            } else if whatsNewManager.shouldShowWhatsNew() {
+                // Show What's New after onboarding is complete
+                // Delay slightly to ensure smooth presentation
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    showWhatsNew = true
+                }
             }
 
             // Check for migrations
@@ -61,6 +69,9 @@ struct MainTabView: View {
         .sheet(isPresented: $showOnboarding) {
             OnboardingView()
                 .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $showWhatsNew) {
+            WhatsNewView()
         }
         .sheet(isPresented: $showMigrationStatus) {
             MigrationStatusView()

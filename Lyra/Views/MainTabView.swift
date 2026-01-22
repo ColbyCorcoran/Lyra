@@ -16,6 +16,11 @@ struct MainTabView: View {
                     Label("Library", systemImage: "book.fill")
                 }
 
+            AnalyticsDashboardView()
+                .tabItem {
+                    Label("Analytics", systemImage: "chart.bar.fill")
+                }
+
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gear")

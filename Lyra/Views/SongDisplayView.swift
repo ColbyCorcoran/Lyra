@@ -48,9 +48,11 @@ struct SongDisplayView: View {
     @State private var isDrawingMode: Bool = false
     @State private var containerSize: CGSize = .zero
     @State private var showMetronomeControls: Bool = false
+    @State private var showLowLightSettings: Bool = false
 
     @StateObject private var autoscrollManager = AutoscrollManager()
     @StateObject private var metronomeManager = MetronomeManager()
+    @StateObject private var lowLightManager = LowLightModeManager()
 
     /// Get the active capo position (from set override or song)
     private var activeCapo: Int {
@@ -137,8 +139,8 @@ struct SongDisplayView: View {
                 textContentView
             }
         }
-        .background(displaySettings.backgroundColorValue())
-        .preferredColorScheme(displaySettings.darkModePreference.colorScheme)
+        .background(lowLightManager.isEnabled ? Color.black : displaySettings.backgroundColorValue())
+        .preferredColorScheme(lowLightManager.isEnabled ? .dark : displaySettings.darkModePreference.colorScheme)
         .navigationTitle(song.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -211,6 +213,35 @@ struct SongDisplayView: View {
                     }
                     .accessibilityLabel("Display settings")
                     .accessibilityHint("Adjust font size, colors, and spacing")
+                }
+            }
+
+            // Low Light Mode toggle (for both text and PDF views)
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    lowLightManager.toggle()
+                } label: {
+                    ZStack {
+                        Image(systemName: lowLightManager.isEnabled ? "moon.fill" : "moon")
+                            .foregroundStyle(lowLightManager.isEnabled ? lowLightManager.color.color : .primary)
+
+                        // Show indicator if enabled
+                        if lowLightManager.isEnabled {
+                            Circle()
+                                .fill(lowLightManager.color.color)
+                                .frame(width: 8, height: 8)
+                                .offset(x: 8, y: -8)
+                        }
+                    }
+                }
+                .accessibilityLabel("Low light mode")
+                .accessibilityHint(lowLightManager.isEnabled ? "Disable low light mode" : "Enable low light mode for dark environments")
+                .contextMenu {
+                    Button {
+                        showLowLightSettings = true
+                    } label: {
+                        Label("Low Light Settings", systemImage: "gear")
+                    }
                 }
             }
 
@@ -472,6 +503,20 @@ struct SongDisplayView: View {
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
             .hidden()
+
+            Button("") {
+                lowLightManager.toggle()
+            }
+            .keyboardShortcut("l", modifiers: .command)
+            .hidden()
+        }
+        .sheet(isPresented: $showLowLightSettings) {
+            LowLightSettingsSheet(
+                lowLightManager: lowLightManager,
+                onDismiss: {
+                    showLowLightSettings = false
+                }
+            )
         }
         .onAppear {
             parseSong()
@@ -484,6 +529,8 @@ struct SongDisplayView: View {
             if let tempo = song.tempo, tempo > 0 {
                 metronomeManager.setBPM(Double(tempo))
             }
+            // Check if low light mode should auto-enable
+            lowLightManager.checkAutoEnable()
         }
         .onChange(of: song.content) { _, _ in
             parseSong()
@@ -566,7 +613,11 @@ struct SongDisplayView: View {
         Group {
             if let pdfData = attachment.fileData ?? loadPDFData(from: attachment),
                let pdfDocument = PDFDocument(data: pdfData) {
-                PDFViewerView(pdfDocument: pdfDocument, filename: attachment.filename)
+                PDFViewerView(
+                    pdfDocument: pdfDocument,
+                    filename: attachment.filename,
+                    lowLightManager: lowLightManager
+                )
             } else {
                 // PDF loading error
                 VStack(spacing: 16) {
@@ -787,6 +838,8 @@ struct SongDisplayView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .environment(\.colorScheme, lowLightManager.isEnabled ? .dark : nil)
+        .foregroundStyle(lowLightManager.isEnabled ? lowLightManager.textColor(for: .primary) : .primary)
     }
 
     // MARK: - Helper Methods

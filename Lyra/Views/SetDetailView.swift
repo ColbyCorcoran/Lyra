@@ -30,6 +30,10 @@ struct SetDetailView: View {
     @State private var shareItem: SetDetailShareItem?
     @State private var exportError: Error?
     @State private var showError: Bool = false
+    @State private var showPerformanceMode: Bool = false
+    @State private var showPresetPicker: Bool = false
+    @State private var selectedPreset: PerformancePreset?
+    @StateObject private var performanceManager = PerformanceModeManager()
 
     private var songCount: Int {
         cachedEntries.count
@@ -91,6 +95,12 @@ struct SetDetailView: View {
                 Text(error.localizedDescription)
             }
         }
+        .fullScreenCover(isPresented: $showPerformanceMode) {
+            PerformanceView(
+                performanceSet: performanceSet,
+                performanceManager: performanceManager
+            )
+        }
         .onAppear {
             refreshEntries()
         }
@@ -107,8 +117,80 @@ struct SetDetailView: View {
                 folderAndCountRow
                 descriptionView
                 notesView
+
+                // Start Performance button (only show if set has songs)
+                if !cachedEntries.isEmpty {
+                    startPerformanceButton
+                        .padding(.top, 8)
+                }
             }
             .padding(.vertical, 8)
+        }
+    }
+
+    @ViewBuilder
+    private var startPerformanceButton: some View {
+        VStack(spacing: 12) {
+            Button {
+                startPerformance()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 24))
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Start Performance")
+                            .font(.headline)
+                        Text("Full screen mode with song navigation")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
+                .background(Color.blue.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+
+            // Preset quick picks
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(PerformancePreset.allPresets) { preset in
+                        Button {
+                            selectedPreset = preset
+                            startPerformance(with: preset)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: presetIcon(for: preset))
+                                        .font(.system(size: 14))
+                                    Text(preset.name)
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .foregroundStyle(.primary)
+
+                                if let description = preset.description {
+                                    Text(description)
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
+                            }
+                            .frame(width: 180, alignment: .leading)
+                            .padding(12)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
         }
     }
 
@@ -423,6 +505,28 @@ struct SetDetailView: View {
         }
 
         return label
+    }
+
+    // MARK: - Performance Mode
+
+    private func startPerformance(with preset: PerformancePreset? = nil) {
+        performanceManager.startPerformance(set: performanceSet, preset: preset)
+        showPerformanceMode = true
+    }
+
+    private func presetIcon(for preset: PerformancePreset) -> String {
+        switch preset.name {
+        case "Solo Performance":
+            return "person.fill"
+        case "With Band":
+            return "music.note.list"
+        case "Teaching":
+            return "book.fill"
+        case "Night Performance":
+            return "moon.fill"
+        default:
+            return "star.fill"
+        }
     }
 
     // MARK: - Export Actions

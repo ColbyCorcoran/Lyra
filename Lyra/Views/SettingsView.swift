@@ -22,6 +22,7 @@ struct SettingsView: View {
     @State private var showAttachmentStorage: Bool = false
     @State private var showAutoscrollSettings: Bool = false
     @State private var showFootPedalSettings: Bool = false
+    @State private var showShortcutsSettings: Bool = false
     @State private var shareItem: SettingsShareItem?
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
@@ -29,6 +30,8 @@ struct SettingsView: View {
     @StateObject private var dropboxManager = DropboxManager.shared
     @StateObject private var driveManager = GoogleDriveManager.shared
     @StateObject private var footPedalManager = FootPedalManager()
+    @StateObject private var shortcutsManager = ShortcutsManager()
+    @StateObject private var gestureManager = GestureShortcutsManager()
 
     var body: some View{
         NavigationStack {
@@ -130,10 +133,23 @@ struct SettingsView: View {
                         }
                         .foregroundStyle(.primary)
                     }
+
+                    Button {
+                        showShortcutsSettings = true
+                    } label: {
+                        HStack {
+                            Label("Shortcuts & Gestures", systemImage: "keyboard")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
                 } header: {
                     Label("Performance", systemImage: "music.note")
                 } footer: {
-                    Text("Configure hands-free controls for live performance")
+                    Text("Configure hands-free controls, keyboard shortcuts, and gestures")
                 }
 
                 // Cloud Services Section
@@ -440,6 +456,14 @@ struct SettingsView: View {
             .sheet(isPresented: $showFootPedalSettings) {
                 NavigationStack {
                     FootPedalSettingsView(footPedalManager: footPedalManager)
+                }
+            }
+            .sheet(isPresented: $showShortcutsSettings) {
+                NavigationStack {
+                    ShortcutsSettingsView(
+                        shortcutsManager: shortcutsManager,
+                        gestureManager: gestureManager
+                    )
                 }
             }
             .sheet(item: $shareItem) { (item: SettingsShareItem) in

@@ -31,8 +31,11 @@ struct MainTabView: View {
                     }
             }
 
-            // Offline status banner
-            OfflineStatusBanner()
+            // Status banners
+            VStack(spacing: 0) {
+                OfflineStatusBanner()
+                ConflictBanner()
+            }
         }
         .onAppear {
             if !hasCompletedOnboarding {

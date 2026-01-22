@@ -15,11 +15,13 @@ struct SyncSettingsView: View {
     @State private var cloudSync = CloudSyncManager.shared
     @State private var offline = OfflineManager.shared
     @State private var backup = BackupManager.shared
+    @State private var conflictManager = ConflictResolutionManager.shared
 
     @State private var showBackupPicker: Bool = false
     @State private var showRestorePicker: Bool = false
     @State private var showBackupSuccess: Bool = false
     @State private var showRestoreConfirmation: Bool = false
+    @State private var showConflictResolution: Bool = false
     @State private var backupURL: URL?
 
     var body: some View {
@@ -36,6 +38,9 @@ struct SyncSettingsView: View {
 
                 // Offline Mode
                 offlineModeSection
+
+                // Conflict Resolution
+                conflictResolutionSection
             }
             .navigationTitle("Sync & Backup")
             .navigationBarTitleDisplayMode(.inline)
@@ -66,6 +71,9 @@ struct SyncSettingsView: View {
                 }
             } message: {
                 Text("This will replace all current data with the backup. This cannot be undone.")
+            }
+            .sheet(isPresented: $showConflictResolution) {
+                ConflictResolutionView()
             }
         }
     }
@@ -302,6 +310,102 @@ struct SyncSettingsView: View {
             Text("Offline Mode")
         } footer: {
             Text("Lyra is designed to work perfectly offline. All features are available without internet connection.")
+        }
+    }
+
+    // MARK: - Conflict Resolution Section
+
+    private var conflictResolutionSection: some View {
+        Section {
+            if conflictManager.hasUnresolvedConflicts {
+                // Unresolved conflicts warning
+                HStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.orange)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(conflictManager.unresolvedCount) Unresolved Conflict\(conflictManager.unresolvedCount == 1 ? "" : "s")")
+                            .font(.headline)
+                            .foregroundStyle(.orange)
+
+                        Text("Sync paused until conflicts are resolved")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+                }
+                .padding(.vertical, 4)
+
+                Button {
+                    showConflictResolution = true
+                } label: {
+                    HStack {
+                        Spacer()
+                        Text("Resolve Conflicts")
+                            .fontWeight(.semibold)
+                        Spacer()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.orange)
+            } else {
+                // No conflicts
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+
+                    Text("No conflicts detected")
+                        .font(.subheadline)
+                }
+                .padding(.vertical, 4)
+            }
+
+            // Conflict statistics
+            if conflictManager.totalConflictsDetected > 0 {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Total Resolved")
+                        Spacer()
+                        Text("\(conflictManager.totalConflictsDetected)")
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.subheadline)
+
+                    HStack {
+                        Text("Auto-Resolved")
+                        Spacer()
+                        Text("\(conflictManager.totalAutoResolved)")
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.caption)
+
+                    HStack {
+                        Text("Manual")
+                        Spacer()
+                        Text("\(conflictManager.totalUserResolved)")
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.caption)
+                }
+                .padding(.vertical, 4)
+            }
+
+            // Settings button
+            Button {
+                showConflictResolution = true
+            } label: {
+                Label("Conflict Settings", systemImage: "gearshape")
+            }
+        } header: {
+            Text("Conflict Resolution")
+        } footer: {
+            if conflictManager.autoResolveSimpleConflicts {
+                Text("Simple conflicts are automatically resolved using \(conflictManager.autoResolveStrategy.rawValue) strategy. Complex conflicts require your review.")
+            } else {
+                Text("All conflicts require manual resolution. Enable auto-resolution in conflict settings.")
+            }
         }
     }
 

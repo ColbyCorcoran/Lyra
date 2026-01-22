@@ -52,6 +52,10 @@ struct SongDisplayView: View {
     @State private var showQuickActionMenu: Bool = false
     @State private var quickActionMenuPosition: CGPoint = .zero
     @State private var scrollProxy: ScrollViewProxy? = nil
+    @State private var showComments: Bool = false
+    @State private var commentCount: Int = 0
+
+    @Query private var allComments: [Comment]
 
     @StateObject private var autoscrollManager = AutoscrollManager()
     @StateObject private var metronomeManager = MetronomeManager()
@@ -395,6 +399,32 @@ struct SongDisplayView: View {
                 }
             }
 
+            // Comments button (for shared songs)
+            if song.sharedLibrary != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showComments = true
+                    } label: {
+                        ZStack {
+                            Image(systemName: "bubble.left.and.bubble.right")
+
+                            // Show badge with count if comments exist
+                            if commentCount > 0 {
+                                Text("\(commentCount)")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.white)
+                                    .padding(4)
+                                    .background(Circle().fill(.red))
+                                    .offset(x: 10, y: -8)
+                            }
+                        }
+                    }
+                    .accessibilityLabel("Comments")
+                    .accessibilityHint(commentCount > 0 ? "\(commentCount) comments" : "View and add comments")
+                }
+            }
+
             // Extract Text button (only for PDF view)
             if viewMode == .pdf, hasPDFAttachment {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -584,6 +614,22 @@ struct SongDisplayView: View {
         .sheet(isPresented: $showCapo) {
             CapoView(song: song, setEntry: setEntry) { capoFret in
                 handleCapoChange(capoFret: capoFret)
+            }
+        }
+        .sheet(isPresented: $showComments) {
+            CommentsView(song: song)
+        }
+        .task {
+            // Update comment count
+            updateCommentCount()
+
+            // Listen for comment changes
+            NotificationCenter.default.addObserver(
+                forName: .commentAdded,
+                object: nil,
+                queue: .main
+            ) { _ in
+                updateCommentCount()
             }
         }
         .background {
@@ -1028,6 +1074,11 @@ struct SongDisplayView: View {
         } catch {
             print("Error tracking song view: \(error)")
         }
+    }
+
+    /// Update comment count for this song
+    private func updateCommentCount() {
+        commentCount = allComments.filter { $0.songID == song.id }.count
     }
 
     // MARK: - Transposition Methods

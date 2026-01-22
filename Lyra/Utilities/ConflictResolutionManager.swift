@@ -9,6 +9,12 @@ import Foundation
 import SwiftData
 import Combine
 
+enum ConflictError: Error {
+    case manualResolutionRequired
+    case invalidConflictData
+    case syncFailed(String)
+}
+
 @Observable
 class ConflictResolutionManager {
     static let shared = ConflictResolutionManager()
@@ -41,6 +47,15 @@ class ConflictResolutionManager {
     }
 
     // MARK: - Conflict Detection
+
+    /// Detects conflicts for a specific entity type
+    func detectConflicts(for entityType: SyncConflict.EntityType) async throws -> [SyncConflict] {
+        // Delegate to CloudKitSyncCoordinator for actual detection
+        await CloudKitSyncCoordinator.shared.performConflictDetection()
+
+        // Return conflicts that match the entity type
+        return unresolvedConflicts.filter { $0.entityType == entityType }
+    }
 
     /// Detects conflicts during sync operation
     func detectConflicts(
@@ -162,27 +177,44 @@ class ConflictResolutionManager {
     // MARK: - Resolution Application
 
     private func applyLocalVersion(_ conflict: SyncConflict, modelContext: ModelContext) async throws {
-        // Apply local version to sync
-        // In production: Update CloudKit record with local data
+        // Delegate to CloudKitSyncCoordinator to push local version to CloudKit
+        try await CloudKitSyncCoordinator.shared.applyLocalVersion(conflict, modelContext: modelContext)
         print("✅ Applied local version for conflict: \(conflict.id)")
     }
 
     private func applyRemoteVersion(_ conflict: SyncConflict, modelContext: ModelContext) async throws {
-        // Apply remote version to local
-        // In production: Update local SwiftData model with remote data
+        // Delegate to CloudKitSyncCoordinator to update local with remote version
+        try await CloudKitSyncCoordinator.shared.applyRemoteVersion(conflict, modelContext: modelContext)
         print("✅ Applied remote version for conflict: \(conflict.id)")
     }
 
     private func keepBothVersions(_ conflict: SyncConflict, modelContext: ModelContext) async throws {
-        // Create duplicate entity with suffix
-        // In production: Clone local entity with " (Local)" suffix, keep remote as-is
+        // Delegate to CloudKitSyncCoordinator to create duplicates
+        try await CloudKitSyncCoordinator.shared.keepBothVersions(conflict, modelContext: modelContext)
         print("✅ Kept both versions for conflict: \(conflict.id)")
     }
 
     private func mergeVersions(_ conflict: SyncConflict, modelContext: ModelContext) async throws {
-        // Merge non-conflicting properties from both versions
-        // In production: Intelligent merge of properties
-        print("✅ Merged versions for conflict: \(conflict.id)")
+        // Perform intelligent merge using ConflictMergeEngine
+        let mergeResult = ConflictMergeEngine.merge(
+            local: conflict.localVersion.data,
+            remote: conflict.remoteVersion.data,
+            base: nil // Base version would come from CloudKit history if available
+        )
+
+        // If auto-merge is possible, apply it
+        if mergeResult.canAutoResolve {
+            try await CloudKitSyncCoordinator.shared.mergeVersions(
+                conflict,
+                modelContext: modelContext,
+                mergedData: mergeResult.mergedData
+            )
+            print("✅ Auto-merged versions for conflict: \(conflict.id)")
+        } else {
+            // Manual resolution needed - this shouldn't happen if user already chose merge
+            print("⚠️ Merge requires manual resolution for conflict: \(conflict.id)")
+            throw ConflictError.manualResolutionRequired
+        }
     }
 
     // MARK: - Conflict Management

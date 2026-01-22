@@ -86,6 +86,31 @@ final class Song {
 
     var importRecord: ImportRecord?
 
+    // MARK: - Sync Metadata
+
+    // Hash of last synced content for conflict detection
+    var lastSyncedHash: String?
+
+    // Incremented on each conflict resolution
+    var conflictVersion: Int = 0
+
+    // Device name that made last change
+    var deviceModifiedOn: String?
+
+    // MARK: - Shared Library
+
+    /// The shared library this song belongs to (if any)
+    @Relationship(deleteRule: .nullify, inverse: \SharedLibrary.songs)
+    var sharedLibrary: SharedLibrary?
+
+    /// User record ID of who last edited (for shared libraries)
+    var lastEditedBy: String?
+
+    /// Whether this song is shared
+    var isShared: Bool {
+        sharedLibrary != nil
+    }
+
     // MARK: - Initializer
     init(
         title: String,
@@ -144,5 +169,49 @@ final class Song {
     /// Clear custom display settings (revert to global defaults)
     func clearCustomDisplaySettings() {
         displaySettingsData = nil
+    }
+
+    // MARK: - Sync Helpers
+
+    /// Generates a hash of the song content for conflict detection
+    func generateContentHash() -> String {
+        var hashContent = ""
+        hashContent += title
+        hashContent += artist ?? ""
+        hashContent += content
+        hashContent += originalKey ?? ""
+        hashContent += modifiedAt.description
+
+        return String(hashContent.hashValue)
+    }
+
+    /// Updates sync metadata after modification
+    func updateSyncMetadata() {
+        modifiedAt = Date()
+        lastSyncedHash = generateContentHash()
+        deviceModifiedOn = UIDevice.current.name
+    }
+
+    /// Checks if content has changed since last sync
+    func hasChangedSinceLastSync() -> Bool {
+        guard let lastHash = lastSyncedHash else { return true }
+        return generateContentHash() != lastHash
+    }
+}
+
+// MARK: - UIDevice Extension
+
+import UIKit
+
+extension UIDevice {
+    static var modelName: String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machineMirror = Mirror(reflecting: systemInfo.machine)
+        let identifier = machineMirror.children.reduce("") { identifier, element in
+            guard let value = element.value as? Int8, value != 0 else { return identifier }
+            return identifier + String(UnicodeScalar(UInt8(value)))
+        }
+        return identifier
     }
 }

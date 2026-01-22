@@ -175,7 +175,7 @@ struct SyncSettingsView: View {
 
                     if cloudSync.syncStatus != .syncing {
                         Button("Sync Now") {
-                            cloudSync.forceSyncNow()
+                            performCloudKitSync()
                         }
                         .font(.caption)
                     } else {
@@ -470,6 +470,36 @@ struct SyncSettingsView: View {
     #endif
 
     // MARK: - Actions
+
+    private func performCloudKitSync() {
+        Task {
+            cloudSync.syncStatus = .syncing
+
+            do {
+                // Perform sync using CloudKitSyncCoordinator
+                try await CloudKitSyncCoordinator.shared.performSync()
+
+                // Check for conflicts after sync
+                let conflicts = try await conflictManager.detectConflicts(for: .song)
+
+                await MainActor.run {
+                    if !conflicts.isEmpty {
+                        // Show conflict resolution UI
+                        showConflictResolution = true
+                        HapticManager.shared.notification(.warning)
+                    } else {
+                        HapticManager.shared.notification(.success)
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    cloudSync.syncStatus = .error(error.localizedDescription)
+                    HapticManager.shared.notification(.error)
+                    print("❌ Sync error: \(error)")
+                }
+            }
+        }
+    }
 
     private func createManualBackup() {
         Task {

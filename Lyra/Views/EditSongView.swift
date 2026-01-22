@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Combine
 
 enum EditTab: String, CaseIterable {
     case metadata = "Info"
@@ -31,6 +32,13 @@ struct EditSongView: View {
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
 
+    // Collaboration tracking
+    @State private var activeEditors: [UserPresence] = []
+    @State private var isTrackingPresence: Bool = false
+    @State private var presenceUpdateTimer: Timer?
+
+    private let presenceManager = PresenceManager.shared
+
     init(song: Song) {
         self.song = song
         _title = State(initialValue: song.title)
@@ -46,6 +54,15 @@ struct EditSongView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                // Live editing banner (if others are editing)
+                if !activeEditors.isEmpty {
+                    LiveEditingBanner(
+                        editors: activeEditors,
+                        currentSongID: song.id
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 // Tab picker
                 Picker("Edit Mode", selection: $selectedTab) {
                     ForEach(EditTab.allCases, id: \.self) { tab in
@@ -85,6 +102,46 @@ struct EditSongView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(errorMessage)
+            }
+            .task {
+                await startPresenceTracking()
+
+                // Listen for presence changes
+                NotificationCenter.default.addObserver(
+                    forName: .presenceDidChange,
+                    object: nil,
+                    queue: .main
+                ) { _ in
+                    Task {
+                        await fetchActiveEditors()
+                    }
+                }
+            }
+            .onDisappear {
+                Task {
+                    await stopPresenceTracking()
+                }
+            }
+            .onChange(of: selectedTab) { oldTab, newTab in
+                // Update presence when switching to content editor
+                Task {
+                    let isEditing = newTab == .content
+                    await presenceManager.updatePresence(
+                        libraryID: song.sharedLibrary?.id,
+                        songID: song.id,
+                        isEditing: isEditing
+                    )
+                }
+            }
+            .onChange(of: content) { oldValue, newValue in
+                // Track content changes for activity feed
+                if selectedTab == .content && isTrackingPresence {
+                    // Update cursor position (approximate based on content length)
+                    let lineCount = newValue.components(separatedBy: .newlines).count
+                    Task {
+                        await presenceManager.updateCursor(position: lineCount)
+                    }
+                }
             }
         }
     }
@@ -179,6 +236,57 @@ struct EditSongView: View {
         }
     }
 
+    // MARK: - Presence Tracking
+
+    private func startPresenceTracking() async {
+        isTrackingPresence = true
+
+        // Update presence to indicate viewing this song
+        await presenceManager.updatePresence(
+            libraryID: song.sharedLibrary?.id,
+            songID: song.id,
+            isEditing: selectedTab == .content
+        )
+
+        // Fetch other editors
+        await fetchActiveEditors()
+
+        // Set up periodic refresh
+        presenceUpdateTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
+            Task { @MainActor in
+                await fetchActiveEditors()
+            }
+        }
+    }
+
+    private func stopPresenceTracking() async {
+        isTrackingPresence = false
+
+        // Stop timer
+        presenceUpdateTimer?.invalidate()
+        presenceUpdateTimer = nil
+
+        // Update presence to indicate no longer viewing this song
+        await presenceManager.updatePresence(
+            libraryID: nil,
+            songID: nil,
+            isEditing: false
+        )
+
+        // Clear active editors
+        activeEditors = []
+    }
+
+    private func fetchActiveEditors() async {
+        let editors = await presenceManager.fetchEditorsForSong(song.id)
+
+        await MainActor.run {
+            withAnimation(.spring(response: 0.3)) {
+                activeEditors = editors
+            }
+        }
+    }
+
     // MARK: - Actions
 
     private func saveSong() {
@@ -203,6 +311,12 @@ struct EditSongView: View {
 
         do {
             try modelContext.save()
+
+            // Log activity if this is a shared song
+            if let library = song.sharedLibrary {
+                await logEditActivity(libraryID: library.id)
+            }
+
             HapticManager.shared.success()
             dismiss()
         } catch {
@@ -210,6 +324,29 @@ struct EditSongView: View {
             showErrorAlert = true
             HapticManager.shared.operationFailed()
         }
+    }
+
+    private func logEditActivity(libraryID: UUID) async {
+        guard let currentPresence = presenceManager.currentUserPresence else { return }
+
+        let activity = MemberActivity(
+            userRecordID: currentPresence.userRecordID,
+            displayName: currentPresence.displayName,
+            activityType: .songEdited,
+            libraryID: libraryID,
+            songID: song.id,
+            songTitle: song.title
+        )
+
+        modelContext.insert(activity)
+        try? modelContext.save()
+
+        // Post notification for activity feed
+        NotificationCenter.default.post(
+            name: .memberActivityAdded,
+            object: nil,
+            userInfo: ["activity": activity]
+        )
     }
 }
 

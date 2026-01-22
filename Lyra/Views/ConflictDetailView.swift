@@ -18,6 +18,9 @@ struct ConflictDetailView: View {
     @State private var selectedResolution: SyncConflict.ConflictResolution?
     @State private var showConfirmation: Bool = false
     @State private var isResolving: Bool = false
+    @State private var showContentDiff: Bool = false
+    @State private var showMetadataComparison: Bool = false
+    @State private var showSideBySide: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -62,6 +65,28 @@ struct ConflictDetailView: View {
             } message: {
                 if let resolution = selectedResolution {
                     Text(confirmationMessage(for: resolution))
+                }
+            }
+            .sheet(isPresented: $showContentDiff) {
+                if let localContent = conflict.localVersion.data.content,
+                   let remoteContent = conflict.remoteVersion.data.content {
+                    ContentDiffView(
+                        localContent: localContent,
+                        remoteContent: remoteContent,
+                        baseContent: nil
+                    )
+                }
+            }
+            .sheet(isPresented: $showMetadataComparison) {
+                MetadataComparisonView(conflict: conflict)
+            }
+            .sheet(isPresented: $showSideBySide) {
+                if let localContent = conflict.localVersion.data.content,
+                   let remoteContent = conflict.remoteVersion.data.content {
+                    SideBySideDiffView(
+                        localContent: localContent,
+                        remoteContent: remoteContent
+                    )
                 }
             }
         }
@@ -150,6 +175,110 @@ struct ConflictDetailView: View {
             Text("Resolution Options")
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Analysis tools
+            VStack(spacing: 12) {
+                Text("Analysis Tools")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if conflict.conflictType == .contentModification {
+                    Button {
+                        showContentDiff = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.text.magnifyingglass")
+                                .foregroundStyle(.blue)
+                                .frame(width: 30)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("View Content Diff")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+
+                                Text("Line-by-line comparison")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        showSideBySide = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "rectangle.split.2x1")
+                                .foregroundStyle(.purple)
+                                .frame(width: 30)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Side-by-Side View")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+
+                                Text("Compare versions side-by-side")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if conflict.conflictType == .propertyConflict {
+                    Button {
+                        showMetadataComparison = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "slider.horizontal.3")
+                                .foregroundStyle(.orange)
+                                .frame(width: 30)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Field-by-Field Selection")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+
+                                Text("Choose values for each field")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            Divider()
 
             // Keep both option
             if conflict.conflictType != .deletion {

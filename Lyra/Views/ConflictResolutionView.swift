@@ -51,20 +51,44 @@ struct ConflictResolutionView: View {
 
                         Divider()
 
-                        Button(role: .destructive) {
-                            resolveAllWithStrategy(.keepLocal)
-                        } label: {
-                            Label("Keep All Local", systemImage: "iphone")
+                        Section("Batch Actions") {
+                            Button {
+                                resolveAllWithStrategy(.keepLocal)
+                            } label: {
+                                Label("Keep All Local", systemImage: "iphone")
+                            }
+
+                            Button {
+                                resolveAllWithStrategy(.keepRemote)
+                            } label: {
+                                Label("Keep All Remote", systemImage: "icloud")
+                            }
+
+                            Button {
+                                resolveAllWithStrategy(.keepBoth)
+                            } label: {
+                                Label("Keep All (Duplicate)", systemImage: "doc.on.doc")
+                            }
+
+                            Button {
+                                skipAllConflicts()
+                            } label: {
+                                Label("Skip All", systemImage: "forward")
+                            }
                         }
 
+                        Divider()
+
                         Button(role: .destructive) {
-                            resolveAllWithStrategy(.keepRemote)
+                            // Delete all conflicts (cancel resolution)
+                            clearAllConflicts()
                         } label: {
-                            Label("Keep All Remote", systemImage: "icloud")
+                            Label("Clear All Conflicts", systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                    .disabled(conflictManager.unresolvedConflicts.isEmpty)
                 }
             }
             .sheet(isPresented: $showSettings) {
@@ -178,6 +202,24 @@ struct ConflictResolutionView: View {
                 HapticManager.shared.notification(.error)
             }
         }
+    }
+
+    private func skipAllConflicts() {
+        Task {
+            do {
+                try await conflictManager.resolveAllConflicts(with: .skipForNow, modelContext: modelContext)
+                HapticManager.shared.notification(.success)
+            } catch {
+                print("❌ Error skipping conflicts: \(error)")
+                HapticManager.shared.notification(.error)
+            }
+        }
+    }
+
+    private func clearAllConflicts() {
+        // Remove all unresolved conflicts without resolving them
+        conflictManager.unresolvedConflicts.removeAll()
+        HapticManager.shared.notification(.success)
     }
 }
 

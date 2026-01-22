@@ -33,9 +33,22 @@
 		B68C7DB32F1AB59200B8C5C5 /* LyraUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LyraUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B68C82172F228FC100B8C5C5 /* Exceptions for "Lyra" folder in "Lyra" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B68C7D992F1AB59100B8C5C5 /* Lyra */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B68C7D9C2F1AB59100B8C5C5 /* Lyra */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B68C82172F228FC100B8C5C5 /* Exceptions for "Lyra" folder in "Lyra" target */,
+			);
 			path = Lyra;
 			sourceTree = "<group>";
 		};
@@ -403,6 +416,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Lyra/Lyra.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -412,6 +426,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Lyra/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Lyra;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Lyra needs camera access to scan paper chord charts and digitize them for your library.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -442,6 +457,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Lyra/Lyra.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -451,6 +467,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Lyra/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Lyra;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Lyra needs camera access to scan paper chord charts and digitize them for your library.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";

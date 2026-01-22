@@ -18,7 +18,9 @@ struct LyraApp: App {
             SetEntry.self,
             Attachment.self,
             Annotation.self,
-            UserSettings.self
+            UserSettings.self,
+            Performance.self,
+            SetPerformance.self
         ])
 
         let modelConfiguration = ModelConfiguration(

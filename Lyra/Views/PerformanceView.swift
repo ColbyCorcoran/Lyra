@@ -12,6 +12,7 @@ struct PerformanceView: View {
     @Bindable var performanceManager: PerformanceModeManager
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging: Bool = false
     @State private var showQuickNote: Bool = false
@@ -278,6 +279,9 @@ struct PerformanceView: View {
             .presentationDragIndicator(.visible)
         }
         .onAppear {
+            // Inject model context for performance tracking
+            performanceManager.modelContext = modelContext
+
             // Show controls briefly when entering
             performanceManager.showControlsBriefly()
             // Setup shortcuts and gestures

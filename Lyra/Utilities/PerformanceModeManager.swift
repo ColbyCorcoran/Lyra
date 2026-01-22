@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import UIKit
+import SwiftData
 
 @Observable
 class PerformanceModeManager {
@@ -20,6 +21,11 @@ class PerformanceModeManager {
     var showControls: Bool = true
     var showSetList: Bool = false
     var elapsedTime: TimeInterval = 0
+
+    // Performance tracking
+    var modelContext: ModelContext?
+    var songStartTimes: [Int: Date] = [:] // Track when each song was started
+    var songMetadata: [Int: SongPerformanceMetadata] = [:] // Track performance details per song
 
     // Settings
     var keepScreenAwake: Bool = true
@@ -63,9 +69,14 @@ class PerformanceModeManager {
         // Reset state
         currentSongIndex = 0
         performedSongIndices.removeAll()
+        songStartTimes.removeAll()
+        songMetadata.removeAll()
         elapsedTime = 0
         showControls = true
         showSetList = false
+
+        // Track start time for first song
+        songStartTimes[0] = Date()
 
         // Activate performance mode
         isActive = true
@@ -85,13 +96,70 @@ class PerformanceModeManager {
         stopSessionTimer()
 
         // Update session
-        if let session = currentSession {
+        if let session = currentSession, let context = modelContext {
             session.endTime = Date()
             session.duration = elapsedTime
             session.completedSongCount = performedSongIndices.count
 
-            // Save session to SwiftData (would need context injection)
-            // For now, just track in memory
+            // Create SetPerformance record
+            let setPerformance = SetPerformance(
+                performanceSet: session.performanceSet,
+                performanceDate: session.startTime,
+                duration: session.duration
+            )
+            setPerformance.songsPerformed = performedSongIndices.count
+            setPerformance.songsSkipped = session.performanceSet.songEntries?.count ?? 0 - performedSongIndices.count
+
+            context.insert(setPerformance)
+
+            // Create Performance records for each performed song
+            if let entries = session.performanceSet.sortedSongEntries {
+                for index in performedSongIndices {
+                    guard index < entries.count else { continue }
+                    let entry = entries[index]
+
+                    // Calculate song duration
+                    let songDuration: TimeInterval?
+                    if let startTime = songStartTimes[index] {
+                        let endTime = (index + 1 < entries.count && songStartTimes[index + 1] != nil)
+                            ? songStartTimes[index + 1]!
+                            : Date()
+                        songDuration = endTime.timeIntervalSince(startTime)
+                    } else {
+                        songDuration = nil
+                    }
+
+                    // Get metadata for this song
+                    let metadata = songMetadata[index] ?? SongPerformanceMetadata()
+
+                    // Create Performance record
+                    let performance = Performance(
+                        song: entry.song,
+                        performanceDate: session.startTime,
+                        duration: songDuration,
+                        usedAutoscroll: metadata.usedAutoscroll,
+                        autoscrollDuration: metadata.autoscrollDuration,
+                        transposeSemitones: metadata.transposeSemitones,
+                        capoFret: entry.capoOverride ?? entry.song.capo,
+                        key: entry.keyOverride ?? entry.song.currentKey,
+                        tempo: entry.tempoOverride ?? entry.song.tempo
+                    )
+                    performance.setPerformance = setPerformance
+
+                    context.insert(performance)
+
+                    // Update song statistics
+                    entry.song.timesPerformed += 1
+                    entry.song.lastPerformed = session.startTime
+                }
+            }
+
+            // Save all changes
+            do {
+                try context.save()
+            } catch {
+                print("❌ Error saving performance data: \(error)")
+            }
         }
 
         // Deactivate performance mode
@@ -105,6 +173,8 @@ class PerformanceModeManager {
         sessionStartTime = nil
         currentSongIndex = 0
         performedSongIndices.removeAll()
+        songStartTimes.removeAll()
+        songMetadata.removeAll()
         activePreset = nil
 
         // Haptic feedback
@@ -115,24 +185,35 @@ class PerformanceModeManager {
 
     func goToNextSong(totalSongs: Int) {
         guard currentSongIndex < totalSongs - 1 else { return }
+        let oldIndex = currentSongIndex
         currentSongIndex += 1
+        trackSongChange(from: oldIndex, to: currentSongIndex)
         showControlsBriefly()
         HapticManager.shared.selection()
     }
 
     func goToPreviousSong() {
         guard currentSongIndex > 0 else { return }
+        let oldIndex = currentSongIndex
         currentSongIndex -= 1
+        trackSongChange(from: oldIndex, to: currentSongIndex)
         showControlsBriefly()
         HapticManager.shared.selection()
     }
 
     func goToSong(index: Int, totalSongs: Int) {
         guard index >= 0 && index < totalSongs else { return }
+        let oldIndex = currentSongIndex
         currentSongIndex = index
+        trackSongChange(from: oldIndex, to: index)
         showSetList = false
         showControlsBriefly()
         HapticManager.shared.selection()
+    }
+
+    private func trackSongChange(from oldIndex: Int, to newIndex: Int) {
+        // Record start time for the new song
+        songStartTimes[newIndex] = Date()
     }
 
     func markSongAsPerformed(index: Int) {
@@ -262,6 +343,26 @@ class PerformanceModeManager {
             timestamp: Date()
         )
         session.songNotes.append(songNote)
+
+        // Also update metadata
+        var metadata = songMetadata[currentSongIndex] ?? SongPerformanceMetadata()
+        metadata.notes = note
+        songMetadata[currentSongIndex] = metadata
+    }
+
+    // MARK: - Song Metadata Tracking
+
+    func updateAutoscrollUsage(forSongIndex index: Int, used: Bool, duration: Int?) {
+        var metadata = songMetadata[index] ?? SongPerformanceMetadata()
+        metadata.usedAutoscroll = used
+        metadata.autoscrollDuration = duration
+        songMetadata[index] = metadata
+    }
+
+    func updateTranspose(forSongIndex index: Int, semitones: Int) {
+        var metadata = songMetadata[index] ?? SongPerformanceMetadata()
+        metadata.transposeSemitones = semitones
+        songMetadata[index] = metadata
     }
 
     // MARK: - Settings Persistence
@@ -436,4 +537,13 @@ struct PerformancePreset: Identifiable, Codable {
     static var allPresets: [PerformancePreset] {
         [soloPerformance, withBand, teaching, nightPerformance]
     }
+}
+
+// MARK: - Song Performance Metadata
+
+struct SongPerformanceMetadata {
+    var usedAutoscroll: Bool = false
+    var autoscrollDuration: Int? = nil
+    var transposeSemitones: Int = 0
+    var notes: String? = nil
 }

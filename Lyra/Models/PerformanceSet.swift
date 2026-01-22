@@ -15,6 +15,9 @@ final class PerformanceSet {
     @Relationship(deleteRule: .cascade, inverse: \SetEntry.performanceSet)
     var songEntries: [SetEntry]? // Ordered list
 
+    @Relationship(deleteRule: .cascade, inverse: \SetPerformance.performanceSet)
+    var setPerformances: [SetPerformance]? // Track performance history
+
     var isArchived: Bool
     var folder: String? // For organizing sets by venue/band
 

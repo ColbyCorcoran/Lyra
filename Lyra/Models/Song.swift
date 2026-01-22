@@ -43,6 +43,10 @@ final class Song {
     @Relationship(deleteRule: .cascade, inverse: \Annotation.song)
     var annotations: [Annotation]?
 
+    // MARK: - Performance Tracking
+    @Relationship(deleteRule: .cascade, inverse: \Performance.song)
+    var performances: [Performance]?
+
     // MARK: - Performance Settings
     var autoscrollDuration: Int? // Seconds
     var autoscrollEnabled: Bool

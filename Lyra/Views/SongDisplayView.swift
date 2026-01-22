@@ -47,8 +47,10 @@ struct SongDisplayView: View {
     @State private var isAnnotationMode: Bool = false
     @State private var isDrawingMode: Bool = false
     @State private var containerSize: CGSize = .zero
+    @State private var showMetronomeControls: Bool = false
 
     @StateObject private var autoscrollManager = AutoscrollManager()
+    @StateObject private var metronomeManager = MetronomeManager()
 
     /// Get the active capo position (from set override or song)
     private var activeCapo: Int {
@@ -478,6 +480,10 @@ struct SongDisplayView: View {
             if hasPDFAttachment && !hasTextContent {
                 viewMode = .pdf
             }
+            // Auto-load tempo from song if available
+            if let tempo = song.tempo, tempo > 0 {
+                metronomeManager.setBPM(Double(tempo))
+            }
         }
         .onChange(of: song.content) { _, _ in
             parseSong()
@@ -750,6 +756,36 @@ struct SongDisplayView: View {
                     }
                 )
             }
+
+            // Metronome indicator (bottom right)
+            if viewMode == .text {
+                VStack {
+                    Spacer()
+
+                    HStack {
+                        Spacer()
+
+                        MetronomeIndicatorView(
+                            metronome: metronomeManager,
+                            onTap: {
+                                showMetronomeControls = true
+                            }
+                        )
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 16)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showMetronomeControls) {
+            MetronomeControlsView(
+                metronome: metronomeManager,
+                onDismiss: {
+                    showMetronomeControls = false
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
     }
 

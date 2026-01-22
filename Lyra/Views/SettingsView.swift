@@ -21,12 +21,14 @@ struct SettingsView: View {
     @State private var showExportLibrary: Bool = false
     @State private var showAttachmentStorage: Bool = false
     @State private var showAutoscrollSettings: Bool = false
+    @State private var showFootPedalSettings: Bool = false
     @State private var shareItem: SettingsShareItem?
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
     @State private var showError: Bool = false
     @StateObject private var dropboxManager = DropboxManager.shared
     @StateObject private var driveManager = GoogleDriveManager.shared
+    @StateObject private var footPedalManager = FootPedalManager()
 
     var body: some View{
         NavigationStack {
@@ -115,10 +117,23 @@ struct SettingsView: View {
                         }
                         .foregroundStyle(.primary)
                     }
+
+                    Button {
+                        showFootPedalSettings = true
+                    } label: {
+                        HStack {
+                            Label("Foot Pedals", systemImage: "chevron.left.forwardslash.chevron.right")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
                 } header: {
                     Label("Performance", systemImage: "music.note")
                 } footer: {
-                    Text("Configure autoscroll for hands-free performance")
+                    Text("Configure hands-free controls for live performance")
                 }
 
                 // Cloud Services Section
@@ -421,6 +436,11 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showAutoscrollSettings) {
                 AutoscrollSettingsView()
+            }
+            .sheet(isPresented: $showFootPedalSettings) {
+                NavigationStack {
+                    FootPedalSettingsView(footPedalManager: footPedalManager)
+                }
             }
             .sheet(item: $shareItem) { (item: SettingsShareItem) in
                 SettingsShareSheet(activityItems: item.items)

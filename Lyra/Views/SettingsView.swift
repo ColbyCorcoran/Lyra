@@ -24,6 +24,7 @@ struct SettingsView: View {
     @State private var showFootPedalSettings: Bool = false
     @State private var showShortcutsSettings: Bool = false
     @State private var showSyncSettings: Bool = false
+    @State private var showMigrationStatus: Bool = false
     @State private var shareItem: SettingsShareItem?
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
@@ -274,10 +275,23 @@ struct SettingsView: View {
                         }
                         .foregroundStyle(.primary)
                     }
+
+                    Button {
+                        showMigrationStatus = true
+                    } label: {
+                        HStack {
+                            Label("Data Migration", systemImage: "arrow.triangle.2.circlepath")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
                 } header: {
                     Label("Data Management", systemImage: "externaldrive")
                 } footer: {
-                    Text("Configure iCloud sync, local backups, and offline mode settings.")
+                    Text("Configure iCloud sync, local backups, and data migration settings.")
                 }
 
                 // Display Defaults Section
@@ -489,6 +503,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showSyncSettings) {
                 SyncSettingsView()
+            }
+            .sheet(isPresented: $showMigrationStatus) {
+                MigrationStatusView()
             }
             .sheet(item: $shareItem) { (item: SettingsShareItem) in
                 SettingsShareSheet(activityItems: item.items)

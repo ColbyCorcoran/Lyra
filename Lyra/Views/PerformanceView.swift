@@ -16,6 +16,12 @@ struct PerformanceView: View {
     @State private var isDragging: Bool = false
     @State private var showQuickNote: Bool = false
     @State private var quickNoteText: String = ""
+    @State private var showQuickActionMenu: Bool = false
+    @State private var quickActionMenuPosition: CGPoint = .zero
+
+    @StateObject private var shortcutsManager = ShortcutsManager()
+    @StateObject private var footPedalManager = FootPedalManager()
+    @StateObject private var gestureManager = GestureShortcutsManager()
 
     private var songs: [SetEntry] {
         performanceSet.sortedEntries
@@ -31,8 +37,81 @@ struct PerformanceView: View {
         return songs[performanceManager.currentSongIndex]
     }
 
+    // MARK: - Shortcuts and Gestures Setup
+
+    private func setupShortcutsAndGestures() {
+        // ShortcutsManager callbacks (performance-specific)
+        shortcutsManager.onToggleAutoscroll = {
+            // TODO: Toggle autoscroll on current song
+        }
+        shortcutsManager.onToggleMetronome = {
+            // TODO: Toggle metronome on current song
+        }
+        shortcutsManager.onToggleAnnotations = {
+            // TODO: Toggle annotations on current song
+        }
+        shortcutsManager.onToggleDrawing = {
+            // TODO: Toggle drawing on current song
+        }
+
+        // FootPedalManager callbacks (performance-specific)
+        footPedalManager.onNextSong = {
+            performanceManager.goToNextSong(totalSongs: songs.count)
+        }
+        footPedalManager.onPreviousSong = {
+            performanceManager.goToPreviousSong()
+        }
+        footPedalManager.onToggleAutoscroll = {
+            // TODO: Toggle autoscroll on current song
+        }
+        footPedalManager.onToggleMetronome = {
+            // TODO: Toggle metronome on current song
+        }
+        footPedalManager.onMarkSongPerformed = {
+            performanceManager.markSongAsPerformed(index: performanceManager.currentSongIndex)
+        }
+
+        // GestureShortcutsManager callbacks
+        gestureManager.onToggleAutoscroll = {
+            // TODO: Toggle autoscroll on current song
+        }
+        gestureManager.onToggleAnnotations = {
+            // TODO: Toggle annotations on current song
+        }
+    }
+
+    // MARK: - Keyboard and Gesture Handlers
+
+    private func handleKeyCommand(_ input: String, modifierFlags: UIKeyModifierFlags) {
+        // Forward to both managers
+        shortcutsManager.handleKeyCommand(input, modifierFlags: modifierFlags)
+        footPedalManager.handleKeyCommand(input, modifierFlags: modifierFlags)
+    }
+
+    private func handleLongPress(at location: CGPoint) {
+        quickActionMenuPosition = location
+        showQuickActionMenu = true
+        HapticManager.shared.impact(.medium)
+    }
+
     var body: some View {
         ZStack {
+            // Quick action menu overlay
+            if showQuickActionMenu {
+                QuickActionMenu(
+                    position: quickActionMenuPosition,
+                    actions: shortcutsManager.allQuickActions,
+                    onSelect: { action in
+                        shortcutsManager.executeQuickAction(action.action)
+                        showQuickActionMenu = false
+                    },
+                    onDismiss: {
+                        showQuickActionMenu = false
+                    }
+                )
+                .zIndex(1000)
+            }
+
             // Full-screen song display
             if let song = currentSong, let setEntry = currentSetEntry {
                 SongDisplayView(song: song, setEntry: setEntry)
@@ -154,6 +233,32 @@ struct PerformanceView: View {
                 }
                 .transition(.opacity)
             }
+
+            // Multi-finger gesture recognizer overlay
+            MultiFingerGestureView(
+                onLongPress: { location in
+                    handleLongPress(at: location)
+                },
+                onTwoFingerSwipeUp: {
+                    gestureManager.handleTwoFingerSwipeUp()
+                },
+                onTwoFingerSwipeDown: {
+                    gestureManager.handleTwoFingerSwipeDown()
+                },
+                onTwoFingerTap: {
+                    gestureManager.handleTwoFingerTap()
+                },
+                onThreeFingerTap: {
+                    gestureManager.handleThreeFingerTap()
+                }
+            )
+        }
+        .background {
+            // Keyboard event handler
+            KeyboardEventHandler { input, modifierFlags in
+                handleKeyCommand(input, modifierFlags: modifierFlags)
+            }
+            .frame(width: 0, height: 0)
         }
         .navigationBarHidden(true)
         .statusBarHidden(true)
@@ -175,6 +280,8 @@ struct PerformanceView: View {
         .onAppear {
             // Show controls briefly when entering
             performanceManager.showControlsBriefly()
+            // Setup shortcuts and gestures
+            setupShortcutsAndGestures()
         }
     }
 

@@ -49,10 +49,16 @@ struct SongDisplayView: View {
     @State private var containerSize: CGSize = .zero
     @State private var showMetronomeControls: Bool = false
     @State private var showLowLightSettings: Bool = false
+    @State private var showQuickActionMenu: Bool = false
+    @State private var quickActionMenuPosition: CGPoint = .zero
+    @State private var scrollProxy: ScrollViewProxy? = nil
 
     @StateObject private var autoscrollManager = AutoscrollManager()
     @StateObject private var metronomeManager = MetronomeManager()
     @StateObject private var lowLightManager = LowLightModeManager()
+    @StateObject private var shortcutsManager = ShortcutsManager()
+    @StateObject private var footPedalManager = FootPedalManager()
+    @StateObject private var gestureManager = GestureShortcutsManager()
 
     /// Get the active capo position (from set override or song)
     private var activeCapo: Int {
@@ -63,6 +69,96 @@ struct SongDisplayView: View {
         self.song = song
         self.setEntry = setEntry
         _displaySettings = State(initialValue: song.displaySettings)
+    }
+
+    // MARK: - Shortcuts and Gestures Setup
+
+    private func setupShortcutsAndGestures() {
+        // ShortcutsManager callbacks
+        shortcutsManager.onToggleTranspose = {
+            showTranspose = true
+        }
+        shortcutsManager.onToggleMetronome = {
+            metronomeManager.toggle()
+        }
+        shortcutsManager.onToggleLowLight = {
+            lowLightManager.toggle()
+        }
+        shortcutsManager.onToggleAnnotations = {
+            isAnnotationMode.toggle()
+            if isAnnotationMode {
+                isDrawingMode = false
+            }
+            HapticManager.shared.selection()
+        }
+        shortcutsManager.onToggleDrawing = {
+            isDrawingMode.toggle()
+            if isDrawingMode {
+                isAnnotationMode = false
+            }
+            HapticManager.shared.selection()
+        }
+        shortcutsManager.onAddToSet = {
+            showQuickSetPicker = true
+        }
+        shortcutsManager.onEditSong = {
+            showEditSongSheet = true
+        }
+        shortcutsManager.onToggleAutoscroll = {
+            autoscrollManager.toggle()
+        }
+        shortcutsManager.onScrollToTop = {
+            scrollToTop()
+        }
+        shortcutsManager.onScrollToBottom = {
+            scrollToBottom()
+        }
+
+        // FootPedalManager callbacks
+        footPedalManager.onToggleAutoscroll = {
+            autoscrollManager.toggle()
+        }
+        footPedalManager.onToggleMetronome = {
+            metronomeManager.toggle()
+        }
+        footPedalManager.onScrollDown = {
+            // Scroll down is handled by natural arrow key behavior
+        }
+        footPedalManager.onScrollUp = {
+            // Scroll up is handled by natural arrow key behavior
+        }
+        footPedalManager.onNextSong = {
+            // Navigate to next song in set if available
+            navigateToNextSong()
+        }
+        footPedalManager.onPreviousSong = {
+            // Navigate to previous song in set if available
+            navigateToPreviousSong()
+        }
+        footPedalManager.onTransposeUp = {
+            quickTranspose(by: 1)
+        }
+        footPedalManager.onTransposeDown = {
+            quickTranspose(by: -1)
+        }
+
+        // GestureShortcutsManager callbacks
+        gestureManager.onScrollToTop = {
+            scrollToTop()
+        }
+        gestureManager.onScrollToBottom = {
+            scrollToBottom()
+        }
+        gestureManager.onToggleAutoscroll = {
+            autoscrollManager.toggle()
+        }
+        gestureManager.onToggleAnnotations = {
+            isAnnotationMode.toggle()
+            if isAnnotationMode {
+                isDrawingMode = false
+            }
+            HapticManager.shared.selection()
+        }
     }
 
     // MARK: - Computed Properties
@@ -491,6 +587,12 @@ struct SongDisplayView: View {
             }
         }
         .background {
+            // Keyboard event handler
+            KeyboardEventHandler { input, modifierFlags in
+                handleKeyCommand(input, modifierFlags: modifierFlags)
+            }
+            .frame(width: 0, height: 0)
+
             // Keyboard shortcuts (invisible buttons)
             Button("") {
                 showQuickBookPicker = true
@@ -531,6 +633,8 @@ struct SongDisplayView: View {
             }
             // Check if low light mode should auto-enable
             lowLightManager.checkAutoEnable()
+            // Setup shortcuts and gestures
+            setupShortcutsAndGestures()
         }
         .onChange(of: song.content) { _, _ in
             parseSong()
@@ -653,6 +757,22 @@ struct SongDisplayView: View {
     @ViewBuilder
     private var textContentView: some View {
         ZStack {
+            // Quick action menu overlay
+            if showQuickActionMenu {
+                QuickActionMenu(
+                    position: quickActionMenuPosition,
+                    actions: shortcutsManager.allQuickActions,
+                    onSelect: { action in
+                        shortcutsManager.executeQuickAction(action.action)
+                        showQuickActionMenu = false
+                    },
+                    onDismiss: {
+                        showQuickActionMenu = false
+                    }
+                )
+                .zIndex(1000)
+            }
+
             VStack(spacing: 0) {
                 // Sticky Header
                 if let parsed = parsedSong {
@@ -827,6 +947,26 @@ struct SongDisplayView: View {
                     }
                 }
             }
+
+            // Multi-finger gesture recognizer overlay
+            MultiFingerGestureView(
+                onLongPress: { location in
+                    handleLongPress(at: location)
+                },
+                onTwoFingerSwipeUp: {
+                    gestureManager.handleTwoFingerSwipeUp()
+                },
+                onTwoFingerSwipeDown: {
+                    gestureManager.handleTwoFingerSwipeDown()
+                },
+                onTwoFingerTap: {
+                    gestureManager.handleTwoFingerTap()
+                },
+                onThreeFingerTap: {
+                    gestureManager.handleThreeFingerTap()
+                }
+            )
+            .allowsHitTesting(!isAnnotationMode && !isDrawingMode)
         }
         .sheet(isPresented: $showMetronomeControls) {
             MetronomeControlsView(
@@ -1065,6 +1205,9 @@ struct SongDisplayView: View {
     }
 
     private func configureAutoscrollProxy(proxy: ScrollViewProxy) {
+        // Store proxy for programmatic scrolling
+        scrollProxy = proxy
+
         autoscrollManager.configure(
             duration: TimeInterval(song.autoscrollDuration ?? 180),
             contentHeight: contentHeight,
@@ -1075,6 +1218,55 @@ struct SongDisplayView: View {
                 }
             }
         )
+    }
+
+    // MARK: - Navigation and Scrolling Methods
+
+    private func scrollToTop() {
+        guard let proxy = scrollProxy else { return }
+        withAnimation(.easeOut(duration: 0.3)) {
+            proxy.scrollTo("scrollContent", anchor: .top)
+        }
+        HapticManager.shared.impact(.light)
+    }
+
+    private func scrollToBottom() {
+        guard let proxy = scrollProxy else { return }
+        withAnimation(.easeOut(duration: 0.3)) {
+            proxy.scrollTo("scrollContent", anchor: .bottom)
+        }
+        HapticManager.shared.impact(.light)
+    }
+
+    private func navigateToNextSong() {
+        // TODO: Implement set navigation when in set context
+        HapticManager.shared.selection()
+    }
+
+    private func navigateToPreviousSong() {
+        // TODO: Implement set navigation when in set context
+        HapticManager.shared.selection()
+    }
+
+    private func quickTranspose(by semitones: Int) {
+        temporaryTransposeSemitones += semitones
+        temporaryTransposeSemitones = max(-12, min(12, temporaryTransposeSemitones))
+        parseSong()
+        HapticManager.shared.selection()
+    }
+
+    // MARK: - Keyboard and Gesture Handlers
+
+    private func handleKeyCommand(_ input: String, modifierFlags: UIKeyModifierFlags) {
+        // Forward to both managers
+        shortcutsManager.handleKeyCommand(input, modifierFlags: modifierFlags)
+        footPedalManager.handleKeyCommand(input, modifierFlags: modifierFlags)
+    }
+
+    private func handleLongPress(at location: CGPoint) {
+        quickActionMenuPosition = location
+        showQuickActionMenu = true
+        HapticManager.shared.impact(.medium)
     }
 }
 

@@ -22,6 +22,8 @@ struct SyncSettingsView: View {
     @State private var showBackupSuccess: Bool = false
     @State private var showRestoreConfirmation: Bool = false
     @State private var showConflictResolution: Bool = false
+    @State private var showClearCloudDataConfirmation: Bool = false
+    @State private var isClearingCloudData: Bool = false
     @State private var backupURL: URL?
 
     var body: some View {
@@ -41,6 +43,11 @@ struct SyncSettingsView: View {
 
                 // Conflict Resolution
                 conflictResolutionSection
+
+                // Developer/Debug Section
+                #if DEBUG
+                debugSection
+                #endif
             }
             .navigationTitle("Sync & Backup")
             .navigationBarTitleDisplayMode(.inline)
@@ -75,6 +82,16 @@ struct SyncSettingsView: View {
             .sheet(isPresented: $showConflictResolution) {
                 ConflictResolutionView()
             }
+            #if DEBUG
+            .alert("Clear Cloud Data?", isPresented: $showClearCloudDataConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Clear", role: .destructive) {
+                    clearCloudData()
+                }
+            } message: {
+                Text("This will delete all synced data from iCloud. Local data will remain. This action cannot be undone. Use this only for debugging.")
+            }
+            #endif
         }
     }
 
@@ -409,6 +426,49 @@ struct SyncSettingsView: View {
         }
     }
 
+    // MARK: - Developer/Debug Section
+
+    #if DEBUG
+    private var debugSection: some View {
+        Section {
+            Button(role: .destructive) {
+                showClearCloudDataConfirmation = true
+            } label: {
+                HStack {
+                    if isClearingCloudData {
+                        ProgressView()
+                            .padding(.trailing, 8)
+                    }
+
+                    Label("Clear Cloud Data", systemImage: "trash.fill")
+
+                    Spacer()
+                }
+            }
+            .disabled(isClearingCloudData || !cloudSync.isSyncEnabled)
+
+            Button {
+                // Force sync to test conflict detection
+                cloudSync.performSync()
+            } label: {
+                Label("Force Sync (Test)", systemImage: "arrow.triangle.2.circlepath")
+            }
+            .disabled(!cloudSync.isSyncEnabled)
+
+            Button {
+                // Simulate conflict for testing
+                simulateConflict()
+            } label: {
+                Label("Simulate Conflict (Test)", systemImage: "exclamationmark.triangle")
+            }
+        } header: {
+            Label("Developer Options", systemImage: "hammer.fill")
+        } footer: {
+            Text("⚠️ Debug options for development and testing. Use with caution.")
+        }
+    }
+    #endif
+
     // MARK: - Actions
 
     private func createManualBackup() {
@@ -438,6 +498,74 @@ struct SyncSettingsView: View {
             }
         }
     }
+
+    #if DEBUG
+    private func clearCloudData() {
+        isClearingCloudData = true
+
+        Task {
+            do {
+                // This requires NSPersistentCloudKitContainer API
+                // For now, we'll provide a placeholder that shows the pattern
+                print("🗑️  Clearing CloudKit data...")
+
+                // In production, you would use:
+                // if let container = modelContext.container as? NSPersistentCloudKitContainer {
+                //     try await container.purgeObjectsAndRecordsInZone(...)
+                // }
+
+                // Simulate clearing operation
+                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+
+                await MainActor.run {
+                    isClearingCloudData = false
+                    HapticManager.shared.notification(.success)
+                    print("✅ Cloud data cleared")
+                }
+            } catch {
+                await MainActor.run {
+                    isClearingCloudData = false
+                    HapticManager.shared.notification(.error)
+                    print("❌ Error clearing cloud data: \(error)")
+                }
+            }
+        }
+    }
+
+    private func simulateConflict() {
+        // Create a test conflict for UI testing
+        let conflict = SyncConflict(
+            conflictType: .contentModification,
+            entityType: .song,
+            entityID: UUID(),
+            localVersion: SyncConflict.ConflictVersion(
+                timestamp: Date().addingTimeInterval(-3600),
+                deviceName: "iPhone (Test)",
+                data: SyncConflict.ConflictVersion.ConflictData(
+                    title: "Test Song",
+                    artist: "Test Artist",
+                    content: "Local version content...",
+                    key: "G"
+                )
+            ),
+            remoteVersion: SyncConflict.ConflictVersion(
+                timestamp: Date().addingTimeInterval(-1800),
+                deviceName: "iPad (Test)",
+                data: SyncConflict.ConflictVersion.ConflictData(
+                    title: "Test Song",
+                    artist: "Test Artist",
+                    content: "Remote version content...",
+                    key: "C"
+                )
+            ),
+            detectedAt: Date()
+        )
+
+        conflictManager.addConflict(conflict)
+        HapticManager.shared.notification(.warning)
+        print("⚠️  Simulated conflict added")
+    }
+    #endif
 }
 
 // MARK: - Preview

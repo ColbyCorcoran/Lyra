@@ -14,6 +14,9 @@ final class Song {
     var album: String?
     var year: Int?
     var copyright: String?
+
+    // CCLI numbers are globally unique identifiers
+    @Attribute(.unique)
     var ccliNumber: String?
 
     // MARK: - Musical Information
@@ -73,7 +76,11 @@ final class Song {
     var importSource: String? // e.g., "Dropbox", "SongSelect", "Manual"
     var importedAt: Date?
     var originalFilename: String?
+
+    // Cloud file IDs should be unique per song
+    @Attribute(.unique)
     var cloudFileId: String? // Dropbox/Drive file ID for sync
+
     var cloudFileModifiedDate: Date? // Last modified date from cloud
     var cloudFilePath: String? // Full path in cloud storage
 

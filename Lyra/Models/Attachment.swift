@@ -18,7 +18,10 @@ final class Attachment {
 
     // Store relative path or use external storage
     var filePath: String? // Path in app's documents directory
-    var fileData: Data? // For small files, store inline
+
+    // Use external storage for large files to avoid CloudKit size limits
+    @Attribute(.externalStorage)
+    var fileData: Data? // For files, stored externally to support CloudKit sync
 
     // MARK: - Attachment Properties
     var isDefault: Bool // Is this the primary attachment?
@@ -27,7 +30,11 @@ final class Attachment {
 
     // MARK: - Source Information
     var originalSource: String? // "Files", "Dropbox", "Google Drive", "Camera Scan", etc.
+
+    // Cloud file IDs should be unique per attachment
+    @Attribute(.unique)
     var cloudFileId: String? // For cloud-synced attachments
+
     var cloudFileModifiedDate: Date? // Last modified in cloud
 
     // MARK: - Computed Properties

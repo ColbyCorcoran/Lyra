@@ -194,7 +194,7 @@ struct AnnotationsOverlayView: View {
 
         do {
             try modelContext.save()
-            HapticManager.shared.notification(.warning)
+            HapticManager.shared.warning()
         } catch {
             print("Error deleting annotation: \(error)")
             HapticManager.shared.operationFailed()

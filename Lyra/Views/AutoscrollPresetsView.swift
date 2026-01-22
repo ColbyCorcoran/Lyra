@@ -318,7 +318,7 @@ struct AutoscrollPresetsView: View {
 
         do {
             try modelContext.save()
-            HapticManager.shared.notification(.warning)
+            HapticManager.shared.warning()
         } catch {
             print("Failed to deactivate preset: \(error)")
         }
@@ -346,7 +346,7 @@ struct AutoscrollPresetsView: View {
         presets.remove(atOffsets: offsets)
         savePresets()
 
-        HapticManager.shared.notification(.warning)
+        HapticManager.shared.warning()
     }
 
     // MARK: - Persistence

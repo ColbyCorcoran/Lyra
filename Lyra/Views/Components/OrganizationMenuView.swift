@@ -168,7 +168,7 @@ struct OrganizationMenuView: View {
     let song = Song(title: "Amazing Grace", artist: "Traditional")
 
     let book1 = Book(name: "Hymns")
-    let book2 = Book(name: "Classics")
+    _ = Book(name: "Classics")
     song.books = [book1]
 
     let set1 = PerformanceSet(name: "Sunday Service")

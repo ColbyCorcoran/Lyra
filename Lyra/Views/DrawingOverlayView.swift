@@ -140,7 +140,7 @@ struct DrawingOverlayView: View {
         do {
             try modelContext.save()
             pkCanvasViewProxy?.setDrawing(PKDrawing())
-            HapticManager.shared.notification(.warning)
+            HapticManager.shared.warning()
         } catch {
             print("Error clearing drawings: \(error)")
             HapticManager.shared.operationFailed()
@@ -154,7 +154,7 @@ struct DrawingOverlayView: View {
             return PKEraserTool(.vector)
         } else {
             let inkType = selectedTool.pkInkingToolType
-            let color = UIColor(selectedColor.uiColor)
+            let color = selectedColor.uiColor
             let width = lineThickness.width
 
             return PKInkingTool(inkType, color: color, width: width)

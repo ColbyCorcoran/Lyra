@@ -359,7 +359,7 @@ struct TransposeView: View {
         semitones = 0
         targetKey = originalKey
         updateChordPreview()
-        HapticManager.shared.notification(.warning)
+        HapticManager.shared.warning()
     }
 
     private func applyTransposition() {

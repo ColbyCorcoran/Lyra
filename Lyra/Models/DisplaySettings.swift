@@ -8,7 +8,7 @@
 import SwiftUI
 
 /// Comprehensive display settings for song customization
-struct DisplaySettings: Codable, Equatable {
+struct DisplaySettings: Codable, Equatable, Sendable {
     // MARK: - Font Settings
 
     var fontSize: Double
@@ -211,26 +211,26 @@ struct DisplaySettings: Codable, Equatable {
     // MARK: - Font Methods
 
     func titleFont(size: CGFloat? = nil) -> Font {
-        let actualSize = size ?? fontSize
-        let finalSize = max(actualSize, minimumFontSize)
+        let actualSize = size ?? CGFloat(fontSize)
+        let finalSize = max(actualSize, CGFloat(minimumFontSize))
         return titleFontFamily.font(size: finalSize, weight: fontWeight, bold: boldText)
     }
 
     func metadataFont(size: CGFloat? = nil) -> Font {
-        let actualSize = size ?? (fontSize * 0.875) // Slightly smaller than body
-        let finalSize = max(actualSize, minimumFontSize)
+        let actualSize = size ?? CGFloat(fontSize * 0.875) // Slightly smaller than body
+        let finalSize = max(actualSize, CGFloat(minimumFontSize))
         return metadataFontFamily.font(size: finalSize, weight: fontWeight, bold: boldText)
     }
 
     func lyricsFont(size: CGFloat? = nil) -> Font {
-        let actualSize = size ?? fontSize
-        let finalSize = max(actualSize, minimumFontSize)
+        let actualSize = size ?? CGFloat(fontSize)
+        let finalSize = max(actualSize, CGFloat(minimumFontSize))
         return lyricsFontFamily.font(size: finalSize, weight: fontWeight, bold: boldText)
     }
 
     func chordsFont(size: CGFloat? = nil) -> Font {
-        let actualSize = size ?? (fontSize - 2) // Slightly smaller than lyrics
-        let finalSize = max(actualSize, minimumFontSize)
+        let actualSize = size ?? CGFloat(fontSize - 2) // Slightly smaller than lyrics
+        let finalSize = max(actualSize, CGFloat(minimumFontSize))
         return chordsFontFamily.font(size: finalSize, weight: fontWeight, bold: boldText)
     }
 

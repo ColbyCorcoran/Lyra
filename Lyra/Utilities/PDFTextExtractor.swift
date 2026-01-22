@@ -192,7 +192,7 @@ class PDFTextExtractor {
 
     /// Process extracted text into ChordPro format
     static func processToChordPro(_ text: String, title: String, artist: String? = nil) -> String {
-        var lines = text.components(separatedBy: .newlines)
+        let lines = text.components(separatedBy: .newlines)
         var result: [String] = []
 
         // Add metadata directives
@@ -203,7 +203,6 @@ class PDFTextExtractor {
         result.append("")
 
         // Process lines
-        var currentSection: String?
 
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -218,7 +217,7 @@ class PDFTextExtractor {
 
             // Detect section headers (Verse, Chorus, Bridge, etc.)
             if let section = detectSection(trimmed) {
-                currentSection = section
+                _ = section
                 result.append("{\(section)}")
                 continue
             }

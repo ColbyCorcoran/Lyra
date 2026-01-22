@@ -108,7 +108,7 @@ class TransposeEngine {
     }
 
     /// Parse a chord symbol into components
-    private static func parseChord(_ chord: String) -> ChordComponents? {
+    static func parseChord(_ chord: String) -> ChordComponents? {
         guard !chord.isEmpty else { return nil }
 
         var remaining = chord

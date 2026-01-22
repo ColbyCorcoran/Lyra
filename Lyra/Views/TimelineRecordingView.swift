@@ -287,7 +287,7 @@ struct TimelineRecordingView: View {
     private func deleteTimelines(at offsets: IndexSet) {
         recordedTimelines.remove(atOffsets: offsets)
         saveTimelines()
-        HapticManager.shared.notification(.warning)
+        HapticManager.shared.warning()
     }
 
     // MARK: - Persistence

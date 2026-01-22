@@ -438,12 +438,11 @@ struct SettingsView: View {
     // MARK: - Actions
 
     private func saveGlobalSettings() {
-        let settings = DisplaySettings(
-            fontSize: globalFontSize,
-            chordColor: globalChordColor,
-            lyricsColor: globalLyricsColor,
-            spacing: globalSpacing
-        )
+        var settings = UserDefaults.standard.globalDisplaySettings
+        settings.fontSize = globalFontSize
+        settings.chordColor = globalChordColor
+        settings.lyricsColor = globalLyricsColor
+        settings.spacing = globalSpacing
         UserDefaults.standard.globalDisplaySettings = settings
     }
 

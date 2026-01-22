@@ -250,7 +250,7 @@ struct AutoscrollMarkersView: View {
     private func deleteMarkers(at offsets: IndexSet) {
         markers.remove(atOffsets: offsets)
         hasChanges = true
-        HapticManager.shared.notification(.warning)
+        HapticManager.shared.warning()
     }
 
     private func saveMarkers() {

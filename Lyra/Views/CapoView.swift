@@ -170,7 +170,7 @@ struct CapoView: View {
                     if capoFret > 0 {
                         Button {
                             capoFret = 0
-                            HapticManager.shared.notification(.warning)
+                            HapticManager.shared.warning()
                         } label: {
                             Label("Remove Capo", systemImage: "xmark.circle")
                                 .font(.subheadline)

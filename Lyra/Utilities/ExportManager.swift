@@ -70,7 +70,7 @@ class ExportManager: ObservableObject {
     func exportSong(
         _ song: Song,
         format: ExportFormat,
-        configuration: PDFExporter.PDFConfiguration = PDFExporter.PDFConfiguration()
+        configuration: PDFExporter.PDFConfiguration = .init()
     ) throws -> Data {
         switch format {
         case .pdf:
@@ -90,7 +90,7 @@ class ExportManager: ObservableObject {
     func exportSet(
         _ set: PerformanceSet,
         format: ExportFormat,
-        configuration: PDFExporter.PDFConfiguration = PDFExporter.PDFConfiguration()
+        configuration: PDFExporter.PDFConfiguration = .init()
     ) throws -> Data {
         switch format {
         case .pdf:
@@ -104,7 +104,7 @@ class ExportManager: ObservableObject {
     func exportBook(
         _ book: Book,
         format: ExportFormat,
-        configuration: PDFExporter.PDFConfiguration = PDFExporter.PDFConfiguration()
+        configuration: PDFExporter.PDFConfiguration = .init()
     ) throws -> Data {
         switch format {
         case .pdf:
@@ -187,7 +187,7 @@ class ExportManager: ObservableObject {
         let zipURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("Lyra_Export_\(Date().formatted(date: .numeric, time: .omitted)).zip")
 
-        try SSZipArchive.createZipFile(atPath: zipURL.path, withContentsOfDirectory: tempDir.path)
+        SSZipArchive.createZipFile(atPath: zipURL.path, withContentsOfDirectory: tempDir.path)
 
         // Clean up temp directory
         try? FileManager.default.removeItem(at: tempDir)

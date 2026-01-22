@@ -50,7 +50,7 @@ class PDFExporter {
     /// Export a single song as PDF
     static func exportSong(
         _ song: Song,
-        configuration: PDFConfiguration = PDFConfiguration()
+        configuration: PDFConfiguration = .init()
     ) throws -> Data {
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: configuration.pageSize))
 
@@ -123,7 +123,7 @@ class PDFExporter {
     /// Export a performance set as PDF with table of contents
     static func exportSet(
         _ set: PerformanceSet,
-        configuration: PDFConfiguration = PDFConfiguration()
+        configuration: PDFConfiguration = .init()
     ) throws -> Data {
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: configuration.pageSize))
 
@@ -141,7 +141,7 @@ class PDFExporter {
 
             // Draw table of contents
             context.beginPage()
-            let pageMap = drawTableOfContents(
+            _ = drawTableOfContents(
                 set: set,
                 context: context,
                 startPage: currentPage + 1,
@@ -227,7 +227,7 @@ class PDFExporter {
     /// Export a book as PDF with cover and table of contents
     static func exportBook(
         _ book: Book,
-        configuration: PDFConfiguration = PDFConfiguration()
+        configuration: PDFConfiguration = .init()
     ) throws -> Data {
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: configuration.pageSize))
 
@@ -432,7 +432,6 @@ class PDFExporter {
 
         // Build chord line with proper spacing
         var chordLine = ""
-        var lastPosition = 0
 
         for (position, chord) in chords {
             // Add spaces to position
@@ -440,7 +439,6 @@ class PDFExporter {
                 chordLine += " "
             }
             chordLine += chord
-            lastPosition = position + chord.count
         }
 
         return (chordLine, lyrics)

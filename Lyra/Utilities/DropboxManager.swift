@@ -117,7 +117,7 @@ class DropboxManager: ObservableObject {
 
     private init() {
         // Check if we have a stored token
-        if let token = loadToken() {
+        if loadToken() != nil {
             isAuthenticated = true
             // In production, you would validate the token here
             // validateToken(token)

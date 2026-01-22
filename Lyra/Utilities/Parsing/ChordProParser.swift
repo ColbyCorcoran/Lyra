@@ -22,7 +22,7 @@ class ChordProParser {
         var previousLineWasChordsOnly = false
         var chordsOnlyLine: SongLine?
 
-        for (index, line) in lines.enumerated() {
+        for (_, line) in lines.enumerated() {
             let trimmedLine = line.trimmingCharacters(in: .whitespaces)
 
             // Skip empty lines at the start

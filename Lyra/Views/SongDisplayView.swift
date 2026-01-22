@@ -937,7 +937,6 @@ struct SongDisplayView: View {
         if let entry = setEntry {
             // If viewing in a set, update the set-specific override
             entry.capoOverride = capoFret == 0 ? nil : capoFret
-            entry.modifiedAt = Date()
         } else {
             // Otherwise update the song's default capo
             song.capo = capoFret == 0 ? nil : capoFret

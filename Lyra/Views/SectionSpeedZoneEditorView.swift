@@ -274,7 +274,7 @@ struct SectionSpeedZoneEditorView: View {
         sectionConfigs.removeAll()
         hasChanges = true
 
-        HapticManager.shared.notification(.warning)
+        HapticManager.shared.warning()
     }
 
     // MARK: - Presets

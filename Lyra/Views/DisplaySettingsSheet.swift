@@ -607,39 +607,6 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         }
     }
 }
-
-// MARK: - Color Swatch (Reusable Component)
-
-struct ColorSwatch: View {
-    let name: String
-    let hex: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 6) {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: hex) ?? .gray)
-                        .frame(width: 40, height: 40)
-
-                    if isSelected {
-                        Circle()
-                            .strokeBorder(Color.blue, lineWidth: 3)
-                            .frame(width: 46, height: 46)
-                    }
-                }
-
-                Text(name)
-                    .font(.caption2)
-                    .foregroundStyle(isSelected ? .blue : .secondary)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 // MARK: - Preview
 
 #Preview {

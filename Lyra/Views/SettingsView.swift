@@ -23,6 +23,7 @@ struct SettingsView: View {
     @State private var showAutoscrollSettings: Bool = false
     @State private var showFootPedalSettings: Bool = false
     @State private var showShortcutsSettings: Bool = false
+    @State private var showAccessibilitySettings: Bool = false
     @State private var showSyncSettings: Bool = false
     @State private var showMigrationStatus: Bool = false
     @State private var showHelp: Bool = false
@@ -150,10 +151,28 @@ struct SettingsView: View {
                         }
                         .foregroundStyle(.primary)
                     }
+
+                    Button {
+                        showAccessibilitySettings = true
+                    } label: {
+                        HStack {
+                            Label("Accessibility", systemImage: "accessibility")
+                            Spacer()
+                            if AccessibilityManager.shared.isAccessibilityTechnologyActive {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                    .font(.caption)
+                            }
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
                 } header: {
                     Label("Performance", systemImage: "music.note")
                 } footer: {
-                    Text("Configure hands-free controls, keyboard shortcuts, and gestures")
+                    Text("Configure hands-free controls, keyboard shortcuts, and accessibility features")
                 }
 
                 // Cloud Services Section
@@ -528,6 +547,9 @@ struct SettingsView: View {
                         gestureManager: gestureManager
                     )
                 }
+            }
+            .sheet(isPresented: $showAccessibilitySettings) {
+                AccessibilitySettingsView()
             }
             .sheet(isPresented: $showSyncSettings) {
                 SyncSettingsView()

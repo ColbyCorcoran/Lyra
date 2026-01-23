@@ -97,6 +97,11 @@ final class Song {
     // Device name that made last change
     var deviceModifiedOn: String?
 
+    // MARK: - MIDI Configuration
+
+    /// MIDI settings for this song (program changes, control changes, etc.)
+    var midiConfigurationData: Data? // Encoded SongMIDIConfiguration
+
     // MARK: - Shared Library
 
     /// The shared library this song belongs to (if any)
@@ -175,6 +180,41 @@ final class Song {
     /// Clear custom display settings (revert to global defaults)
     func clearCustomDisplaySettings() {
         displaySettingsData = nil
+    }
+
+    // MARK: - MIDI Configuration Helpers
+
+    /// Get MIDI configuration
+    var midiConfiguration: SongMIDIConfiguration {
+        get {
+            if let data = midiConfigurationData {
+                do {
+                    return try JSONDecoder().decode(SongMIDIConfiguration.self, from: data)
+                } catch {
+                    print("⚠️ Error decoding MIDI configuration: \(error.localizedDescription)")
+                    return SongMIDIConfiguration()
+                }
+            }
+            return SongMIDIConfiguration()
+        }
+        set {
+            do {
+                midiConfigurationData = try JSONEncoder().encode(newValue)
+            } catch {
+                print("⚠️ Error encoding MIDI configuration: \(error.localizedDescription)")
+                midiConfigurationData = nil
+            }
+        }
+    }
+
+    /// Check if song has MIDI configuration
+    var hasMIDIConfiguration: Bool {
+        return midiConfigurationData != nil && midiConfiguration.hasMessages
+    }
+
+    /// Clear MIDI configuration
+    func clearMIDIConfiguration() {
+        midiConfigurationData = nil
     }
 
     // MARK: - Sync Helpers

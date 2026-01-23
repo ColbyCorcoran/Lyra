@@ -32,7 +32,19 @@ struct LyraApp: App {
             UserPresence.self,
             MemberActivity.self,
             Comment.self,
-            CommentReaction.self
+            CommentReaction.self,
+            SharedPerformanceSet.self,
+            SetMember.self,
+            SetComment.self,
+            SetMemberRole.self,
+            PersonalSetSettings.self,
+            SetSongReadiness.self,
+            MemberReadiness.self,
+            SetRehearsal.self,
+            RehearsalAttendance.self,
+            RehearsalSongNote.self,
+            SetTemplate.self,
+            TemplateSection.self
         ])
 
         // Check if iCloud sync is enabled

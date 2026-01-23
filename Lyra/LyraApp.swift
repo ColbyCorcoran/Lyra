@@ -86,10 +86,32 @@ struct LyraApp: App {
                         await setupCloudKitSync()
                     }
                 }
+                .onOpenURL { url in
+                    handleDeepLink(url: url)
+                }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
+                    if let url = userActivity.webpageURL {
+                        handleUniversalLink(url: url)
+                    }
+                }
         }
         .modelContainer(sharedModelContainer)
         .backgroundTask(.appRefresh("com.lyra.syncCheck")) {
             await performBackgroundSync()
+        }
+    }
+
+    // MARK: - Deep Linking
+
+    private func handleDeepLink(url: URL) {
+        Task { @MainActor in
+            DeepLinkHandler.shared.handle(url: url)
+        }
+    }
+
+    private func handleUniversalLink(url: URL) {
+        Task { @MainActor in
+            DeepLinkHandler.shared.handleUniversalLink(url: url)
         }
     }
 

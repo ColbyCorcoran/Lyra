@@ -6,19 +6,23 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct MIDIMonitorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var midiManager = MIDIManager.shared
 
     @State private var filterType: MIDIMessageType?
+    @State private var filterChannel: Int? // 0 = all channels, 1-16 = specific
     @State private var isPaused = false
     @State private var showHex = false
+    @State private var showExportSheet = false
+    @State private var exportedText = ""
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Filter Bar
+                // Filter Bar - Message Types
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         FilterChip(
@@ -51,6 +55,32 @@ struct MIDIMonitorView: View {
                 }
                 .padding(.vertical, 8)
                 .background(Color(.secondarySystemBackground))
+
+                // Filter Bar - Channels
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        FilterChip(
+                            title: "All Channels",
+                            isSelected: filterChannel == nil,
+                            count: midiManager.recentMessages.count
+                        ) {
+                            filterChannel = nil
+                        }
+
+                        ForEach(1...16, id: \.self) { channel in
+                            FilterChip(
+                                title: "Ch \(channel)",
+                                isSelected: filterChannel == channel,
+                                count: midiManager.recentMessages.filter { $0.channel == channel }.count
+                            ) {
+                                filterChannel = channel
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .padding(.vertical, 8)
+                .background(Color(.tertiarySystemBackground))
 
                 Divider()
 
@@ -101,6 +131,15 @@ struct MIDIMonitorView: View {
 
                         Divider()
 
+                        Button {
+                            exportMessages()
+                        } label: {
+                            Label("Export Log", systemImage: "square.and.arrow.up")
+                        }
+                        .disabled(filteredMessages.isEmpty)
+
+                        Divider()
+
                         Button(role: .destructive) {
                             midiManager.recentMessages.removeAll()
                         } label: {
@@ -111,16 +150,63 @@ struct MIDIMonitorView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showExportSheet) {
+                ExportSheet(text: exportedText)
+            }
         }
     }
 
     private var filteredMessages: [MIDIMessage] {
         guard !isPaused else { return midiManager.recentMessages }
 
+        var messages = midiManager.recentMessages
+
+        // Filter by type
         if let filterType = filterType {
-            return midiManager.recentMessages.filter { $0.type == filterType }
+            messages = messages.filter { $0.type == filterType }
         }
-        return midiManager.recentMessages
+
+        // Filter by channel
+        if let filterChannel = filterChannel {
+            messages = messages.filter { $0.channel == filterChannel }
+        }
+
+        return messages
+    }
+
+    private func exportMessages() {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .medium
+
+        var output = "MIDI Message Log - Lyra\n"
+        output += "Exported: \(dateFormatter.string(from: Date()))\n"
+        output += "Total Messages: \(filteredMessages.count)\n"
+        output += String(repeating: "=", count: 60) + "\n\n"
+
+        for message in filteredMessages.reversed() {
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "HH:mm:ss.SSS"
+            let timeString = timeFormatter.string(from: message.timestamp)
+
+            output += "[\(timeString)] "
+            output += "Ch \(message.channel) | "
+            output += "\(message.type.rawValue) | "
+            output += message.description
+
+            if showHex {
+                output += " | Hex: \(message.hexString)"
+            }
+
+            if let deviceName = message.deviceName {
+                output += " | Device: \(deviceName)"
+            }
+
+            output += "\n"
+        }
+
+        exportedText = output
+        showExportSheet = true
     }
 }
 
@@ -223,6 +309,45 @@ struct MIDIMessageRow: View {
         case .systemExclusive: return .brown
         case .clock, .start, .stop, .continue_: return .gray
         case .unknown: return .secondary
+        }
+    }
+}
+
+// MARK: - Export Sheet
+
+struct ExportSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let text: String
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                Text(text)
+                    .font(.system(.caption, design: .monospaced))
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .navigationTitle("MIDI Log Export")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .primaryAction) {
+                    ShareLink(
+                        item: text,
+                        preview: SharePreview(
+                            "MIDI Log",
+                            image: Image(systemName: "waveform")
+                        )
+                    ) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                }
+            }
         }
     }
 }

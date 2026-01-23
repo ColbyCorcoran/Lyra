@@ -10,8 +10,11 @@ import SwiftUI
 struct MIDISettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var midiManager = MIDIManager.shared
+    @State private var controlManager = MIDIControlManager.shared
 
     @State private var showMonitor = false
+    @State private var showControlMapping = false
+    @State private var showScenes = false
 
     var body: some View {
         NavigationStack {
@@ -120,6 +123,41 @@ struct MIDISettingsView: View {
                         Text("Channel")
                     } footer: {
                         Text("Default MIDI channel for sending messages (1-16)")
+                    }
+
+                    // MIDI Control Features
+                    Section {
+                        NavigationLink {
+                            MIDIControlMappingView()
+                        } label: {
+                            HStack {
+                                Label("Control Mapping", systemImage: "slider.horizontal.3")
+                                Spacer()
+                                if controlManager.enabledMappingsCount > 0 {
+                                    Text("\(controlManager.enabledMappingsCount)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+
+                        NavigationLink {
+                            MIDISceneView()
+                        } label: {
+                            HStack {
+                                Label("MIDI Scenes", systemImage: "wand.and.stars")
+                                Spacer()
+                                if controlManager.activeScenesCount > 0 {
+                                    Text("\(controlManager.activeScenesCount)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("MIDI Control")
+                    } footer: {
+                        Text("Map MIDI controls to Lyra functions and create scenes for lighting and effects")
                     }
 
                     // Monitoring

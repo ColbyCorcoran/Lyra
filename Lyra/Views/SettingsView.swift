@@ -24,6 +24,7 @@ struct SettingsView: View {
     @State private var showFootPedalSettings: Bool = false
     @State private var showShortcutsSettings: Bool = false
     @State private var showAccessibilitySettings: Bool = false
+    @State private var showPerformanceMonitor: Bool = false
     @State private var showSyncSettings: Bool = false
     @State private var showMigrationStatus: Bool = false
     @State private var showHelp: Bool = false
@@ -434,6 +435,37 @@ struct SettingsView: View {
                     Text("These settings apply to all new songs. Individual songs can override these defaults.")
                 }
 
+                // Developer Section
+                Section {
+                    Button {
+                        showPerformanceMonitor = true
+                    } label: {
+                        HStack {
+                            Label("Performance Monitor", systemImage: "speedometer")
+                            Spacer()
+
+                            // Show performance grade
+                            Text(PerformanceManager.shared.performanceGrade)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(performanceGradeColor)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(performanceGradeColor.opacity(0.2))
+                                .clipShape(Capsule())
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                } header: {
+                    Label("Developer", systemImage: "wrench.and.screwdriver")
+                } footer: {
+                    Text("Monitor app performance metrics and optimize for professional use")
+                }
+
                 // App Information Section
                 Section {
                     HStack {
@@ -551,6 +583,9 @@ struct SettingsView: View {
             .sheet(isPresented: $showAccessibilitySettings) {
                 AccessibilitySettingsView()
             }
+            .sheet(isPresented: $showPerformanceMonitor) {
+                PerformanceMonitorView()
+            }
             .sheet(isPresented: $showSyncSettings) {
                 SyncSettingsView()
             }
@@ -593,6 +628,17 @@ struct SettingsView: View {
         globalLyricsColor = "#000000"
         globalSpacing = 8
         saveGlobalSettings()
+    }
+
+    private var performanceGradeColor: Color {
+        let score = PerformanceManager.shared.performanceScore
+        switch score {
+        case 90...100: return .green
+        case 80..<90: return .blue
+        case 70..<80: return .yellow
+        case 60..<70: return .orange
+        default: return .red
+        }
     }
 }
 

@@ -111,6 +111,12 @@ final class Song {
         sharedLibrary != nil
     }
 
+    // MARK: - Version History
+
+    /// Historical versions of this song
+    @Relationship(deleteRule: .cascade, inverse: \SongVersion.song)
+    var versions: [SongVersion]?
+
     // MARK: - Initializer
     init(
         title: String,

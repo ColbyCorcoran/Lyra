@@ -37,7 +37,12 @@ struct EditSongView: View {
     @State private var isTrackingPresence: Bool = false
     @State private var presenceUpdateTimer: Timer?
 
+    // Version history
+    @State private var showVersionHistory = false
+    @State private var previousContent: String
+
     private let presenceManager = PresenceManager.shared
+    private let versionManager = VersionManager.shared
 
     init(song: Song) {
         self.song = song
@@ -49,6 +54,7 @@ struct EditSongView: View {
         _timeSignature = State(initialValue: song.timeSignature ?? "")
         _notes = State(initialValue: song.notes ?? "")
         _content = State(initialValue: song.content)
+        _previousContent = State(initialValue: song.content)
     }
 
     var body: some View {
@@ -90,6 +96,14 @@ struct EditSongView: View {
                     }
                 }
 
+                ToolbarItem(placement: .principal) {
+                    Button {
+                        showVersionHistory = true
+                    } label: {
+                        Label("History", systemImage: "clock.arrow.circlepath")
+                    }
+                }
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         saveSong()
@@ -97,6 +111,9 @@ struct EditSongView: View {
                     .fontWeight(.semibold)
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
+            }
+            .sheet(isPresented: $showVersionHistory) {
+                VersionHistoryView(song: song)
             }
             .alert("Error", isPresented: $showErrorAlert) {
                 Button("OK", role: .cancel) {}
@@ -298,6 +315,9 @@ struct EditSongView: View {
             return
         }
 
+        // Check if we should create a version
+        let shouldCreateVersion = versionManager.shouldCreateVersion(for: song, previousContent: previousContent)
+
         // Update song properties
         song.title = trimmedTitle
         song.artist = artist.isEmpty ? nil : artist
@@ -310,6 +330,23 @@ struct EditSongView: View {
         song.modifiedAt = Date()
 
         do {
+            // Create version if needed (before saving changes)
+            if shouldCreateVersion {
+                // Temporarily revert to capture old state
+                let tempContent = song.content
+                song.content = previousContent
+
+                try versionManager.createVersion(
+                    for: song,
+                    modelContext: modelContext,
+                    versionType: .autoSave,
+                    changedByRecordID: presenceManager.currentUserPresence?.userRecordID
+                )
+
+                // Restore new content
+                song.content = tempContent
+            }
+
             try modelContext.save()
 
             // Log activity if this is a shared song

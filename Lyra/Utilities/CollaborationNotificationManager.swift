@@ -169,6 +169,34 @@ class CollaborationNotificationManager {
         sendPushNotification(notification)
     }
 
+    func sendVersionRestoreNotification(
+        songID: UUID,
+        songTitle: String,
+        versionNumber: Int,
+        libraryID: UUID,
+        restoredBy: String
+    ) {
+        let notification = CollaborationNotification(
+            id: UUID(),
+            type: .versionRestored,
+            title: "Version Restored",
+            body: "\(restoredBy) restored \"\(songTitle)\" to version \(versionNumber)",
+            timestamp: Date(),
+            relatedSongID: songID,
+            relatedLibraryID: libraryID
+        )
+
+        pendingNotifications.insert(notification, at: 0)
+
+        // Keep only last 20 notifications
+        if pendingNotifications.count > 20 {
+            pendingNotifications = Array(pendingNotifications.prefix(20))
+        }
+
+        // Send push notification
+        sendPushNotification(notification)
+    }
+
     private func sendPushNotification(_ notification: CollaborationNotification) {
         let content = UNMutableNotificationContent()
         content.title = notification.title
@@ -265,6 +293,7 @@ struct CollaborationNotification: Identifiable, Codable {
         case songChanged = "Song Changed"
         case commentAdded = "Comment Added"
         case mentionedYou = "Mentioned You"
+        case versionRestored = "Version Restored"
     }
 
     var icon: String {
@@ -275,6 +304,7 @@ struct CollaborationNotification: Identifiable, Codable {
         case .songChanged: return "music.note"
         case .commentAdded: return "bubble.left.fill"
         case .mentionedYou: return "at.circle.fill"
+        case .versionRestored: return "clock.arrow.circlepath"
         }
     }
 
@@ -286,6 +316,7 @@ struct CollaborationNotification: Identifiable, Codable {
         case .songChanged: return "purple"
         case .commentAdded: return "teal"
         case .mentionedYou: return "red"
+        case .versionRestored: return "indigo"
         }
     }
 

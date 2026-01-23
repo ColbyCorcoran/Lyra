@@ -407,12 +407,11 @@ Reduces jitter and sudden jumps.
 - Add Sticky Note
 - Toggle Annotations
 
-### Advanced (7 actions)
+### Advanced (6 actions)
 - Switch Profile
 - Switch Mode
 - Send MIDI Message
 - Trigger Custom Action
-- Stage Monitor Control
 - External Display Control
 - Sync with Band (network)
 
@@ -449,7 +448,7 @@ Create unlimited custom profiles for specific scenarios:
 Pedal 1: Previous song
 Pedal 2: Next song
 Pedal 3: Blank external display (announcements)
-Pedal 4: Toggle stage monitors
+Pedal 4: Toggle metronome
 Long-press 3: Emergency blank all displays
 ```
 

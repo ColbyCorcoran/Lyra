@@ -55,6 +55,14 @@ struct SongDisplayView: View {
     @State private var showComments: Bool = false
     @State private var commentCount: Int = 0
 
+    // Export & Share
+    @State private var showExportOptions: Bool = false
+    @State private var showShareSheet: Bool = false
+    @State private var shareItem: ShareItem?
+    @State private var isExporting: Bool = false
+    @State private var exportError: Error?
+    @State private var showExportError: Bool = false
+
     @Query private var allComments: [Comment]
 
     @StateObject private var autoscrollManager = AutoscrollManager()
@@ -116,6 +124,9 @@ struct SongDisplayView: View {
         }
         shortcutsManager.onScrollToBottom = {
             scrollToBottom()
+        }
+        shortcutsManager.onShare = {
+            showExportOptions = true
         }
 
         // FootPedalManager callbacks
@@ -524,21 +535,19 @@ struct SongDisplayView: View {
 
                     Divider()
 
-                    // Future features
+                    // Export & Share
                     Section {
                         Button {
-                            // TODO: Print or export
+                            showExportOptions = true
                         } label: {
-                            Label("Export PDF", systemImage: "square.and.arrow.up")
+                            Label("Export", systemImage: "square.and.arrow.up")
                         }
-                        .disabled(true)
 
                         Button {
-                            // TODO: Share
+                            printSong()
                         } label: {
-                            Label("Share", systemImage: "square.and.arrow.up")
+                            Label("Print", systemImage: "printer")
                         }
-                        .disabled(true)
                     }
 
                     Divider()
@@ -618,6 +627,24 @@ struct SongDisplayView: View {
         }
         .sheet(isPresented: $showComments) {
             CommentsView(song: song)
+        }
+        .sheet(isPresented: $showExportOptions) {
+            ExportOptionsView(
+                exportType: .song(song),
+                onExport: { format, configuration in
+                    exportSong(format: format, configuration: configuration)
+                }
+            )
+        }
+        .sheet(item: $shareItem) { item in
+            ShareSheet(activityItems: item.items)
+        }
+        .alert("Export Error", isPresented: $showExportError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let error = exportError {
+                Text(error.localizedDescription)
+            }
         }
         .task {
             // Update comment count
@@ -1306,6 +1333,63 @@ struct SongDisplayView: View {
         HapticManager.shared.selection()
     }
 
+    // MARK: - Export and Share Methods
+
+    private func exportSong(format: ExportManager.ExportFormat, configuration: PDFExporter.PDFConfiguration) {
+        isExporting = true
+
+        Task {
+            do {
+                let data = try await ExportManager.shared.exportSong(song, format: format, configuration: configuration)
+                let filename = "\(song.title).\(format.fileExtension)"
+
+                // Save to temporary file
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+                try data.write(to: tempURL)
+
+                // Show share sheet
+                await MainActor.run {
+                    shareItem = ShareItem(items: [tempURL])
+                    showShareSheet = true
+                    isExporting = false
+                }
+            } catch {
+                await MainActor.run {
+                    exportError = error
+                    showExportError = true
+                    isExporting = false
+                }
+            }
+        }
+    }
+
+    private func printSong() {
+        Task {
+            do {
+                let data = try await ExportManager.shared.exportSong(song, format: .pdf)
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(song.title).pdf")
+                try data.write(to: tempURL)
+
+                await MainActor.run {
+                    let printController = UIPrintInteractionController.shared
+                    printController.printingItem = tempURL
+
+                    printController.present(animated: true) { _, completed, error in
+                        if let error = error {
+                            exportError = error
+                            showExportError = true
+                        }
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    exportError = error
+                    showExportError = true
+                }
+            }
+        }
+    }
+
     // MARK: - Keyboard and Gesture Handlers
 
     private func handleKeyCommand(_ input: String, modifierFlags: UIKeyModifierFlags) {
@@ -1897,4 +1981,27 @@ struct SetContextBanner: View {
             return song
         }())
     }
+}
+
+// MARK: - Share Item
+
+struct ShareItem: Identifiable {
+    let id = UUID()
+    let items: [Any]
+}
+
+// MARK: - Share Sheet
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: nil
+        )
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

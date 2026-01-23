@@ -277,7 +277,6 @@ class ExternalDisplayManager {
             .worshipService,
             .concert,
             .rehearsal,
-            .stageMonitor,
             .confidenceMonitor
         ]
 

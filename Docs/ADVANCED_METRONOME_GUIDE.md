@@ -942,17 +942,6 @@ Pedal 3: Increase tempo (trainer)
 Pedal 4: Toggle count-in
 ```
 
-### Stage Monitor Integration
-
-**Display on stage monitors:**
-```
-Shows:
-- Current tempo
-- Beat indicator
-- Count-in countdown
-- Tempo trainer progress
-```
-
 ## Advanced Workflows
 
 ### Building Speed

@@ -67,7 +67,7 @@ Transpose ± • Change Capo • Reset Transpose
 Metronome • Record/Stop • Playback • Loop
 
 ### Advanced
-Switch Profile • Switch Mode • Send MIDI • Custom Action • Stage Monitor • External Display
+Switch Profile • Switch Mode • Send MIDI • Custom Action • External Display
 
 ## Expression Pedal
 
@@ -191,7 +191,7 @@ Long-1: Jump Top      Long-2: Autoscroll
 ### Worship Band
 ```
 Pedal 1: Prev Song         Pedal 2: Next Song
-Pedal 3: Blank Displays    Pedal 4: Stage Monitors
+Pedal 3: Blank Displays    Pedal 4: Toggle Metronome
 1+2: Mark Performed
 ```
 

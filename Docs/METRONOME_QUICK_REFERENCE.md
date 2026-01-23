@@ -203,7 +203,6 @@ Mix: Click 60%, Backing 80%
 ✓ **Autoscroll:** Sync scrolling to metronome tempo
 ✓ **Backing Tracks:** Play together with click
 ✓ **Foot Pedals:** Start/stop, tap tempo, trainer control
-✓ **Stage Monitors:** Display tempo and beat
 ✓ **Set Lists:** Per-song metronome presets
 ✓ **MIDI:** Sync with external gear
 

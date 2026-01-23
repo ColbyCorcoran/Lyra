@@ -350,7 +350,6 @@ Trigger actions when marker is reached:
 **Change Display**
 - Switch display mode
 - Blank screen
-- Change stage monitor layout
 
 **Advance Song**
 - Auto-advance to next song in set
@@ -676,20 +675,6 @@ Auto-sync resumes when user stops scrolling.
 - Switch guitar amp channel
 - Trigger looper
 - Control lighting
-
-### Stage Monitor Integration
-
-**Display Audio Position on Monitors:**
-```
-Stage monitor shows:
-- Current track name
-- Time remaining
-- Next cue/marker
-- Volume levels
-```
-
-**Sync Monitor Changes:**
-Markers can trigger stage monitor updates.
 
 ### Set List Integration
 

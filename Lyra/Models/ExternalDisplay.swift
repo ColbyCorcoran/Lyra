@@ -14,7 +14,6 @@ enum ExternalDisplayMode: String, Codable, CaseIterable {
     case mirror = "mirror"
     case extended = "extended"
     case lyricsOnly = "lyrics_only"
-    case chordsOnly = "chords_only"
     case blank = "blank"
 
     var displayName: String {
@@ -22,7 +21,6 @@ enum ExternalDisplayMode: String, Codable, CaseIterable {
         case .mirror: return "Mirror"
         case .extended: return "Extended"
         case .lyricsOnly: return "Lyrics Only"
-        case .chordsOnly: return "Chords Only"
         case .blank: return "Blank"
         }
     }
@@ -32,7 +30,6 @@ enum ExternalDisplayMode: String, Codable, CaseIterable {
         case .mirror: return "Same content on both screens"
         case .extended: return "Different content on each screen"
         case .lyricsOnly: return "External shows lyrics, device shows chords"
-        case .chordsOnly: return "External shows chords for stage monitors"
         case .blank: return "External display is black"
         }
     }
@@ -42,7 +39,6 @@ enum ExternalDisplayMode: String, Codable, CaseIterable {
         case .mirror: return "rectangle.2.swap"
         case .extended: return "rectangle.split.2x1"
         case .lyricsOnly: return "text.alignleft"
-        case .chordsOnly: return "music.note"
         case .blank: return "rectangle.fill"
         }
     }
@@ -261,30 +257,6 @@ struct ExternalDisplayProfile: Codable, Identifiable {
             name: "Rehearsal",
             description: "Full information for practice",
             icon: "music.note.list",
-            configuration: config,
-            isBuiltIn: true
-        )
-    }
-
-    /// Stage monitor profile - chords for musicians
-    static var stageMonitor: ExternalDisplayProfile {
-        var config = ExternalDisplayConfiguration()
-        config.mode = .chordsOnly
-        config.backgroundColor = "#000000"
-        config.textColor = "#00FF00" // Green text common on stage monitors
-        config.fontSize = 40
-        config.textAlignment = .left
-        config.shadowEnabled = false
-        config.horizontalMargin = 40
-        config.verticalMargin = 40
-        config.lineSpacing = 8
-        config.showSectionTitles = true
-        config.showNextLine = true
-
-        return ExternalDisplayProfile(
-            name: "Stage Monitor",
-            description: "Chords and structure for musicians",
-            icon: "guitars",
             configuration: config,
             isBuiltIn: true
         )

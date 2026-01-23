@@ -59,7 +59,6 @@ Track 1: Full band backing
 Track 2: Click/count-in
 Track 3: Choir/strings
 ✓ Mixer for individual volumes
-✓ Stage monitors show audio position
 ```
 
 ## Auto-Scroll Sync
@@ -248,7 +247,6 @@ Or use volume slider
 ✓ **Autoscroll Sync**: Perfect timing
 ✓ **Foot Pedal Control**: Hands-free
 ✓ **MIDI Triggers**: Automate gear
-✓ **Stage Monitors**: Show audio info
 ✓ **Set Lists**: Auto-load per song
 ✓ **Multi-Output**: Professional routing
 

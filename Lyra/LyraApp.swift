@@ -44,7 +44,11 @@ struct LyraApp: App {
             RehearsalAttendance.self,
             RehearsalSongNote.self,
             SetTemplate.self,
-            TemplateSection.self
+            TemplateSection.self,
+            PublicSong.self,
+            PublicSongRating.self,
+            PublicSongFlag.self,
+            PublicSongLike.self
         ])
 
         // Check if iCloud sync is enabled

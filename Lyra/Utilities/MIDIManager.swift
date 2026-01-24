@@ -120,6 +120,10 @@ class MIDIManager {
     // MARK: - Device Scanning
 
     func scanDevices() async {
+        let previousInputCount = inputDevices.count
+        let previousOutputCount = outputDevices.count
+        let previousDeviceNames = Set(inputDevices.map { $0.name } + outputDevices.map { $0.name })
+
         var newInputDevices: [MIDIDevice] = []
         var newOutputDevices: [MIDIDevice] = []
 
@@ -141,10 +145,32 @@ class MIDIManager {
             }
         }
 
+        let newDeviceNames = Set(newInputDevices.map { $0.name } + newOutputDevices.map { $0.name })
+
         inputDevices = newInputDevices
         outputDevices = newOutputDevices
 
         print("📡 Found \(inputDevices.count) input devices, \(outputDevices.count) output devices")
+
+        // Detect device additions
+        let addedDevices = newDeviceNames.subtracting(previousDeviceNames)
+        for deviceName in addedDevices {
+            NotificationCenter.default.post(
+                name: .midiDeviceConnected,
+                object: nil,
+                userInfo: ["deviceName": deviceName]
+            )
+        }
+
+        // Detect device removals
+        let removedDevices = previousDeviceNames.subtracting(newDeviceNames)
+        for deviceName in removedDevices {
+            NotificationCenter.default.post(
+                name: .midiDeviceDisconnected,
+                object: nil,
+                userInfo: ["deviceName": deviceName]
+            )
+        }
 
         // Auto-select first device if none selected
         if selectedInputDevice == nil, let first = inputDevices.first {

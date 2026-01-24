@@ -221,6 +221,9 @@ struct SongDisplayView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Hardware status notifications (critical for live performance)
+            HardwareStatusBanner()
+
             // Set context banner
             if let entry = setEntry, let set = entry.performanceSet {
                 SetContextBanner(setName: set.name, songPosition: entry.orderIndex + 1, totalSongs: set.songEntries?.count ?? 0)

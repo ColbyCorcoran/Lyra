@@ -25,6 +25,7 @@ struct SettingsView: View {
     @State private var showShortcutsSettings: Bool = false
     @State private var showAccessibilitySettings: Bool = false
     @State private var showPerformanceMonitor: Bool = false
+    @State private var showHardwareHealthCheck: Bool = false
     @State private var showSyncSettings: Bool = false
     @State private var showMigrationStatus: Bool = false
     @State private var showHelp: Bool = false
@@ -460,10 +461,35 @@ struct SettingsView: View {
                         }
                         .foregroundStyle(.primary)
                     }
+
+                    Button {
+                        showHardwareHealthCheck = true
+                    } label: {
+                        HStack {
+                            Label("Hardware Health Check", systemImage: "checkmark.shield.fill")
+                            Spacer()
+
+                            // Show hardware status indicator
+                            let healthReport = HardwareStatusManager.shared.performHealthCheck()
+                            Text(healthReport.grade)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(healthReport.allSystemsGo ? .green : .orange)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background((healthReport.allSystemsGo ? Color.green : Color.orange).opacity(0.2))
+                                .clipShape(Capsule())
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
                 } header: {
                     Label("Developer", systemImage: "wrench.and.screwdriver")
                 } footer: {
-                    Text("Monitor app performance metrics and optimize for professional use")
+                    Text("Monitor app performance and verify hardware before performances")
                 }
 
                 // App Information Section
@@ -585,6 +611,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showPerformanceMonitor) {
                 PerformanceMonitorView()
+            }
+            .sheet(isPresented: $showHardwareHealthCheck) {
+                HardwareHealthCheckView()
             }
             .sheet(isPresented: $showSyncSettings) {
                 SyncSettingsView()

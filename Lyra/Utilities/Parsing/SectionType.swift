@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 enum SectionType: String, Codable, CaseIterable {
     case verse = "Verse"
@@ -18,10 +19,48 @@ enum SectionType: String, Codable, CaseIterable {
     case interlude = "Interlude"
     case tag = "Tag"
     case vamp = "Vamp"
+    case coda = "Coda"
+    case solo = "Solo"
     case unknown = "Unknown"
 
     var displayName: String {
         rawValue
+    }
+
+    var systemImage: String {
+        switch self {
+        case .verse: return "text.alignleft"
+        case .chorus: return "music.note.list"
+        case .bridge: return "link"
+        case .prechorus: return "arrow.right.to.line"
+        case .instrumental: return "guitars"
+        case .intro: return "arrow.forward.to.line"
+        case .outro: return "arrow.backward.to.line"
+        case .interlude: return "pause"
+        case .tag: return "tag.fill"
+        case .vamp: return "repeat"
+        case .coda: return "chevron.right.2"
+        case .solo: return "waveform"
+        case .unknown: return "questionmark.circle"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .verse: return .blue
+        case .chorus: return .green
+        case .bridge: return .orange
+        case .prechorus: return .purple
+        case .instrumental: return .cyan
+        case .intro: return .indigo
+        case .outro: return .pink
+        case .interlude: return .yellow
+        case .tag: return .red
+        case .vamp: return .mint
+        case .coda: return .brown
+        case .solo: return .teal
+        case .unknown: return .gray
+        }
     }
 
     /// Initialize from ChordPro directive names
@@ -49,6 +88,10 @@ enum SectionType: String, Codable, CaseIterable {
             return .tag
         case "vamp":
             return .vamp
+        case "coda":
+            return .coda
+        case "solo":
+            return .solo
         default:
             return .unknown
         }

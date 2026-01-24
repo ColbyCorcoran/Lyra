@@ -48,7 +48,13 @@ struct LyraApp: App {
             PublicSong.self,
             PublicSongRating.self,
             PublicSongFlag.self,
-            PublicSongLike.self
+            PublicSongLike.self,
+            // Phase 7.5: Recommendation Intelligence
+            SongRecommendation.self,
+            UserTasteProfile.self,
+            RecommendationFeedback.self,
+            SmartPlaylist.self,
+            PlayHistoryEntry.self
         ])
 
         // Check if iCloud sync is enabled

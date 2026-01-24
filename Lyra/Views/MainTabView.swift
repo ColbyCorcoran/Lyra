@@ -32,6 +32,11 @@ struct MainTabView: View {
                         Label("Analytics", systemImage: "chart.bar.fill")
                     }
 
+                PerformanceInsightsView()
+                    .tabItem {
+                        Label("Insights", systemImage: "lightbulb.fill")
+                    }
+
                 SettingsView()
                     .tabItem {
                         Label("Settings", systemImage: "gear")

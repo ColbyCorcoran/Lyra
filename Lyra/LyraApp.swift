@@ -54,7 +54,9 @@ struct LyraApp: App {
             UserTasteProfile.self,
             RecommendationFeedback.self,
             SmartPlaylist.self,
-            PlayHistoryEntry.self
+            PlayHistoryEntry.self,
+            // Phase 7.8: Performance Insights
+            PerformanceSession.self
         ])
 
         // Check if iCloud sync is enabled

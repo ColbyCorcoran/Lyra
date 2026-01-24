@@ -12,6 +12,8 @@ struct PerformanceInsightsView: View {
     @State private var analyticsEngine = PerformanceAnalyticsEngine.shared
     @State private var selectedTab: InsightTab = .live
     @State private var showPostReport: Bool = false
+    @State private var currentReport: PostPerformanceReport?
+    @Query private var previousSessions: [PerformanceSession]
 
     enum InsightTab {
         case live, readiness, setOptimization, history
@@ -51,7 +53,12 @@ struct PerformanceInsightsView: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("End Performance") {
                             if let session = analyticsEngine.endPerformanceSession() {
-                                // Show post-performance report
+                                // Generate comprehensive report
+                                currentReport = PostPerformanceReportEngine.shared.generateReport(
+                                    session: session,
+                                    previousSessions: previousSessions
+                                        .sorted(by: { $0.startTime > $1.startTime })
+                                )
                                 showPostReport = true
                             }
                         }
@@ -60,8 +67,11 @@ struct PerformanceInsightsView: View {
                 }
             }
             .sheet(isPresented: $showPostReport) {
-                // Post-performance report would go here
-                Text("Post-Performance Report")
+                if let report = currentReport {
+                    PostPerformanceReportView(report: report)
+                } else {
+                    Text("Report unavailable")
+                }
             }
         }
     }

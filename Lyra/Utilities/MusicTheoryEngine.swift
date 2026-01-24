@@ -332,6 +332,62 @@ class MusicTheoryEngine {
 
         return nearestChord
     }
+
+    // MARK: - Key Relationships
+
+    /// Get the relative major/minor key
+    func getRelativeKey(_ key: String) -> String? {
+        let root = extractChordRoot(key)
+        let isMinor = key.contains("m") && !key.contains("maj")
+
+        if isMinor {
+            // Relative major is 3 semitones up
+            guard let rootIndex = chromaticScale.firstIndex(of: root) else {
+                return nil
+            }
+            let majorIndex = (rootIndex + 3) % 12
+            return chromaticScale[majorIndex]
+        } else {
+            // Relative minor is 3 semitones down
+            guard let rootIndex = chromaticScale.firstIndex(of: root) else {
+                return nil
+            }
+            let minorIndex = (rootIndex - 3 + 12) % 12
+            return chromaticScale[minorIndex] + "m"
+        }
+    }
+
+    /// Get the dominant (V) key
+    func getDominantKey(_ key: String) -> String? {
+        let root = extractChordRoot(key)
+        let isMinor = key.contains("m") && !key.contains("maj")
+
+        guard let rootIndex = chromaticScale.firstIndex(of: root) else {
+            return nil
+        }
+
+        // Dominant is 7 semitones up (perfect fifth)
+        let dominantIndex = (rootIndex + 7) % 12
+        let dominantRoot = chromaticScale[dominantIndex]
+
+        return isMinor ? dominantRoot + "m" : dominantRoot
+    }
+
+    /// Get the subdominant (IV) key
+    func getSubdominantKey(_ key: String) -> String? {
+        let root = extractChordRoot(key)
+        let isMinor = key.contains("m") && !key.contains("maj")
+
+        guard let rootIndex = chromaticScale.firstIndex(of: root) else {
+            return nil
+        }
+
+        // Subdominant is 5 semitones up (perfect fourth)
+        let subdominantIndex = (rootIndex + 5) % 12
+        let subdominantRoot = chromaticScale[subdominantIndex]
+
+        return isMinor ? subdominantRoot + "m" : subdominantRoot
+    }
 }
 
 // MARK: - Supporting Types

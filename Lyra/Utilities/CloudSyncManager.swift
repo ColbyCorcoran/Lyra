@@ -101,7 +101,7 @@ class CloudSyncManager {
 
     func forceSyncNow() {
         performSync()
-        HapticManager.shared.impact(.medium)
+        HapticManager.shared.medium()
     }
 
     // MARK: - Status Helpers

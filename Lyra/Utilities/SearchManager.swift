@@ -31,9 +31,9 @@ enum SearchScope: String, CaseIterable, Codable {
     }
 }
 
-// MARK: - Search Result
+// MARK: - Legacy Search Result
 
-struct SearchResult: Identifiable {
+struct LegacyLegacySearchResult: Identifiable {
     let id = UUID()
     let type: ResultType
     let song: Song?
@@ -105,7 +105,7 @@ class SearchManager: ObservableObject {
         books: [Book],
         sets: [PerformanceSet],
         scope: SearchScope
-    ) -> (songs: [SearchResult], books: [SearchResult], sets: [SearchResult]) {
+    ) -> (songs: [LegacySearchResult], books: [LegacySearchResult], sets: [LegacySearchResult]) {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
         guard !trimmedQuery.isEmpty else {
@@ -119,8 +119,8 @@ class SearchManager: ObservableObject {
         return (songResults, bookResults, setResults)
     }
 
-    private func searchSongs(query: String, songs: [Song], scope: SearchScope) -> [SearchResult] {
-        var results: [SearchResult] = []
+    private func searchSongs(query: String, songs: [Song], scope: SearchScope) -> [LegacySearchResult] {
+        var results: [LegacySearchResult] = []
 
         for song in songs {
             var score = 0
@@ -175,7 +175,7 @@ class SearchManager: ObservableObject {
             }
 
             if score > 0 {
-                results.append(SearchResult(
+                results.append(LegacySearchResult(
                     type: .song,
                     song: song,
                     book: nil,
@@ -190,8 +190,8 @@ class SearchManager: ObservableObject {
         return results.sorted { $0.relevanceScore > $1.relevanceScore }
     }
 
-    private func searchBooks(query: String, books: [Book]) -> [SearchResult] {
-        var results: [SearchResult] = []
+    private func searchBooks(query: String, books: [Book]) -> [LegacySearchResult] {
+        var results: [LegacySearchResult] = []
 
         for book in books {
             var score = 0
@@ -204,7 +204,7 @@ class SearchManager: ObservableObject {
             }
 
             if score > 0 {
-                results.append(SearchResult(
+                results.append(LegacySearchResult(
                     type: .book,
                     song: nil,
                     book: book,
@@ -218,8 +218,8 @@ class SearchManager: ObservableObject {
         return results.sorted { $0.relevanceScore > $1.relevanceScore }
     }
 
-    private func searchSets(query: String, sets: [PerformanceSet]) -> [SearchResult] {
-        var results: [SearchResult] = []
+    private func searchSets(query: String, sets: [PerformanceSet]) -> [LegacySearchResult] {
+        var results: [LegacySearchResult] = []
 
         for set in sets {
             var score = 0
@@ -238,7 +238,7 @@ class SearchManager: ObservableObject {
             }
 
             if score > 0 {
-                results.append(SearchResult(
+                results.append(LegacySearchResult(
                     type: .set,
                     song: nil,
                     book: nil,

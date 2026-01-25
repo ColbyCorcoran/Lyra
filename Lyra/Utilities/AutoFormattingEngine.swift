@@ -162,7 +162,7 @@ class AutoFormattingEngine {
         let chords = extractChordsWithPositions(chordLine)
 
         // Rebuild chord line with proper spacing
-        var result = String(repeating: " ", count: max(chordLine.count, lyricLine.count))
+        let result = String(repeating: " ", count: max(chordLine.count, lyricLine.count))
         var resultArray = Array(result)
 
         for (chord, position) in chords {

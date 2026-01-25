@@ -470,10 +470,10 @@ struct TempoChange: Codable, Identifiable {
     }
 }
 
-// MARK: - Practice Session
+// MARK: - Metronome Practice Session
 
-/// Saved practice session with tempo progression
-struct PracticeSession: Identifiable, Codable {
+/// Saved metronome practice session with tempo progression
+struct MetronomeMetronomePracticeSession: Identifiable, Codable {
     var id: UUID
     var name: String
     var songId: UUID?

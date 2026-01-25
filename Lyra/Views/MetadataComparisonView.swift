@@ -17,7 +17,7 @@ struct MetadataComparisonView: View {
     @State private var selectedFields: [String: FieldChoice] = [:]
     @State private var showPreview: Bool = false
     @State private var isApplying: Bool = false
-    @State private var previewData: SyncConflict.ConflictVersion.ConflictData?
+    @State private var previewData: ConflictVersion.ConflictData?
 
     private let conflictManager = ConflictResolutionManager.shared
 
@@ -378,9 +378,9 @@ struct VersionOptionButton: View {
 // MARK: - Merge Preview View
 
 struct MergePreviewView: View {
-    let originalLocal: SyncConflict.ConflictVersion.ConflictData
-    let originalRemote: SyncConflict.ConflictVersion.ConflictData
-    let merged: SyncConflict.ConflictVersion.ConflictData
+    let originalLocal: ConflictVersion.ConflictData
+    let originalRemote: ConflictVersion.ConflictData
+    let merged: ConflictVersion.ConflictData
     let selectedFields: [String: FieldChoice]
 
     @Environment(\.dismiss) private var dismiss
@@ -524,20 +524,20 @@ struct PreviewRow: View {
             conflictType: .propertyConflict,
             entityType: .song,
             entityID: UUID(),
-            localVersion: SyncConflict.ConflictVersion(
+            localVersion: ConflictVersion(
                 timestamp: Date().addingTimeInterval(-3600),
                 deviceName: "iPhone",
-                data: SyncConflict.ConflictVersion.ConflictData(
+                data: ConflictVersion.ConflictData(
                     title: "Amazing Grace",
                     artist: "John Newton",
                     key: "G",
                     tags: ["Hymn", "Traditional"]
                 )
             ),
-            remoteVersion: SyncConflict.ConflictVersion(
+            remoteVersion: ConflictVersion(
                 timestamp: Date().addingTimeInterval(-1800),
                 deviceName: "iPad",
-                data: SyncConflict.ConflictVersion.ConflictData(
+                data: ConflictVersion.ConflictData(
                     title: "Amazing Grace",
                     artist: "John Newton (1779)",
                     key: "C",

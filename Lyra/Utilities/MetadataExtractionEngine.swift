@@ -20,8 +20,8 @@ class MetadataExtractionEngine {
     // MARK: - Public Methods
 
     /// Extract all metadata from text
-    func extractMetadata(_ text: String) -> SongMetadata {
-        var metadata = SongMetadata()
+    func extractMetadata(_ text: String) -> FormattingSongMetadata {
+        var metadata = FormattingSongMetadata()
 
         metadata.title = extractTitle(text)
         metadata.artist = extractArtist(text)

@@ -329,18 +329,16 @@ struct SmartSearchView: View {
                 contentScore = max(contentScore, artistScore)
             }
 
-            // Search lyrics if available
-            if let lyrics = song.lyrics {
-                let lyricsMatches = contentEngine.searchLyrics(query.rawQuery, in: lyrics)
-                if !lyricsMatches.isEmpty {
-                    let lyricScore = lyricsMatches.first?.relevance ?? 0.0
-                    matchedFields.append(SearchResult.MatchedField(
-                        fieldName: "lyrics",
-                        matchScore: lyricScore,
-                        snippet: lyricsMatches.first?.context
-                    ))
-                    contentScore = max(contentScore, lyricScore)
-                }
+            // Search content if available
+            let contentMatches = contentEngine.searchLyrics(query.rawQuery, in: song.content)
+            if !contentMatches.isEmpty {
+                let contentMatchScore = contentMatches.first?.relevance ?? 0.0
+                matchedFields.append(SearchResult.MatchedField(
+                    fieldName: "content",
+                    matchScore: contentMatchScore,
+                    snippet: contentMatches.first?.context
+                ))
+                contentScore = max(contentScore, contentMatchScore)
             }
 
             // Apply filters
@@ -354,8 +352,8 @@ struct SmartSearchView: View {
                     songID: song.id,
                     title: song.title,
                     artist: song.artist,
-                    key: song.key,
-                    lyrics: song.lyrics,
+                    key: song.currentKey ?? song.originalKey,
+                    lyrics: song.content,
                     dateAdded: song.createdAt,
                     matchType: determineMatchType(score: contentScore),
                     matchedFields: matchedFields,
@@ -373,11 +371,12 @@ struct SmartSearchView: View {
         for filter in filters {
             switch filter.type {
             case .key:
-                if song.key != filter.value {
+                let songKey = song.currentKey ?? song.originalKey
+                if songKey != filter.value {
                     return false
                 }
             case .capo:
-                if String(song.capo) != filter.value {
+                if String(song.capo ?? 0) != filter.value {
                     return false
                 }
             case .artist:
@@ -598,7 +597,7 @@ struct SuggestionSection: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
 
-            FlowLayout(spacing: 8) {
+            SearchFlowLayout(spacing: 8) {
                 ForEach(suggestions) { suggestion in
                     Button(action: { action(suggestion) }) {
                         Text(suggestion.text)
@@ -624,7 +623,7 @@ struct QuickFiltersSection: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
 
-            FlowLayout(spacing: 8) {
+            SearchFlowLayout(spacing: 8) {
                 quickFilterButton("No Capo", icon: "hand.raised.slash", filter: SearchFilter(type: .capo, value: "0", operator_: .equals))
                 quickFilterButton("Fast Tempo", icon: "hare", filter: SearchFilter(type: .tempo, value: "120", operator_: .greaterThan))
                 quickFilterButton("Recently Added", icon: "clock", filter: SearchFilter(type: .dateAdded, value: "recent", operator_: .equals))
@@ -646,7 +645,7 @@ struct QuickFiltersSection: View {
 }
 
 // Simple flow layout for wrapping buttons
-struct FlowLayout: Layout {
+struct SearchFlowLayout: Layout {
     var spacing: CGFloat = 8
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {

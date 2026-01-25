@@ -35,7 +35,7 @@ class AdaptiveDifficultyEngine {
 
     /// Assess difficulty of a song
     func assessSongDifficulty(song: SongAnalysisData) -> DifficultyAssessment {
-        var factors = DifficultyAssessment.DifficultyFactors(
+        let factors = DifficultyAssessment.DifficultyFactors(
             uniqueChords: song.uniqueChordCount,
             chordComplexity: calculateChordComplexity(chords: song.chords),
             tempo: song.tempo,

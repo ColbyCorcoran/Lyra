@@ -172,7 +172,7 @@ class DataMigrationManager {
             print("✅ Migration completed successfully")
             print("📊 Current schema version: \(installedSchemaVersion)")
 
-            HapticManager.shared.notification(.success)
+            HapticManager.shared.success()
         } catch {
             migrationError = error
             migrationStatus = "Migration failed"
@@ -195,7 +195,7 @@ class DataMigrationManager {
                 migrationHistory = history
             }
 
-            HapticManager.shared.notification(.error)
+            HapticManager.shared.error()
             throw error
         }
     }
@@ -262,7 +262,7 @@ class DataMigrationManager {
 
         print("✅ Rollback complete")
 
-        HapticManager.shared.notification(.warning)
+        HapticManager.shared.warning()
     }
 
     // MARK: - Version Management
@@ -308,19 +308,29 @@ struct MigrationStep {
     let fromVersion: SchemaVersion
     let toVersion: SchemaVersion
     let description: String
-    let migration: (ModelContext) async throws -> Void
+    let migration: @Sendable (ModelContext) async throws -> Void
 }
 
 // MARK: - Migration Record
 
 struct MigrationRecord: Codable, Identifiable {
-    let id: UUID = UUID()
+    let id: UUID
     let fromVersion: SchemaVersion
     let toVersion: SchemaVersion
     let description: String
     let timestamp: Date
     let success: Bool
     var error: String?
+
+    init(fromVersion: SchemaVersion, toVersion: SchemaVersion, description: String, timestamp: Date, success: Bool, error: String? = nil) {
+        self.id = UUID()
+        self.fromVersion = fromVersion
+        self.toVersion = toVersion
+        self.description = description
+        self.timestamp = timestamp
+        self.success = success
+        self.error = error
+    }
 
     var statusIcon: String {
         success ? "checkmark.circle.fill" : "xmark.circle.fill"

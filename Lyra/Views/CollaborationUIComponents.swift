@@ -606,15 +606,15 @@ struct RateLimitWarning: View {
             conflictType: .contentModification,
             entityType: .song,
             entityID: UUID(),
-            localVersion: SyncConflict.ConflictVersion(
+            localVersion: ConflictVersion(
                 timestamp: Date(),
                 deviceName: "iPhone",
-                data: SyncConflict.ConflictVersion.ConflictData()
+                data: ConflictVersion.ConflictData()
             ),
-            remoteVersion: SyncConflict.ConflictVersion(
+            remoteVersion: ConflictVersion(
                 timestamp: Date().addingTimeInterval(-300),
                 deviceName: "iPad",
-                data: SyncConflict.ConflictVersion.ConflictData()
+                data: ConflictVersion.ConflictData()
             ),
             detectedAt: Date()
         ),

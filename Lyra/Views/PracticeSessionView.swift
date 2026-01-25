@@ -359,10 +359,4 @@ struct DifficultyLogView: View {
     }
 }
 
-// MARK: - Placeholder Song Model
-
-// This is a placeholder - assumes actual Song model exists in the project
-struct Song {
-    var id: UUID
-    var title: String
-}
+// Song model is defined in Models/Song.swift

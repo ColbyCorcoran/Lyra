@@ -24,8 +24,11 @@ class CommentManager {
     // MARK: - Private Properties
 
     private let container = CKContainer.default()
-    private lazy var sharedDatabase = container.sharedCloudDatabase
     private var subscriptions: Set<AnyCancellable> = []
+
+    private var sharedDatabase: CKDatabase {
+        container.sharedCloudDatabase
+    }
 
     private init() {
         setupCommentObservers()
@@ -206,7 +209,7 @@ class CommentManager {
         let record = comment.toCKRecord()
 
         do {
-            try await sharedDatabase.delete(withRecordID: record.recordID)
+            _ = try await sharedDatabase.deleteRecord(withID: record.recordID)
 
             // Remove from local cache
             await MainActor.run {
@@ -347,7 +350,7 @@ class CommentManager {
         let record = reaction.toCKRecord()
 
         do {
-            try await sharedDatabase.delete(withRecordID: record.recordID)
+            _ = try await sharedDatabase.deleteRecord(withID: record.recordID)
 
             // Update comment reaction counts
             comment.removeReaction(emoji)
@@ -465,7 +468,7 @@ class CommentManager {
             )
 
             // Send push notification
-            CollaborationNotificationManager.shared.sendPushNotification(notification)
+            await CollaborationNotificationManager.shared.sendPushNotification(notification)
 
             print("✅ Notified @\(mention)")
         }
@@ -485,7 +488,7 @@ class CommentManager {
             relatedLibraryID: reply.libraryID
         )
 
-        CollaborationNotificationManager.shared.sendPushNotification(notification)
+        await CollaborationNotificationManager.shared.sendPushNotification(notification)
 
         print("✅ Notified parent comment author")
     }
@@ -496,6 +499,7 @@ class CommentManager {
         let subscription = CKQuerySubscription(
             recordType: "Comment",
             predicate: NSPredicate(value: true),
+            subscriptionID: "comment-changes",
             options: [.firesOnRecordCreation, .firesOnRecordUpdate, .firesOnRecordDeletion]
         )
 
@@ -514,6 +518,7 @@ class CommentManager {
         let reactionSubscription = CKQuerySubscription(
             recordType: "CommentReaction",
             predicate: NSPredicate(value: true),
+            subscriptionID: "reaction-changes",
             options: [.firesOnRecordCreation, .firesOnRecordDeletion]
         )
 

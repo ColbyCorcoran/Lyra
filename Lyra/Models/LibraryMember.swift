@@ -189,7 +189,7 @@ final class LibraryMember {
 // MARK: - Member Activity
 
 /// Represents an activity performed by a library member
-struct MemberActivity: Identifiable, Codable {
+struct LibraryMemberActivity: Identifiable, Codable {
     let id: UUID
     let memberID: UUID
     let memberName: String

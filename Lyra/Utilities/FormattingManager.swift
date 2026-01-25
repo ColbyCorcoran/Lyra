@@ -13,12 +13,13 @@ import SwiftData
 
 /// Orchestrates all formatting engines to provide unified formatting API
 @MainActor
-class FormattingManager: ObservableObject {
+@Observable
+class FormattingManager {
 
     // MARK: - Properties
 
-    @Published var isProcessing = false
-    @Published var progress: Double = 0
+    var isProcessing = false
+    var progress: Double = 0
 
     private let structureEngine = StructureDetectionEngine()
     private let autoFormatEngine = AutoFormattingEngine()
@@ -205,7 +206,7 @@ class FormattingManager: ObservableObject {
 
     // MARK: - Private Helpers
 
-    private func applyStructureLabels(_ text: String, structure: SongStructure) -> String {
+    private func applyStructureLabels(_ text: String, structure: FormattingSongStructure) -> String {
         let lines = text.components(separatedBy: .newlines)
         var result: [String] = []
         var sectionIndex = 0

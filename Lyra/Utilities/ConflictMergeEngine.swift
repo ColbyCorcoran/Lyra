@@ -55,7 +55,7 @@ enum ConflictField: Identifiable, Equatable {
 
 /// Result of merge operation
 struct SongMergeResult {
-    let mergedData: SyncConflict.ConflictVersion.ConflictData
+    let mergedData: ConflictVersion.ConflictData
     let manualResolutionNeeded: [ConflictField]
     let autoMergedFields: [String]
 
@@ -71,9 +71,9 @@ struct ConflictMergeEngine {
 
     /// Performs three-way merge of song conflicts
     static func merge(
-        local: SyncConflict.ConflictVersion.ConflictData,
-        remote: SyncConflict.ConflictVersion.ConflictData,
-        base: SyncConflict.ConflictVersion.ConflictData?
+        local: ConflictVersion.ConflictData,
+        remote: ConflictVersion.ConflictData,
+        base: ConflictVersion.ConflictData?
     ) -> SongMergeResult {
 
         var mergedData = local
@@ -171,7 +171,7 @@ struct ConflictMergeEngine {
         localValue: T?,
         remoteValue: T?,
         baseValue: T?,
-        mergedData: inout SyncConflict.ConflictVersion.ConflictData,
+        mergedData: inout ConflictVersion.ConflictData,
         manualResolution: inout [ConflictField],
         autoMerged: inout [String],
         conflictFactory: (T, T) -> ConflictField,
@@ -271,10 +271,10 @@ struct ConflictMergeEngine {
 
     /// Applies user's field-by-field choices to create final merged data
     static func applyFieldChoices(
-        local: SyncConflict.ConflictVersion.ConflictData,
-        remote: SyncConflict.ConflictVersion.ConflictData,
+        local: ConflictVersion.ConflictData,
+        remote: ConflictVersion.ConflictData,
         choices: [String: FieldChoice]
-    ) -> SyncConflict.ConflictVersion.ConflictData {
+    ) -> ConflictVersion.ConflictData {
 
         var merged = local
 

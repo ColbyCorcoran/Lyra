@@ -378,7 +378,7 @@ struct TempoDetectionResult {
 
 // MARK: - Key Detection Result
 
-struct KeyDetectionResult {
+struct ChordBasedKeyDetection {
     var key: String // e.g., "C", "Am", "Eb"
     var scale: ScaleType // Major or Minor
     var confidence: Float

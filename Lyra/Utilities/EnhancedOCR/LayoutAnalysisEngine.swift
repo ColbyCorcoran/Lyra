@@ -15,7 +15,7 @@ class LayoutAnalysisEngine {
 
     // MARK: - Properties
 
-    private let sectionKeywords: [String: SongSection.SectionType] = [
+    private let sectionKeywords: [String: OCRSectionType] = [
         "verse": .verse,
         "chorus": .chorus,
         "bridge": .bridge,
@@ -191,13 +191,13 @@ class LayoutAnalysisEngine {
     ///   - blocks: Recognized text blocks
     ///   - pageNumber: Page number
     /// - Returns: Array of detected sections
-    func extractSections(blocks: [OCRResult.RecognizedTextBlock], pageNumber: Int) -> [SongSection] {
-        var sections: [SongSection] = []
+    func extractSections(blocks: [OCRResult.RecognizedTextBlock], pageNumber: Int) -> [OCRSongSection] {
+        var sections: [OCRSongSection] = []
 
         // Sort blocks by vertical position
         let sortedBlocks = blocks.sorted { $0.boundingBox.minY < $1.boundingBox.minY }
 
-        var currentSection: SongSection?
+        var currentSection: OCRSongSection?
         var currentContent: [String] = []
         var currentBoundingBox: CGRect?
 
@@ -217,7 +217,7 @@ class LayoutAnalysisEngine {
                 }
 
                 // Start new section
-                currentSection = SongSection(
+                currentSection = OCRSongSection(
                     type: sectionType,
                     content: "",
                     boundingBox: block.boundingBox,
@@ -248,7 +248,7 @@ class LayoutAnalysisEngine {
             sections.append(finalSection)
         } else if !currentContent.isEmpty {
             // No explicit sections found, create one unknown section
-            sections.append(SongSection(
+            sections.append(OCRSongSection(
                 type: .unknown,
                 content: currentContent.joined(separator: "\n"),
                 boundingBox: currentBoundingBox ?? .zero,
@@ -260,7 +260,7 @@ class LayoutAnalysisEngine {
     }
 
     /// Detect section type from text
-    private func detectSectionType(text: String) -> SongSection.SectionType? {
+    private func detectSectionType(text: String) -> OCRSectionType? {
         let lowercased = text.lowercased()
 
         // Check for exact or partial matches with section keywords

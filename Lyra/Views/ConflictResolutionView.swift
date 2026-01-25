@@ -457,18 +457,18 @@ struct ResolvedConflictsView: View {
                 conflictType: .contentModification,
                 entityType: .song,
                 entityID: UUID(),
-                localVersion: SyncConflict.ConflictVersion(
+                localVersion: ConflictVersion(
                     timestamp: Date().addingTimeInterval(-3600),
                     deviceName: "iPhone",
-                    data: SyncConflict.ConflictVersion.ConflictData(
+                    data: ConflictVersion.ConflictData(
                         title: "Amazing Grace",
                         content: "Local content..."
                     )
                 ),
-                remoteVersion: SyncConflict.ConflictVersion(
+                remoteVersion: ConflictVersion(
                     timestamp: Date().addingTimeInterval(-1800),
                     deviceName: "iPad",
-                    data: SyncConflict.ConflictVersion.ConflictData(
+                    data: ConflictVersion.ConflictData(
                         title: "Amazing Grace",
                         content: "Remote content..."
                     )

@@ -17,7 +17,7 @@ struct KeyRecommendation: Identifiable, Codable {
     var key: String
     var scale: ScaleType
     var confidence: Float // 0.0 - 1.0
-    var reasons: [RecommendationReason]
+    var reasons: [KeyRecommendationReason]
     var vocalRangeFit: VocalRangeFit?
     var capoDifficulty: CapoDifficulty?
     var transpositionSteps: Int // Semitones from original
@@ -27,7 +27,7 @@ struct KeyRecommendation: Identifiable, Codable {
         key: String,
         scale: ScaleType,
         confidence: Float,
-        reasons: [RecommendationReason] = [],
+        reasons: [KeyRecommendationReason] = [],
         vocalRangeFit: VocalRangeFit? = nil,
         capoDifficulty: CapoDifficulty? = nil,
         transpositionSteps: Int = 0
@@ -47,7 +47,7 @@ struct KeyRecommendation: Identifiable, Codable {
     }
 }
 
-enum RecommendationReason: String, Codable {
+enum KeyRecommendationReason: String, Codable {
     case detectedFromChords = "Detected from chord progression"
     case vocalRangeOptimal = "Perfect for your vocal range"
     case easyGuitarKey = "Easy guitar key"

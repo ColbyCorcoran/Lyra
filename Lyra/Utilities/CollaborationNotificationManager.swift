@@ -194,10 +194,12 @@ class CollaborationNotificationManager {
         }
 
         // Send push notification
-        sendPushNotification(notification)
+        Task {
+            await sendPushNotification(notification)
+        }
     }
 
-    private func sendPushNotification(_ notification: CollaborationNotification) {
+    func sendPushNotification(_ notification: CollaborationNotification) async {
         let content = UNMutableNotificationContent()
         content.title = notification.title
         content.body = notification.body
@@ -218,10 +220,10 @@ class CollaborationNotificationManager {
             trigger: nil // Deliver immediately
         )
 
-        notificationCenter.add(request) { error in
-            if let error = error {
-                print("❌ Error sending notification: \(error)")
-            }
+        do {
+            try await notificationCenter.add(request)
+        } catch {
+            print("❌ Error sending notification: \(error)")
         }
     }
 

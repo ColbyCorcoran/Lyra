@@ -396,17 +396,4 @@ class BandMemberProfile {
     }
 }
 
-// MARK: - Performance Set Reference
-
-/// Placeholder for performance set context (for batch transpose)
-struct PerformanceSet: Codable {
-    var id: UUID
-    var name: String
-    var songIDs: [UUID]
-
-    init(id: UUID = UUID(), name: String, songIDs: [UUID] = []) {
-        self.id = id
-        self.name = name
-        self.songIDs = songIDs
-    }
-}
+// PerformanceSet model is defined in Models/PerformanceSet.swift

@@ -106,7 +106,7 @@ class BackupManager {
         // Import data
         try await importData(backupData, into: modelContext)
 
-        HapticManager.shared.notification(.success)
+        HapticManager.shared.success()
     }
 
     func exportToFiles() async throws -> URL {

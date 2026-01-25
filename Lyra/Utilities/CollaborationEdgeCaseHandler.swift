@@ -303,14 +303,14 @@ class CollaborationEdgeCaseHandler {
         base: String,
         local: String,
         remote: String
-    ) -> MergeResult {
+    ) -> CollaborationMergeResult {
         // Use three-way merge algorithm
         let baseLines = base.components(separatedBy: .newlines)
         let localLines = local.components(separatedBy: .newlines)
         let remoteLines = remote.components(separatedBy: .newlines)
 
         var mergedLines: [String] = []
-        var conflicts: [MergeConflict] = []
+        var conflicts: [CollaborationMergeConflict] = []
 
         let maxLength = max(baseLines.count, localLines.count, remoteLines.count)
 
@@ -330,7 +330,7 @@ class CollaborationEdgeCaseHandler {
                 mergedLines.append(localLine)
             } else {
                 // Both changed differently - conflict
-                conflicts.append(MergeConflict(
+                conflicts.append(CollaborationMergeConflict(
                     lineNumber: i,
                     base: baseLine,
                     local: localLine,
@@ -360,7 +360,7 @@ class CollaborationEdgeCaseHandler {
         status: PresenceStatus,
         currentSong: UUID? = nil
     ) {
-        let presence = UserPresence(
+        let presence = EdgeCaseUserPresence(
             userRecordID: userRecordID,
             status: status,
             currentSongID: currentSong,
@@ -373,7 +373,7 @@ class CollaborationEdgeCaseHandler {
         }
     }
 
-    private func broadcastPresence(_ presence: UserPresence) async {
+    private func broadcastPresence(_ presence: EdgeCaseUserPresence) async {
         // In production, save to CloudKit with short TTL
         print("📡 Broadcasting presence for \(presence.userRecordID)")
     }
@@ -463,21 +463,21 @@ enum ConflictPrediction {
 
 // MARK: - Merge Result
 
-enum MergeResult {
+enum CollaborationCollaborationMergeResult {
     case success(merged: String)
-    case conflicted(merged: String, conflicts: [MergeConflict])
+    case conflicted(merged: String, conflicts: [CollaborationMergeConflict])
 }
 
-struct MergeConflict {
+struct CollaborationCollaborationMergeConflict {
     let lineNumber: Int
     let base: String
     let local: String
     let remote: String
 }
 
-// MARK: - User Presence
+// MARK: - Edge Case User Presence
 
-struct UserPresence {
+struct EdgeCaseEdgeCaseUserPresence {
     let userRecordID: String
     let status: PresenceStatus
     let currentSongID: UUID?

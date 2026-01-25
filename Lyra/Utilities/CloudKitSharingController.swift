@@ -164,7 +164,7 @@ class SharingControllerDelegate: NSObject, UICloudSharingControllerDelegate {
         print("🛑 Stopped sharing")
 
         NotificationCenter.default.post(
-            name: .sharingStoppedName,
+            name: .sharingStopped,
             object: nil
         )
     }

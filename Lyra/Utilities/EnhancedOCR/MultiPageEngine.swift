@@ -208,7 +208,7 @@ class MultiPageEngine {
 
     /// Merge layouts from multiple pages
     private func mergeLayouts(results: [EnhancedOCRResult]) -> LayoutStructure {
-        var allSections: [SongSection] = []
+        var allSections: [OCRSongSection] = []
         var allChordPlacements: [ChordPlacement] = []
         var allSpacingRules: [SpacingRule] = []
 
@@ -351,6 +351,6 @@ class MultiPageEngine {
 /// Information about a page continuation
 struct PageContinuation {
     let pageNumber: Int
-    let sectionType: SongSection.SectionType
+    let sectionType: OCRSectionType
     let continuesTo: Int
 }

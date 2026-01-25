@@ -214,7 +214,7 @@ struct AudioMarker: Identifiable, Codable {
     var position: TimeInterval // Position in track
     var type: MarkerType
     var color: String // Hex color
-    var action: MarkerAction?
+    var action: BackingTrackMarkerAction?
     var sectionName: String? // Link to song section
 
     init(
@@ -223,7 +223,7 @@ struct AudioMarker: Identifiable, Codable {
         position: TimeInterval,
         type: MarkerType = .cue,
         color: String = "#FF0000",
-        action: MarkerAction? = nil,
+        action: BackingTrackMarkerAction? = nil,
         sectionName: String? = nil
     ) {
         self.id = id
@@ -263,7 +263,7 @@ enum MarkerType: String, Codable, CaseIterable {
     }
 }
 
-enum MarkerAction: String, Codable {
+enum BackingTrackBackingTrackMarkerAction: String, Codable {
     case jumpToSection = "Jump to Section"
     case showMessage = "Show Message"
     case triggerMIDI = "Trigger MIDI"

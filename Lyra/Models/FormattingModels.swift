@@ -18,10 +18,10 @@ struct FormattingResult: Identifiable, Codable {
     var id: UUID = UUID()
     var originalText: String
     var formattedText: String
-    var detectedStructure: SongStructure
+    var detectedStructure: FormattingSongStructure
     var detectedPattern: ChordPattern
     var extractedChords: [String]
-    var extractedMetadata: SongMetadata
+    var extractedMetadata: FormattingSongMetadata
     var qualityScore: QualityScore
     var suggestions: [FormattingSuggestion]
     var changes: [FormattingChange]
@@ -30,14 +30,14 @@ struct FormattingResult: Identifiable, Codable {
 
 // MARK: - Song Structure
 
-/// Detected song structure with sections and patterns
-struct SongStructure: Codable {
-    var sections: [SongSection]
+/// Detected song structure with sections and patterns - for formatting analysis
+struct FormattingSongStructure: Codable {
+    var sections: [FormattedSongSection]
     var repeatedSections: [SectionRepetition]
     var sectionOrder: [String]
     var confidence: Float
 
-    init(sections: [SongSection] = [],
+    init(sections: [FormattedSongSection] = [],
          repeatedSections: [SectionRepetition] = [],
          sectionOrder: [String] = [],
          confidence: Float = 0.0) {
@@ -48,10 +48,10 @@ struct SongStructure: Codable {
     }
 }
 
-/// Individual song section (verse, chorus, bridge, etc.)
-struct SongSection: Identifiable, Codable {
+/// Individual song section (verse, chorus, bridge, etc.) - for formatting analysis
+struct FormattedSongSection: Identifiable, Codable {
     var id: UUID = UUID()
-    var type: SectionType
+    var type: FormattingSectionType
     var label: String
     var lines: [String]
     var startLine: Int
@@ -59,7 +59,7 @@ struct SongSection: Identifiable, Codable {
     var confidence: Float
     var isInstrumental: Bool
 
-    init(type: SectionType,
+    init(type: FormattingSectionType,
          label: String,
          lines: [String],
          startLine: Int,
@@ -76,8 +76,8 @@ struct SongSection: Identifiable, Codable {
     }
 }
 
-/// Section types
-enum SectionType: String, Codable, CaseIterable {
+/// Section types for formatting intelligence
+enum FormattingSectionType: String, Codable, CaseIterable {
     case intro = "Intro"
     case verse = "Verse"
     case preChorus = "Pre-Chorus"
@@ -109,12 +109,12 @@ enum SectionType: String, Codable, CaseIterable {
 
 /// Section repetition information
 struct SectionRepetition: Codable {
-    var sectionType: SectionType
+    var sectionType: FormattingSectionType
     var label: String
     var occurrences: [Int]      // Line numbers where section occurs
     var similarity: Float        // How similar the repetitions are (0.0-1.0)
 
-    init(sectionType: SectionType,
+    init(sectionType: FormattingSectionType,
          label: String,
          occurrences: [Int],
          similarity: Float) {
@@ -359,8 +359,8 @@ enum ChangeType: String, Codable, CaseIterable {
 
 // MARK: - Extracted Metadata
 
-/// Song metadata extracted from text
-struct SongMetadata: Codable {
+/// Song metadata extracted from text - for formatting analysis
+struct FormattingSongMetadata: Codable {
     var title: String?
     var artist: String?
     var key: String?
@@ -391,7 +391,7 @@ struct SongMetadata: Codable {
 
     var completenessPercentage: Float {
         var count: Float = 0
-        var total: Float = 6
+        let total: Float = 6
 
         if title != nil { count += 1 }
         if artist != nil { count += 1 }

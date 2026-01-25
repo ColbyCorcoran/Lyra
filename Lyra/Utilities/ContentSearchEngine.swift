@@ -439,8 +439,8 @@ class ContentSearchEngine {
 
         // Calculate overall relevance
         let lyricsScore = lyricsMatches.first?.relevance ?? 0.0
-        let chordScore = chordMatches.isEmpty ? 0.0 : 1.0
-        let overallRelevance = (lyricsScore * 0.7) + (chordScore * 0.3)
+        let chordScore: Double = chordMatches.isEmpty ? 0.0 : 1.0
+        let overallRelevance = Float((lyricsScore * 0.7) + (chordScore * 0.3))
 
         return ContentSearchResult(
             lyricsMatches: lyricsMatches,

@@ -149,8 +149,8 @@ struct DiffAlgorithm {
         local: [String],
         remote: [String]
     ) -> MergeResult {
-        let localDiff = calculateDiff(original: base, modified: local)
-        let remoteDiff = calculateDiff(original: base, modified: remote)
+        _ = calculateDiff(original: base, modified: local)
+        _ = calculateDiff(original: base, modified: remote)
 
         var mergedLines: [String] = []
         var conflicts: [MergeConflict] = []

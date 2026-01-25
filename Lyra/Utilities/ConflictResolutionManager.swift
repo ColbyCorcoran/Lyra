@@ -82,7 +82,7 @@ class ConflictResolutionManager {
         remoteEntities: [Any],
         entityType: SyncConflict.EntityType
     ) -> [SyncConflict] {
-        var conflicts: [SyncConflict] = []
+        let conflicts: [SyncConflict] = []
 
         // Match local and remote entities by ID and detect conflicts
         // This is a placeholder implementation
@@ -126,7 +126,7 @@ class ConflictResolutionManager {
         totalUserResolved += 1
         saveResolvedConflicts()
 
-        HapticManager.shared.notification(.success)
+        HapticManager.shared.success()
     }
 
     /// Auto-resolves simple conflicts based on strategy
@@ -232,7 +232,7 @@ class ConflictResolutionManager {
             autoResolveConflicts()
         } else {
             // Notify user of new conflict
-            HapticManager.shared.notification(.warning)
+            HapticManager.shared.warning()
         }
     }
 

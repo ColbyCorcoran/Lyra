@@ -61,7 +61,7 @@ struct SkillMetrics: Codable {
     var rhythmAccuracy: Float         // 0.0-1.0
     var memorizationLevel: Float      // 0.0-1.0
     var overallSkillLevel: SkillLevel
-    var problemSections: [ProblemSection]
+    var problemSections: [PracticeProblemSection]
     var timestamp: Date
 
     init(
@@ -69,7 +69,7 @@ struct SkillMetrics: Codable {
         rhythmAccuracy: Float = 0,
         memorizationLevel: Float = 0,
         overallSkillLevel: SkillLevel = .beginner,
-        problemSections: [ProblemSection] = [],
+        problemSections: [PracticeProblemSection] = [],
         timestamp: Date = Date()
     ) {
         self.chordChangeSpeed = chordChangeSpeed
@@ -113,27 +113,27 @@ struct PracticeDifficulty: Identifiable, Codable {
     }
 }
 
-// MARK: - Problem Section
+// MARK: - Practice Problem Section
 
-/// A section of a song with difficulties
-struct ProblemSection: Identifiable, Codable {
+/// A section of a song with practice difficulties
+struct PracticeProblemSection: Identifiable, Codable {
     var id: UUID = UUID()
     var sectionName: String
-    var sectionType: SectionType
+    var sectionType: PracticeSectionType
     var errorCount: Int
     var lastEncountered: Date
     var severity: Float  // 0.0-1.0
+}
 
-    enum SectionType: String, Codable {
-        case verse = "Verse"
-        case chorus = "Chorus"
-        case bridge = "Bridge"
-        case intro = "Intro"
-        case outro = "Outro"
-        case solo = "Solo"
-        case prechorus = "Pre-Chorus"
-        case other = "Other"
-    }
+enum PracticeSectionType: String, Codable {
+    case verse = "Verse"
+    case chorus = "Chorus"
+    case bridge = "Bridge"
+    case intro = "Intro"
+    case outro = "Outro"
+    case solo = "Solo"
+    case prechorus = "Pre-Chorus"
+    case other = "Other"
 }
 
 // MARK: - Skill Level
@@ -287,7 +287,7 @@ class ProgressMilestone {
     var songID: UUID?
     var metric: String
     var value: Float
-    var description: String
+    var milestoneDescription: String
     var isNotified: Bool = false
 
     init(
@@ -297,7 +297,7 @@ class ProgressMilestone {
         songID: UUID? = nil,
         metric: String,
         value: Float,
-        description: String,
+        milestoneDescription: String,
         isNotified: Bool = false
     ) {
         self.id = id
@@ -306,7 +306,7 @@ class ProgressMilestone {
         self.songID = songID
         self.metric = metric
         self.value = value
-        self.description = description
+        self.milestoneDescription = milestoneDescription
         self.isNotified = isNotified
     }
 

@@ -11,7 +11,7 @@ import Foundation
 // MARK: - Search Result
 
 /// A single search result with relevance scoring
-struct SearchResult: Identifiable, Codable {
+struct SearchResult: Identifiable, Codable, Equatable {
     var id: UUID
     var songID: UUID
     var title: String
@@ -21,6 +21,10 @@ struct SearchResult: Identifiable, Codable {
     var matchedFields: [MatchedField]
     var highlights: [SearchHighlight]
     var reasoning: String?
+
+    static func == (lhs: SearchResult, rhs: SearchResult) -> Bool {
+        lhs.id == rhs.id
+    }
 
     enum MatchType: String, Codable {
         case exact = "Exact Match"
@@ -379,7 +383,7 @@ enum MoodCategory: String, Codable, CaseIterable {
 // MARK: - Tempo Category
 
 /// Tempo categories for filtering
-enum TempoCategory: String, Codable, CaseIterable {
+enum SearchSearchTempoCategory: String, Codable, CaseIterable {
     case verySlow = "Very Slow"
     case slow = "Slow"
     case moderate = "Moderate"

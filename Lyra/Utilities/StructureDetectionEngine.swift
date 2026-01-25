@@ -21,8 +21,8 @@ class StructureDetectionEngine {
 
     // MARK: - Section Labels Pattern Matching
 
-    private let sectionPatterns: [(SectionType, NSRegularExpression)] = {
-        let patterns: [(SectionType, String)] = [
+    private let sectionPatterns: [(FormattingSectionType, NSRegularExpression)] = {
+        let patterns: [(FormattingSectionType, String)] = [
             (.intro, "^\\s*(intro|introduction)\\s*:?\\s*$"),
             (.verse, "^\\s*(verse|v)\\s*([0-9]+)?\\s*:?\\s*$"),
             (.preChorus, "^\\s*(pre-?chorus|prechorus|pc)\\s*:?\\s*$"),
@@ -44,7 +44,7 @@ class StructureDetectionEngine {
     // MARK: - Public Methods
 
     /// Detect complete song structure from text
-    func detectStructure(_ text: String) -> SongStructure {
+    func detectStructure(_ text: String) -> FormattingSongStructure {
         let lines = text.components(separatedBy: .newlines)
 
         // Detect sections
@@ -59,7 +59,7 @@ class StructureDetectionEngine {
         // Calculate overall confidence
         let confidence = calculateStructureConfidence(sections, repetitions: repetitions)
 
-        return SongStructure(
+        return FormattingSongStructure(
             sections: sections,
             repeatedSections: repetitions,
             sectionOrder: order,
@@ -68,18 +68,18 @@ class StructureDetectionEngine {
     }
 
     /// Detect individual sections in the text
-    func detectSections(_ lines: [String]) -> [SongSection] {
-        var sections: [SongSection] = []
+    func detectSections(_ lines: [String]) -> [FormattedSongSection] {
+        var sections: [FormattedSongSection] = []
         var currentSectionLines: [String] = []
         var currentSectionStart = 0
-        var currentSectionType: SectionType?
+        var currentFormattingSectionType: FormattingSectionType?
         var currentSectionLabel: String?
 
         for (index, line) in lines.enumerated() {
             // Check if line is a section label
             if let (type, label) = detectSectionLabel(line) {
                 // Save previous section if exists
-                if !currentSectionLines.isEmpty, let sectionType = currentSectionType, let sectionLabel = currentSectionLabel {
+                if !currentSectionLines.isEmpty, let sectionType = currentFormattingSectionType, let sectionLabel = currentSectionLabel {
                     let section = createSection(
                         type: sectionType,
                         label: sectionLabel,
@@ -91,7 +91,7 @@ class StructureDetectionEngine {
                 }
 
                 // Start new section
-                currentSectionType = type
+                currentFormattingSectionType = type
                 currentSectionLabel = label
                 currentSectionLines = []
                 currentSectionStart = index + 1
@@ -100,7 +100,7 @@ class StructureDetectionEngine {
             else if line.trimmingCharacters(in: .whitespaces).isEmpty {
                 // If we have accumulated lines and next line might be new section, save current
                 if !currentSectionLines.isEmpty && mightBeNewSection(lines, index: index + 1) {
-                    let sectionType = currentSectionType ?? inferSectionType(currentSectionLines, position: sections.count)
+                    let sectionType = currentFormattingSectionType ?? inferFormattingSectionType(currentSectionLines, position: sections.count)
                     let sectionLabel = currentSectionLabel ?? generateDefaultLabel(type: sectionType, sections: sections)
 
                     let section = createSection(
@@ -114,7 +114,7 @@ class StructureDetectionEngine {
 
                     currentSectionLines = []
                     currentSectionStart = index + 1
-                    currentSectionType = nil
+                    currentFormattingSectionType = nil
                     currentSectionLabel = nil
                 }
             }
@@ -126,7 +126,7 @@ class StructureDetectionEngine {
 
         // Save final section
         if !currentSectionLines.isEmpty {
-            let sectionType = currentSectionType ?? inferSectionType(currentSectionLines, position: sections.count)
+            let sectionType = currentFormattingSectionType ?? inferFormattingSectionType(currentSectionLines, position: sections.count)
             let sectionLabel = currentSectionLabel ?? generateDefaultLabel(type: sectionType, sections: sections)
 
             let section = createSection(
@@ -143,9 +143,9 @@ class StructureDetectionEngine {
     }
 
     /// Auto-label sections based on detected structure
-    func autoLabelSections(_ structure: SongStructure) -> SongStructure {
+    func autoLabelSections(_ structure: FormattingSongStructure) -> FormattingSongStructure {
         var labeledSections = structure.sections
-        var sectionCounts: [SectionType: Int] = [:]
+        var sectionCounts: [FormattingSectionType: Int] = [:]
 
         for i in 0..<labeledSections.count {
             let section = labeledSections[i]
@@ -160,7 +160,7 @@ class StructureDetectionEngine {
             }
         }
 
-        return SongStructure(
+        return FormattingSongStructure(
             sections: labeledSections,
             repeatedSections: structure.repeatedSections,
             sectionOrder: labeledSections.map { $0.label },
@@ -169,9 +169,9 @@ class StructureDetectionEngine {
     }
 
     /// Find repeated sections in the structure
-    func findRepeatedSections(_ sections: [SongSection]) -> [SectionRepetition] {
+    func findRepeatedSections(_ sections: [FormattedSongSection]) -> [SectionRepetition] {
         var repetitions: [SectionRepetition] = []
-        var sectionGroups: [SectionType: [Int]] = [:]
+        var sectionGroups: [FormattingSectionType: [Int]] = [:]
 
         // Group sections by type
         for (index, section) in sections.enumerated() {
@@ -210,7 +210,7 @@ class StructureDetectionEngine {
     // MARK: - Private Helpers
 
     /// Detect section label from line
-    private func detectSectionLabel(_ line: String) -> (SectionType, String)? {
+    private func detectSectionLabel(_ line: String) -> (FormattingSectionType, String)? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
 
         for (type, regex) in sectionPatterns {
@@ -240,13 +240,13 @@ class StructureDetectionEngine {
     }
 
     /// Infer section type from content
-    private func inferSectionType(_ lines: [String], position: Int) -> SectionType {
+    private func inferFormattingSectionType(_ lines: [String], position: Int) -> FormattingSectionType {
         // Use the section identification engine
         return sectionIdentifier.identifySection(lines: lines, position: position)
     }
 
     /// Generate default label for section
-    private func generateDefaultLabel(type: SectionType, sections: [SongSection]) -> String {
+    private func generateDefaultLabel(type: FormattingSectionType, sections: [FormattedSongSection]) -> String {
         let count = sections.filter { $0.type == type }.count + 1
 
         if type == .verse || type == .chorus {
@@ -258,16 +258,16 @@ class StructureDetectionEngine {
 
     /// Create section from components
     private func createSection(
-        type: SectionType,
+        type: FormattingSectionType,
         label: String,
         lines: [String],
         startLine: Int,
         endLine: Int
-    ) -> SongSection {
+    ) -> FormattedSongSection {
         let isInstrumental = sectionIdentifier.isInstrumental(lines: lines)
         let confidence = sectionIdentifier.calculateConfidence(lines: lines, expectedType: type)
 
-        return SongSection(
+        return FormattedSongSection(
             type: type,
             label: label,
             lines: lines,
@@ -302,7 +302,7 @@ class StructureDetectionEngine {
     }
 
     /// Calculate average similarity across sections
-    private func calculateAverageSimilarity(_ sections: [SongSection], indices: [Int]) -> Float {
+    private func calculateAverageSimilarity(_ sections: [FormattedSongSection], indices: [Int]) -> Float {
         guard indices.count > 1 else { return 1.0 }
 
         var totalSimilarity: Float = 0
@@ -323,7 +323,7 @@ class StructureDetectionEngine {
     }
 
     /// Calculate structure detection confidence
-    private func calculateStructureConfidence(_ sections: [SongSection], repetitions: [SectionRepetition]) -> Float {
+    private func calculateStructureConfidence(_ sections: [FormattedSongSection], repetitions: [SectionRepetition]) -> Float {
         guard !sections.isEmpty else { return 0 }
 
         var confidence: Float = 0.5  // Base confidence
@@ -346,7 +346,7 @@ class StructureDetectionEngine {
     }
 
     /// Check if structure follows logical pattern
-    private func hasLogicalStructure(_ sections: [SongSection]) -> Bool {
+    private func hasLogicalStructure(_ sections: [FormattedSongSection]) -> Bool {
         // Common patterns: verse-chorus, verse-chorus-verse-chorus-bridge-chorus
         let types = sections.map { $0.type }
 
@@ -397,7 +397,7 @@ class SectionIdentificationEngine {
     // MARK: - Section Detection
 
     /// Identify section type from lines
-    func identifySection(lines: [String], position: Int = 0) -> SectionType {
+    func identifySection(lines: [String], position: Int = 0) -> FormattingSectionType {
         let features = extractFeatures(lines, position: position)
         return classifySection(features)
     }
@@ -409,7 +409,7 @@ class SectionIdentificationEngine {
     }
 
     /// Calculate confidence for section type
-    func calculateConfidence(lines: [String], expectedType: SectionType) -> Float {
+    func calculateConfidence(lines: [String], expectedType: FormattingSectionType) -> Float {
         let features = extractFeatures(lines, position: 0)
         let predictedType = classifySection(features)
         return predictedType == expectedType ? 0.9 : 0.6
@@ -451,7 +451,7 @@ class SectionIdentificationEngine {
 
     // MARK: - Classification
 
-    private func classifySection(_ features: SectionFeatures) -> SectionType {
+    private func classifySection(_ features: SectionFeatures) -> FormattingSectionType {
         // Intro: short, early position, may be instrumental
         if features.position == 0 && features.lineCount <= 4 {
             return .intro

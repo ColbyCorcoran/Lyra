@@ -74,22 +74,15 @@ class CloudKitSyncCoordinator {
         isSyncing = true
         lastError = nil
 
-        do {
-            // SwiftData automatically handles sync with iCloud
-            // We just need to detect any conflicts that occurred
-            await performConflictDetection()
+        // SwiftData automatically handles sync with iCloud
+        // We just need to detect any conflicts that occurred
+        await performConflictDetection()
 
-            lastSyncDate = Date()
-            CloudSyncManager.shared.lastSyncDate = Date()
-            CloudSyncManager.shared.syncStatus = .success
+        lastSyncDate = Date()
+        CloudSyncManager.shared.lastSyncDate = Date()
+        CloudSyncManager.shared.syncStatus = .success
 
-            isSyncing = false
-        } catch {
-            lastError = error
-            CloudSyncManager.shared.syncStatus = .error(error.localizedDescription)
-            isSyncing = false
-            throw error
-        }
+        isSyncing = false
     }
 
     /// Performs background sync check
@@ -176,8 +169,8 @@ class CloudKitSyncCoordinator {
     }
 
     /// Creates a ConflictVersion from a CKRecord
-    private func createConflictVersion(from record: CKRecord, deviceName: String) -> SyncConflict.ConflictVersion {
-        var data = SyncConflict.ConflictVersion.ConflictData()
+    private func createConflictVersion(from record: CKRecord, deviceName: String) -> ConflictVersion {
+        var data = ConflictVersion.ConflictData()
 
         // Extract song data from CloudKit record
         data.title = record["title"] as? String
@@ -190,7 +183,7 @@ class CloudKitSyncCoordinator {
         // Identify changed properties
         data.changedProperties = record.changedKeys().map { $0 }
 
-        return SyncConflict.ConflictVersion(
+        return ConflictVersion(
             timestamp: record.modificationDate ?? Date(),
             deviceName: deviceName,
             data: data
@@ -201,7 +194,7 @@ class CloudKitSyncCoordinator {
 
     /// Handles CloudKit push notifications
     func handleRemoteNotification(_ userInfo: [AnyHashable: Any]) async {
-        guard let notification = CKQueryNotification(fromRemoteNotificationDictionary: userInfo) else {
+        guard CKQueryNotification(fromRemoteNotificationDictionary: userInfo) != nil else {
             return
         }
 
@@ -235,13 +228,14 @@ class CloudKitSyncCoordinator {
     }
 
     /// Fetches changes since last sync using history tracking
-    private func fetchChangesSinceLastSync() async throws -> [NSPersistentHistoryChange] {
+    nonisolated private func fetchChangesSinceLastSync() async throws -> [NSPersistentHistoryChange] {
         guard let container = persistentContainer else { return [] }
 
         let context = container.newBackgroundContext()
+        let token = await historyToken
 
-        return try await context.perform {
-            let request = NSPersistentHistoryChangeRequest.fetchHistory(after: self.historyToken)
+        return try await context.perform { [weak self] in
+            let request = NSPersistentHistoryChangeRequest.fetchHistory(after: token)
 
             guard let result = try context.execute(request) as? NSPersistentHistoryResult,
                   let transactions = result.result as? [NSPersistentHistoryTransaction] else {
@@ -250,8 +244,10 @@ class CloudKitSyncCoordinator {
 
             // Update history token
             if let lastTransaction = transactions.last {
-                self.historyToken = lastTransaction.token
-                self.saveHistoryToken()
+                Task { @MainActor in
+                    self?.historyToken = lastTransaction.token
+                    self?.saveHistoryToken()
+                }
             }
 
             // Extract all changes
@@ -293,7 +289,7 @@ class CloudKitSyncCoordinator {
     }
 
     /// Merges non-conflicting changes from both versions
-    func mergeVersions(_ conflict: SyncConflict, modelContext: ModelContext, mergedData: SyncConflict.ConflictVersion.ConflictData) async throws {
+    func mergeVersions(_ conflict: SyncConflict, modelContext: ModelContext, mergedData: ConflictVersion.ConflictData) async throws {
         // In production, this would:
         // 1. Apply merged data to local entity
         // 2. Push merged version to CloudKit
@@ -319,12 +315,8 @@ extension CloudKitSyncCoordinator {
 
     /// Requests permission for push notifications
     func requestNotificationPermission() async {
-        let container = CKContainer.default()
-
-        do {
-            _ = try await container.requestApplicationPermission(.userDiscoverability)
-        } catch {
-            print("❌ Error requesting notification permission: \(error)")
-        }
+        // Note: requestApplicationPermission and userDiscoverability are deprecated in iOS 17+
+        // CloudKit sharing now uses system-level permissions
+        print("⚠️  CloudKit permission handling is now automatic in iOS 17+")
     }
 }

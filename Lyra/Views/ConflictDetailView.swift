@@ -423,7 +423,7 @@ struct ConflictDetailView: View {
 
 struct VersionCard: View {
     let title: String
-    let version: SyncConflict.ConflictVersion
+    let version: ConflictVersion
     let icon: String
     let color: Color
     let isSelected: Bool
@@ -579,20 +579,20 @@ struct InfoRow: View {
             conflictType: .contentModification,
             entityType: .song,
             entityID: UUID(),
-            localVersion: SyncConflict.ConflictVersion(
+            localVersion: ConflictVersion(
                 timestamp: Date().addingTimeInterval(-3600),
                 deviceName: "iPhone 15 Pro",
-                data: SyncConflict.ConflictVersion.ConflictData(
+                data: ConflictVersion.ConflictData(
                     title: "Amazing Grace",
                     artist: "John Newton",
                     content: "Local chord chart content...",
                     key: "G"
                 )
             ),
-            remoteVersion: SyncConflict.ConflictVersion(
+            remoteVersion: ConflictVersion(
                 timestamp: Date().addingTimeInterval(-1800),
                 deviceName: "iPad Air",
-                data: SyncConflict.ConflictVersion.ConflictData(
+                data: ConflictVersion.ConflictData(
                     title: "Amazing Grace",
                     artist: "John Newton",
                     content: "Remote chord chart content...",

@@ -18,7 +18,7 @@ struct SongFormattingView: View {
     @Binding var songText: String
     @Environment(\.dismiss) private var dismiss
 
-    @StateObject private var manager = FormattingManager()
+    @State private var manager = FormattingManager()
     @State private var result: FormattingResult?
     @State private var showingPreview = false
     @State private var isAnalyzing = false

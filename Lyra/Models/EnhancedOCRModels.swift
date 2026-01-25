@@ -31,7 +31,7 @@ struct EnhancedOCRResult: Identifiable, Codable {
 /// Structure and layout information detected from the image
 struct LayoutStructure: Codable {
     var layoutType: LayoutType // .chordOverLyric, .inline, .unknown
-    var sections: [SongSection]
+    var sections: [OCRSongSection]
     var chordPlacements: [ChordPlacement]
     var preservedSpacing: [SpacingRule]
 }
@@ -60,41 +60,42 @@ enum LayoutType: String, Codable {
     }
 }
 
-/// A section of a song (verse, chorus, bridge, etc.)
-struct SongSection: Identifiable, Codable {
+/// A section of a song detected from OCR (verse, chorus, bridge, etc.)
+struct OCRSongSection: Identifiable, Codable {
     var id: UUID = UUID()
-    var type: SectionType
+    var type: OCRSectionType
     var content: String
     var boundingBox: CGRect
     var pageNumber: Int
+}
 
-    enum SectionType: String, Codable {
-        case verse
-        case chorus
-        case bridge
-        case intro
-        case outro
-        case preChorus = "pre-chorus"
-        case interlude
-        case solo
-        case instrumental
-        case refrain
-        case unknown
+/// Section types for OCR detection
+enum OCRSectionType: String, Codable {
+    case verse
+    case chorus
+    case bridge
+    case intro
+    case outro
+    case preChorus = "pre-chorus"
+    case interlude
+    case solo
+    case instrumental
+    case refrain
+    case unknown
 
-        var displayName: String {
-            switch self {
-            case .verse: return "Verse"
-            case .chorus: return "Chorus"
-            case .bridge: return "Bridge"
-            case .intro: return "Intro"
-            case .outro: return "Outro"
-            case .preChorus: return "Pre-Chorus"
-            case .interlude: return "Interlude"
-            case .solo: return "Solo"
-            case .instrumental: return "Instrumental"
-            case .refrain: return "Refrain"
-            case .unknown: return "Unknown"
-            }
+    var displayName: String {
+        switch self {
+        case .verse: return "Verse"
+        case .chorus: return "Chorus"
+        case .bridge: return "Bridge"
+        case .intro: return "Intro"
+        case .outro: return "Outro"
+        case .preChorus: return "Pre-Chorus"
+        case .interlude: return "Interlude"
+        case .solo: return "Solo"
+        case .instrumental: return "Instrumental"
+        case .refrain: return "Refrain"
+        case .unknown: return "Unknown"
         }
     }
 }
@@ -232,7 +233,7 @@ struct BatchOCRJob: Identifiable {
     var status: BatchStatus
     var progress: Double // 0.0-1.0
     var results: [EnhancedOCRResult]
-    var errors: [BatchError]
+    var errors: [BatchOCRError]
     var startTime: Date
     var estimatedCompletion: Date?
 
@@ -281,8 +282,8 @@ enum BatchStatus: String, Codable {
     }
 }
 
-/// Error that occurred during batch processing
-struct BatchError: Identifiable {
+/// Error that occurred during batch OCR processing
+struct BatchOCRError: Identifiable {
     var id: UUID = UUID()
     var imageIndex: Int
     var error: String

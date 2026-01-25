@@ -72,10 +72,10 @@ struct HandwritingSetupView: View {
                         Text("How it works:")
                             .font(.headline)
 
-                        InstructionStep(number: 1, text: "Take a photo of your handwritten chord chart")
-                        InstructionStep(number: 2, text: "Review the recognized text")
-                        InstructionStep(number: 3, text: "Correct any mistakes")
-                        InstructionStep(number: 4, text: "Repeat 5-10 times for best results")
+                        HandwritingInstructionStep(number: 1, text: "Take a photo of your handwritten chord chart")
+                        HandwritingInstructionStep(number: 2, text: "Review the recognized text")
+                        HandwritingInstructionStep(number: 3, text: "Correct any mistakes")
+                        HandwritingInstructionStep(number: 4, text: "Repeat 5-10 times for best results")
                     }
 
                     // Sample input
@@ -201,7 +201,7 @@ struct HandwritingSetupView: View {
     }
 }
 
-struct InstructionStep: View {
+struct HandwritingInstructionStep: View {
     let number: Int
     let text: String
 

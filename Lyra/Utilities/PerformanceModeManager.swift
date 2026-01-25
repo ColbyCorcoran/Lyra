@@ -15,7 +15,7 @@ class PerformanceModeManager {
     // MARK: - State Properties
 
     var isActive: Bool = false
-    var currentSession: PerformanceSession?
+    var currentSession: ActivePerformanceSession?
     var currentSongIndex: Int = 0
     var performedSongIndices: Set<Int> = []
     var showControls: Bool = true
@@ -54,7 +54,7 @@ class PerformanceModeManager {
 
     func startPerformance(set: PerformanceSet, preset: PerformancePreset? = nil) {
         // Create new session
-        let session = PerformanceSession(
+        let session = ActivePerformanceSession(
             performanceSet: set,
             startTime: Date()
         )
@@ -423,10 +423,11 @@ class PerformanceModeManager {
     }
 }
 
-// MARK: - Performance Session Model
+// MARK: - Active Performance Session Model
 
+/// Active performance session for managing current performance mode state
 @Observable
-class PerformanceSession {
+class ActiveActivePerformanceSession {
     var id: UUID = UUID()
     var performanceSet: PerformanceSet
     var startTime: Date

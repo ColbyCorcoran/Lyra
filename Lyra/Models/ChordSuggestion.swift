@@ -285,7 +285,7 @@ enum HarmonicFunction: String {
     }
 }
 
-enum ProgressionType: String, CaseIterable {
+enum ProgressionType: String, CaseIterable, Codable {
     case fiftysTwoFiveOne = "ii-V-I"
     case oneFourFiveOne = "I-IV-V-I"
     case oneFiveSixFour = "I-V-vi-IV"

@@ -210,7 +210,7 @@ struct BatchOCRView: View {
                             .font(.headline)
 
                         ForEach(job.errors) { error in
-                            ErrorCard(error: error)
+                            BatchErrorCard(error: error)
                         }
                     }
                     .padding()
@@ -246,8 +246,7 @@ struct BatchOCRView: View {
             let song = Song(
                 title: "Batch Scan",
                 artist: "Unknown",
-                chordProContent: result.correctedText,
-                originalKey: nil
+                content: result.correctedText
             )
             modelContext.insert(song)
         }
@@ -267,8 +266,8 @@ struct BatchOCRView: View {
     }
 }
 
-struct ErrorCard: View {
-    let error: BatchError
+struct BatchErrorCard: View {
+    let error: BatchOCRError
 
     var body: some View {
         HStack {

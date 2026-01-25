@@ -26,6 +26,7 @@ struct CapoView: View {
         case current = "Current"
         case suggestions = "Suggestions"
         case patterns = "Patterns"
+        case aiOptimize = "AI Optimize"
     }
 
     init(song: Song, setEntry: SetEntry? = nil, onCapoChange: @escaping (Int) -> Void) {
@@ -60,6 +61,9 @@ struct CapoView: View {
 
                     patternsView
                         .tag(CapoTab.patterns)
+
+                    aiOptimizeView
+                        .tag(CapoTab.aiOptimize)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
             }
@@ -264,6 +268,177 @@ struct CapoView: View {
             }
             .padding()
         }
+    }
+
+    // MARK: - AI Optimize View
+
+    private var aiOptimizeView: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "wand.and.stars")
+                            .foregroundStyle(.blue)
+                        Text("AI-Powered Capo Optimization")
+                            .font(.headline)
+                    }
+                    .padding(.horizontal)
+
+                    Text("Intelligent capo suggestions based on chord difficulty and your skill level")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                }
+
+                // Get skill level and generate recommendations
+                if let aiRecommendations = getAICapoRecommendations() {
+                    if aiRecommendations.isEmpty {
+                        emptyState(
+                            icon: "checkmark.circle.fill",
+                            title: "Already Optimized",
+                            message: "This song already uses simple chord shapes. No capo needed!"
+                        )
+                    } else {
+                        ForEach(aiRecommendations) { rec in
+                            aiCapoRecommendationCard(rec)
+                        }
+                    }
+                } else {
+                    ProgressView()
+                        .padding()
+                }
+
+                // Educational tip
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundStyle(.yellow)
+                        Text("Pro Tip")
+                            .font(.headline)
+                    }
+
+                    Text("Using a capo can make difficult songs much easier by allowing you to play simpler chord shapes while maintaining the original key.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
+                .background(Color.yellow.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal)
+            }
+            .padding(.vertical)
+        }
+    }
+
+    private func aiCapoRecommendationCard(_ recommendation: CapoRecommendation) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Capo Fret \(recommendation.capoPosition)")
+                            .font(.title2)
+                            .fontWeight(.bold)
+
+                        // Score badge
+                        Text("\(Int(recommendation.overallScore * 100))%")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(scoreColor(recommendation.overallScore).opacity(0.2))
+                            .clipShape(Capsule())
+                            .foregroundStyle(scoreColor(recommendation.overallScore))
+                    }
+
+                    Text(recommendation.explanation)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
+
+                Spacer()
+
+                Button {
+                    capoFret = recommendation.capoPosition
+                    selectedTab = .current
+                    HapticManager.shared.success()
+                } label: {
+                    Text("Apply")
+                        .fontWeight(.semibold)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
+            Divider()
+
+            // Benefits
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Difficulty")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(recommendation.difficultyDescription)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+
+                if recommendation.barreReduction > 0 {
+                    Divider()
+                        .frame(height: 30)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Barre Chords")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("-\(recommendation.barreReduction)")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.green)
+                    }
+                }
+
+                Divider()
+                    .frame(height: 30)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Improvement")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(recommendation.improvementDescription)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.green)
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal)
+    }
+
+    private func scoreColor(_ score: Float) -> Color {
+        switch score {
+        case 0.8...1.0: return .green
+        case 0.6..<0.8: return .blue
+        default: return .orange
+        }
+    }
+
+    private func getAICapoRecommendations() -> [CapoRecommendation]? {
+        // Get user's skill level (default to intermediate if not available)
+        let skillLevel: SkillLevel = .intermediate // TODO: Get from SkillAssessmentEngine
+
+        // Use CapoOptimizationEngine to get recommendations
+        let difficultyEngine = ChordDifficultyAnalysisEngine()
+        let capoOptimizer = CapoOptimizationEngine(difficultyEngine: difficultyEngine)
+
+        let recommendations = capoOptimizer.findOptimalCapo(
+            content: song.content,
+            skillLevel: skillLevel
+        )
+
+        return recommendations
     }
 
     // MARK: - Card Views

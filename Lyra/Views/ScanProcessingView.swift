@@ -30,6 +30,8 @@ struct ScanProcessingView: View {
     @State private var showError: Bool = false
     @State private var errorMessage: String = ""
     @State private var createdSong: Song?
+    @State private var useEnhancedOCR: Bool = false
+    @State private var enhancedOCRManager: EnhancedOCRManager?
 
     var body: some View {
         NavigationStack {
@@ -132,14 +134,33 @@ struct ScanProcessingView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal)
 
+                // Enhanced OCR Toggle
+                Toggle(isOn: $useEnhancedOCR) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "brain")
+                            .foregroundStyle(.blue)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Enhanced OCR")
+                                .font(.subheadline.bold())
+                            Text("AI-powered with handwriting support")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal)
+
                 // Action buttons
                 VStack(spacing: 12) {
                     Button {
                         startOCR()
                     } label: {
                         HStack {
-                            Image(systemName: "doc.text.viewfinder")
-                            Text("Extract Text with OCR")
+                            Image(systemName: useEnhancedOCR ? "brain" : "doc.text.viewfinder")
+                            Text(useEnhancedOCR ? "Extract with Enhanced OCR" : "Extract Text with OCR")
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
@@ -207,7 +228,7 @@ struct ScanProcessingView: View {
                 Text("Extracting Text...")
                     .font(.headline)
 
-                Text("Using Vision framework to recognize text")
+                Text(useEnhancedOCR ? "Using Enhanced OCR with AI" : "Using Vision framework to recognize text")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -313,17 +334,39 @@ struct ScanProcessingView: View {
 
         Task {
             do {
-                let result = try await OCRProcessor.shared.extractText(from: scannedImages) { progress in
-                    ocrProgress = progress
-                }
+                if useEnhancedOCR {
+                    // Use Enhanced OCR pipeline
+                    if enhancedOCRManager == nil {
+                        enhancedOCRManager = EnhancedOCRManager(modelContext: modelContext)
+                    }
 
-                await MainActor.run {
-                    // Enhance OCR result by applying format conversion
-                    extractedText = OCRProcessor.shared.enhanceOCRResult(result.text)
-                    ocrConfidence = result.confidence
-                    state = .editingText
-                    isProcessing = false
-                    HapticManager.shared.success()
+                    // Process all pages
+                    let enhancedResult = try await enhancedOCRManager!.processMultiPage(
+                        images: scannedImages,
+                        options: ProcessingOptions.default
+                    )
+
+                    await MainActor.run {
+                        extractedText = enhancedResult.correctedText
+                        ocrConfidence = enhancedResult.confidenceBreakdown.overallConfidence
+                        state = .editingText
+                        isProcessing = false
+                        HapticManager.shared.success()
+                    }
+                } else {
+                    // Use basic OCR
+                    let result = try await OCRProcessor.shared.extractText(from: scannedImages) { progress in
+                        ocrProgress = progress
+                    }
+
+                    await MainActor.run {
+                        // Enhance OCR result by applying format conversion
+                        extractedText = OCRProcessor.shared.enhanceOCRResult(result.text)
+                        ocrConfidence = result.confidence
+                        state = .editingText
+                        isProcessing = false
+                        HapticManager.shared.success()
+                    }
                 }
 
             } catch {

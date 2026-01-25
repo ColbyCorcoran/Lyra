@@ -22,6 +22,7 @@ struct TransposeView: View {
     @State private var saveMode: TransposeSaveMode = .temporary
     @State private var chordPreview: [(original: String, transposed: String)] = []
     @State private var showQuickIntervals: Bool = false
+    @State private var showAIAssist: Bool = false
 
     init(song: Song, onTranspose: @escaping (Int, Bool, TransposeSaveMode) -> Void) {
         self.song = song
@@ -313,6 +314,16 @@ struct TransposeView: View {
                     }
                 }
 
+                ToolbarItem(placement: .principal) {
+                    Button {
+                        showAIAssist = true
+                    } label: {
+                        Label("AI Assist", systemImage: "wand.and.stars")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
+                }
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Apply") {
                         applyTransposition()
@@ -323,6 +334,9 @@ struct TransposeView: View {
             }
             .onAppear {
                 updateChordPreview()
+            }
+            .sheet(isPresented: $showAIAssist) {
+                AITransposeView(song: song, onTranspose: onTranspose)
             }
         }
     }

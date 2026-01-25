@@ -253,7 +253,7 @@ enum LicenseType: String, Codable, CaseIterable {
     case userGenerated = "User Generated"
     case publicDomain = "Public Domain"
     case ccli = "CCLI Licensed"
-    case creative Commons = "Creative Commons"
+    case creativeCommons = "Creative Commons"
     case copyrighted = "Copyrighted (Permission Granted)"
     case unknown = "Unknown"
 

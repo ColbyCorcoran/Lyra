@@ -64,7 +64,7 @@ final class SongVersion {
         case manual // User explicitly saved a version
         case autoSave // Auto-saved on edit
         case restore // Created when restoring an old version
-        case import // Created on initial import
+        case imported // Created on initial import
     }
 
     var versionType: VersionType

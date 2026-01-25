@@ -337,7 +337,7 @@ enum MigrationError: LocalizedError {
     case noBackupAvailable
     case migrationFailed(String)
     case incompatibleVersion
-    case dataCor rupted
+    case dataCorrupted
 
     var errorDescription: String? {
         switch self {

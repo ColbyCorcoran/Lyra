@@ -8,6 +8,7 @@
 
 import SwiftUI
 import Speech
+import Combine
 
 struct VoiceSearchView: View {
     // MARK: - Environment

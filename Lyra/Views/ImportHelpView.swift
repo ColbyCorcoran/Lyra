@@ -271,25 +271,25 @@ struct ImportHelpView: View {
                 icon: "lightbulb",
                 iconColor: .yellow
             ) {
-                TipCard(
+                ImportTipCard(
                     icon: "checkmark.circle",
                     title: "Use ChordPro Format",
                     description: "Convert your charts to ChordPro for the best experience with transposition, display settings, and more."
                 )
 
-                TipCard(
+                ImportTipCard(
                     icon: "folder",
                     title: "Organize Before Import",
                     description: "Name your files clearly before importing. The filename will be used as the song title if no title is found in the file."
                 )
 
-                TipCard(
+                ImportTipCard(
                     icon: "doc.badge.gearshape",
                     title: "Include Metadata",
                     description: "Add {title:}, {artist:}, {key:}, and other directives to your ChordPro files for automatic metadata extraction."
                 )
 
-                TipCard(
+                ImportTipCard(
                     icon: "arrow.triangle.2.circlepath",
                     title: "Avoid Duplicates",
                     description: "Lyra automatically detects duplicate songs based on title, artist, and content similarity."
@@ -467,7 +467,7 @@ struct TroubleshootingItem: View {
     }
 }
 
-struct TipCard: View {
+struct ImportTipCard: View {
     let icon: String
     let title: String
     let description: String

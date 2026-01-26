@@ -629,6 +629,7 @@ struct InsightCard: View {
 enum TimeRange: String, CaseIterable, Identifiable {
     case week = "Week"
     case month = "Month"
+    case last30Days = "30 Days"
     case threeMonths = "3 Months"
     case year = "Year"
     case allTime = "All Time"
@@ -644,6 +645,8 @@ enum TimeRange: String, CaseIterable, Identifiable {
             return calendar.date(byAdding: .day, value: -7, to: now) ?? now
         case .month:
             return calendar.date(byAdding: .month, value: -1, to: now) ?? now
+        case .last30Days:
+            return calendar.date(byAdding: .day, value: -30, to: now) ?? now
         case .threeMonths:
             return calendar.date(byAdding: .month, value: -3, to: now) ?? now
         case .year:

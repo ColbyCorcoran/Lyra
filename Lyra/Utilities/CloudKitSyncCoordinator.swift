@@ -29,6 +29,7 @@ class CloudKitSyncCoordinator {
     private var persistentContainer: NSPersistentCloudKitContainer?
     private var eventSubscription: AnyCancellable?
     private var historyToken: NSPersistentHistoryToken?
+    private var notificationObservers: [Any] = []
 
     private let conflictManager = ConflictResolutionManager.shared
 
@@ -51,18 +52,16 @@ class CloudKitSyncCoordinator {
     /// Sets up CloudKit change notifications
     private func setupCloudKitNotifications() {
         // Subscribe to CloudKit notifications
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleStoreRemoteChange),
-            name: NSNotification.Name.NSPersistentStoreRemoteChange,
-            object: nil
-        )
-    }
-
-    @objc private func handleStoreRemoteChange(_ notification: Notification) {
-        Task {
-            await performConflictDetection()
+        let observer = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name.NSPersistentStoreRemoteChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.performConflictDetection()
+            }
         }
+        notificationObservers.append(observer)
     }
 
     // MARK: - Sync Operations

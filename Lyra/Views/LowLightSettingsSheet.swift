@@ -253,7 +253,7 @@ struct LowLightSettingsSheet: View {
     private var informationSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 12) {
-                InfoRow(
+                LowLightInfoRow(
                     icon: "eye",
                     title: "Night Vision",
                     description: "Red light preserves night vision better than white or blue light."
@@ -261,7 +261,7 @@ struct LowLightSettingsSheet: View {
 
                 Divider()
 
-                InfoRow(
+                LowLightInfoRow(
                     icon: "moon.stars",
                     title: "Dark Environments",
                     description: "Ideal for stage performances, rehearsals, and late-night practice."
@@ -269,7 +269,7 @@ struct LowLightSettingsSheet: View {
 
                 Divider()
 
-                InfoRow(
+                LowLightInfoRow(
                     icon: "battery.100",
                     title: "Battery Friendly",
                     description: "Reduced brightness saves battery during long sessions."
@@ -293,7 +293,7 @@ struct LowLightSettingsSheet: View {
 
 // MARK: - Info Row
 
-struct InfoRow: View {
+private struct LowLightInfoRow: View {
     let icon: String
     let title: String
     let description: String

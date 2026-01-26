@@ -10,6 +10,7 @@
 
 import SwiftUI
 import SwiftData
+import Combine
 
 /// Batch formatting interface with preview and progress tracking
 struct BatchFormattingView: View {

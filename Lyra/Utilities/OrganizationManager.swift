@@ -8,6 +8,7 @@
 import Foundation
 import CloudKit
 import SwiftData
+import Combine
 
 @MainActor
 class OrganizationManager: ObservableObject {

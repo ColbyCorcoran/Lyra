@@ -24,10 +24,11 @@ class PresenceManager {
     // MARK: - Private Properties
 
     private let container = CKContainer.default()
-    private lazy var sharedDatabase = container.sharedCloudDatabase
+    private var sharedDatabase: CKDatabase { container.sharedCloudDatabase }
     private var presenceUpdateTimer: Timer?
     private var subscriptions: Set<AnyCancellable> = []
     private var currentUserRecordID: String?
+    private var notificationObservers: [Any] = []
 
     // Update frequency (30 seconds as requested)
     private let updateInterval: TimeInterval = 30.0
@@ -63,26 +64,41 @@ class PresenceManager {
     }
 
     private func setupLifecycleObservers() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(appWillResignActive),
-            name: UIApplication.willResignActiveNotification,
-            object: nil
-        )
+        let resignObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.currentUserPresence?.markAway()
+                await self?.syncPresenceToCloudKit()
+            }
+        }
+        notificationObservers.append(resignObserver)
 
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(appDidBecomeActive),
-            name: UIApplication.didBecomeActiveNotification,
-            object: nil
-        )
+        let activeObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.currentUserPresence?.markOnline()
+                await self?.syncPresenceToCloudKit()
+                self?.startPresenceUpdates()
+            }
+        }
+        notificationObservers.append(activeObserver)
 
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(appWillTerminate),
-            name: UIApplication.willTerminateNotification,
-            object: nil
-        )
+        let terminateObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.markOffline()
+            }
+        }
+        notificationObservers.append(terminateObserver)
     }
 
     // MARK: - Presence Management
@@ -391,34 +407,13 @@ class PresenceManager {
         )
     }
 
-    // MARK: - Lifecycle Handlers
-
-    @objc private func appWillResignActive() {
-        Task {
-            currentUserPresence?.markAway()
-            await syncPresenceToCloudKit()
-        }
-    }
-
-    @objc private func appDidBecomeActive() {
-        Task {
-            currentUserPresence?.markOnline()
-            await syncPresenceToCloudKit()
-            startPresenceUpdates()
-        }
-    }
-
-    @objc private func appWillTerminate() {
-        Task {
-            await markOffline()
-        }
-    }
-
     // MARK: - Cleanup
 
     deinit {
         presenceUpdateTimer?.invalidate()
-        NotificationCenter.default.removeObserver(self)
+        for observer in notificationObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 }
 

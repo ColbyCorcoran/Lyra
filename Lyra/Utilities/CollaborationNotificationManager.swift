@@ -23,6 +23,7 @@ class CollaborationNotificationManager {
     // MARK: - Private Properties
 
     private var subscriptions: Set<AnyCancellable> = []
+    private var notificationObservers: [Any] = []
     private let notificationCenter = UNUserNotificationCenter.current()
 
     // MARK: - Initialization
@@ -37,20 +38,26 @@ class CollaborationNotificationManager {
 
     private func setupNotificationObservers() {
         // Listen for activity feed changes
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleActivityAdded),
-            name: .memberActivityAdded,
-            object: nil
-        )
+        let activityObserver = NotificationCenter.default.addObserver(
+            forName: .memberActivityAdded,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let activity = notification.userInfo?["activity"] as? MemberActivity else { return }
+            self?.handleActivityAdded(activity)
+        }
+        notificationObservers.append(activityObserver)
 
         // Listen for presence changes
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handlePresenceChange),
-            name: .presenceDidChange,
-            object: nil
-        )
+        let presenceObserver = NotificationCenter.default.addObserver(
+            forName: .presenceDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let presence = notification.userInfo?["presence"] as? UserPresence else { return }
+            self?.handlePresenceChange(presence)
+        }
+        notificationObservers.append(presenceObserver)
     }
 
     private func requestNotificationPermissions() {
@@ -73,18 +80,14 @@ class CollaborationNotificationManager {
 
     // MARK: - Notification Handling
 
-    @objc private func handleActivityAdded(_ notification: Notification) {
-        guard let activity = notification.userInfo?["activity"] as? MemberActivity else { return }
-
+    private func handleActivityAdded(_ activity: MemberActivity) {
         // Check if we should notify for this activity
         if shouldNotify(for: activity) {
             sendNotification(for: activity)
         }
     }
 
-    @objc private func handlePresenceChange(_ notification: Notification) {
-        guard let presence = notification.userInfo?["presence"] as? UserPresence else { return }
-
+    private func handlePresenceChange(_ presence: UserPresence) {
         // Notify for editing events if enabled
         if notificationSettings.notifyOnEditing && presence.isEditing {
             sendEditingNotification(for: presence)

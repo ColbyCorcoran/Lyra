@@ -298,6 +298,7 @@ final class Organization {
 // MARK: - Organization Type
 
 enum OrganizationType: String, Codable, CaseIterable {
+    case team = "Team"
     case church = "Church"
     case worshipTeam = "Worship Team"
     case therapyPractice = "Music Therapy Practice"
@@ -308,6 +309,7 @@ enum OrganizationType: String, Codable, CaseIterable {
 
     var defaultIcon: String {
         switch self {
+        case .team: return "person.3"
         case .church: return "building.columns"
         case .worshipTeam: return "hands.sparkles"
         case .therapyPractice: return "heart.text.square"
@@ -320,6 +322,7 @@ enum OrganizationType: String, Codable, CaseIterable {
 
     var defaultColor: String {
         switch self {
+        case .team: return "#6B8E23"
         case .church: return "#7B68EE"
         case .worshipTeam: return "#FF6B6B"
         case .therapyPractice: return "#4ECDC4"

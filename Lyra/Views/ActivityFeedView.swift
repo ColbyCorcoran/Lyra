@@ -60,7 +60,7 @@ struct ActivityFeedView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 ForEach(ActivityFilter.allCases, id: \.self) { filter in
-                    FilterChip(
+                    ActivityFilterChip(
                         title: filter.title,
                         icon: filter.icon,
                         isSelected: selectedFilter == filter
@@ -302,7 +302,7 @@ struct SectionHeader: View {
 
 // MARK: - Filter Chip
 
-struct FilterChip: View {
+private struct ActivityFilterChip: View {
     let title: String
     let icon: String
     let isSelected: Bool

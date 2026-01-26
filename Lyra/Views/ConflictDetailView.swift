@@ -327,8 +327,8 @@ struct ConflictDetailView: View {
                 .font(.headline)
 
             VStack(alignment: .leading, spacing: 8) {
-                InfoRow(label: "Detected", value: conflict.detectedAt.formatted(date: .abbreviated, time: .shortened))
-                InfoRow(label: "Conflict Type", value: conflict.conflictType.rawValue.capitalized)
+                ConflictInfoRow(label: "Detected", value: conflict.detectedAt.formatted(date: .abbreviated, time: .shortened))
+                ConflictInfoRow(label: "Conflict Type", value: conflict.conflictType.rawValue.capitalized)
 
                 if conflict.requiresUserInput {
                     HStack(spacing: 8) {
@@ -552,7 +552,7 @@ struct ResolutionOptionCard: View {
 
 // MARK: - Info Row
 
-struct InfoRow: View {
+private struct ConflictInfoRow: View {
     let label: String
     let value: String
 

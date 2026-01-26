@@ -476,36 +476,4 @@ extension MusicTheoryEngine {
 
         return predictions
     }
-
-    /// Get enharmonic equivalent
-    func getEnharmonicEquivalent(_ note: String) -> String? {
-        let enharmonics: [String: String] = [
-            "C#": "Db", "Db": "C#",
-            "D#": "Eb", "Eb": "D#",
-            "F#": "Gb", "Gb": "F#",
-            "G#": "Ab", "Ab": "G#",
-            "A#": "Bb", "Bb": "A#"
-        ]
-        return enharmonics[note]
-    }
-
-    /// Extract chord root (make public if needed)
-    func extractChordRoot(_ chord: String) -> String {
-        // Handle two-character roots (e.g., "C#", "Bb")
-        if chord.count >= 2 {
-            let firstTwo = String(chord.prefix(2))
-            let chromaticScale = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
-                                  "Db", "Eb", "Gb", "Ab", "Bb"]
-            if chromaticScale.contains(firstTwo) {
-                return firstTwo
-            }
-        }
-
-        // Single character root
-        if chord.count >= 1 {
-            return String(chord.prefix(1))
-        }
-
-        return chord
-    }
 }

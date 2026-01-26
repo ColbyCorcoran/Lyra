@@ -25,7 +25,7 @@ struct MIDIMonitorView: View {
                 // Filter Bar - Message Types
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        FilterChip(
+                        MIDIFilterChip(
                             title: "All",
                             isSelected: filterType == nil,
                             count: midiManager.recentMessages.count
@@ -41,7 +41,7 @@ struct MIDIMonitorView: View {
                             .pitchBend,
                             .systemExclusive
                         ], id: \.self) { type in
-                            FilterChip(
+                            MIDIFilterChip(
                                 title: type.rawValue,
                                 icon: type.icon,
                                 isSelected: filterType == type,
@@ -59,7 +59,7 @@ struct MIDIMonitorView: View {
                 // Filter Bar - Channels
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        FilterChip(
+                        MIDIFilterChip(
                             title: "All Channels",
                             isSelected: filterChannel == nil,
                             count: midiManager.recentMessages.count
@@ -68,7 +68,7 @@ struct MIDIMonitorView: View {
                         }
 
                         ForEach(1...16, id: \.self) { channel in
-                            FilterChip(
+                            MIDIFilterChip(
                                 title: "Ch \(channel)",
                                 isSelected: filterChannel == channel,
                                 count: midiManager.recentMessages.filter { $0.channel == channel }.count
@@ -212,7 +212,7 @@ struct MIDIMonitorView: View {
 
 // MARK: - Filter Chip
 
-struct FilterChip: View {
+private struct MIDIFilterChip: View {
     let title: String
     var icon: String?
     let isSelected: Bool

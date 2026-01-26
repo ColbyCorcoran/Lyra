@@ -231,10 +231,10 @@ struct AccessibilitySettingsView: View {
                         .fontWeight(.semibold)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        FeatureRow(icon: "checkmark.circle.fill", text: "Reduced visual complexity")
-                        FeatureRow(icon: "checkmark.circle.fill", text: "Larger tap targets")
-                        FeatureRow(icon: "checkmark.circle.fill", text: "Clearer button labels")
-                        FeatureRow(icon: "checkmark.circle.fill", text: "Less information density")
+                        AccessibilityFeatureRow(icon: "checkmark.circle.fill", text: "Reduced visual complexity")
+                        AccessibilityFeatureRow(icon: "checkmark.circle.fill", text: "Larger tap targets")
+                        AccessibilityFeatureRow(icon: "checkmark.circle.fill", text: "Clearer button labels")
+                        AccessibilityFeatureRow(icon: "checkmark.circle.fill", text: "Less information density")
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -456,7 +456,7 @@ struct StatusRow: View {
     }
 }
 
-struct FeatureRow: View {
+private struct AccessibilityFeatureRow: View {
     let icon: String
     let text: String
 

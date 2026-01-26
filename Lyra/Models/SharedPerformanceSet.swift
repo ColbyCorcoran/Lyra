@@ -280,13 +280,4 @@ final class SetComment {
     }
 }
 
-// MARK: - PerformanceSet Extension
-
-extension PerformanceSet {
-    @Relationship(deleteRule: .nullify, inverse: \SharedPerformanceSet.performanceSet)
-    var sharedSet: SharedPerformanceSet? { get { nil } set { } }
-
-    var isShared: Bool {
-        sharedSet != nil
-    }
-}
+// Note: sharedSet and isShared are defined in PerformanceSet.swift

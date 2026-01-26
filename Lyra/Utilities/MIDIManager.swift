@@ -88,7 +88,7 @@ class MIDIManager {
         let inputStatus = MIDIInputPortCreateWithProtocol(
             midiClient,
             "LyraMIDIInput" as CFString,
-            .midi1_0,
+            ._1_0,
             &inPort
         ) { [weak self] eventList, srcConnRefCon in
             Task { @MainActor in
@@ -585,4 +585,6 @@ extension Notification.Name {
     static let midiProgramChangeReceived = Notification.Name("midiProgramChangeReceived")
     static let midiControlChangeReceived = Notification.Name("midiControlChangeReceived")
     static let midiNoteOnReceived = Notification.Name("midiNoteOnReceived")
+    static let midiDeviceConnected = Notification.Name("midiDeviceConnected")
+    static let midiDeviceDisconnected = Notification.Name("midiDeviceDisconnected")
 }

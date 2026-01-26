@@ -192,6 +192,23 @@ struct MIDIMessage: Identifiable, Codable {
         rawBytes.map { String(format: "%02X", $0) }.joined(separator: " ")
     }
 
+    // MARK: - Convenience Accessors
+
+    /// Value (typically data2 - velocity for notes, value for CC)
+    var value: UInt8? {
+        data2
+    }
+
+    /// Note number (data1 for note messages)
+    var note: UInt8 {
+        data1
+    }
+
+    /// Controller number (data1 for CC messages)
+    var controller: UInt8 {
+        data1
+    }
+
     // MARK: - Parsing
 
     static func parse(bytes: [UInt8], deviceName: String? = nil) -> MIDIMessage? {

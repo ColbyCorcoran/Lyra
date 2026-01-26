@@ -33,7 +33,7 @@ enum SearchScope: String, CaseIterable, Codable {
 
 // MARK: - Legacy Search Result
 
-struct LegacyLegacySearchResult: Identifiable {
+struct LegacySearchResult: Identifiable {
     let id = UUID()
     let type: ResultType
     let song: Song?

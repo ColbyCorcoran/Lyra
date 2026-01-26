@@ -194,9 +194,4 @@ final class SongVersion {
     }
 }
 
-// MARK: - Song Extension
-
-extension Song {
-    @Relationship(deleteRule: .cascade, inverse: \SongVersion.song)
-    var versions: [SongVersion]? { get { nil } set { } }
-}
+// Note: versions property is defined in Song.swift

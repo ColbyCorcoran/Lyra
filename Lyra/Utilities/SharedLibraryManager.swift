@@ -24,9 +24,10 @@ class SharedLibraryManager {
     // MARK: - Private Properties
 
     private let container = CKContainer.default()
-    private lazy var privateDatabase = container.privateCloudDatabase
-    private lazy var sharedDatabase = container.sharedCloudDatabase
+    private var privateDatabase: CKDatabase { container.privateCloudDatabase }
+    private var sharedDatabase: CKDatabase { container.sharedCloudDatabase }
     private var subscriptions: Set<AnyCancellable> = []
+    private var notificationObservers: [Any] = []
 
     private init() {
         setupNotifications()
@@ -36,18 +37,16 @@ class SharedLibraryManager {
 
     private func setupNotifications() {
         // Listen for CloudKit account changes
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleAccountChange),
-            name: .CKAccountChanged,
-            object: nil
-        )
-    }
-
-    @objc private func handleAccountChange(_ notification: Notification) {
-        Task {
-            await fetchSharedLibraries()
+        let observer = NotificationCenter.default.addObserver(
+            forName: .CKAccountChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.fetchSharedLibraries()
+            }
         }
+        notificationObservers.append(observer)
     }
 
     // MARK: - Library Creation

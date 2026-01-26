@@ -54,25 +54,25 @@ struct DropboxAuthView: View {
 
                 // Features list
                 VStack(alignment: .leading, spacing: 20) {
-                    FeatureRow(
+                    DropboxFeatureRow(
                         icon: "folder",
                         title: "Browse Files",
                         description: "Navigate your Dropbox folders and files"
                     )
 
-                    FeatureRow(
+                    DropboxFeatureRow(
                         icon: "doc.on.doc",
                         title: "Import Multiple Files",
                         description: "Select and import many files at once"
                     )
 
-                    FeatureRow(
+                    DropboxFeatureRow(
                         icon: "magnifyingglass",
                         title: "Search",
                         description: "Find files quickly with search"
                     )
 
-                    FeatureRow(
+                    DropboxFeatureRow(
                         icon: "checkmark.shield",
                         title: "Secure",
                         description: "OAuth 2.0 authentication, no password stored"
@@ -285,7 +285,7 @@ struct DropboxAuthView: View {
 
 // MARK: - Feature Row Component
 
-struct FeatureRow: View {
+private struct DropboxFeatureRow: View {
     let icon: String
     let title: String
     let description: String

@@ -152,10 +152,10 @@ struct EnhancedOCRView: View {
 
             // Features
             VStack(alignment: .leading, spacing: 12) {
-                FeatureRow(icon: "brain", title: "ML-based recognition")
-                FeatureRow(icon: "hand.draw", title: "Handwriting support")
-                FeatureRow(icon: "music.note.list", title: "Music theory validation")
-                FeatureRow(icon: "doc.on.doc", title: "Multi-page stitching")
+                OCRFeatureRow(icon: "brain", title: "ML-based recognition")
+                OCRFeatureRow(icon: "hand.draw", title: "Handwriting support")
+                OCRFeatureRow(icon: "music.note.list", title: "Music theory validation")
+                OCRFeatureRow(icon: "doc.on.doc", title: "Multi-page stitching")
             }
             .padding()
             .background(.secondary.opacity(0.1))
@@ -236,11 +236,11 @@ struct EnhancedOCRView: View {
                         .font(.headline)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        InfoRow(label: "Engine", value: result.processingMetadata.engineUsed)
-                        InfoRow(label: "Time", value: String(format: "%.2fs", result.processingMetadata.processingTime))
-                        InfoRow(label: "Pages", value: "\(result.processingMetadata.pageCount)")
+                        OCRInfoRow(label: "Engine", value: result.processingMetadata.engineUsed)
+                        OCRInfoRow(label: "Time", value: String(format: "%.2fs", result.processingMetadata.processingTime))
+                        OCRInfoRow(label: "Pages", value: "\(result.processingMetadata.pageCount)")
                         if !result.processingMetadata.enhancementsApplied.isEmpty {
-                            InfoRow(label: "Enhancements", value: result.processingMetadata.enhancementsApplied.joined(separator: ", "))
+                            OCRInfoRow(label: "Enhancements", value: result.processingMetadata.enhancementsApplied.joined(separator: ", "))
                         }
                     }
                     .padding()
@@ -382,7 +382,7 @@ struct EnhancedOCRView: View {
 
 // MARK: - Supporting Views
 
-struct FeatureRow: View {
+private struct OCRFeatureRow: View {
     let icon: String
     let title: String
 
@@ -399,7 +399,7 @@ struct FeatureRow: View {
     }
 }
 
-struct InfoRow: View {
+private struct OCRInfoRow: View {
     let label: String
     let value: String
 

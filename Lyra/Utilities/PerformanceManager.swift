@@ -79,6 +79,7 @@ class PerformanceManager {
     // MARK: - Monitoring State
 
     private var displayLink: CADisplayLink?
+    private var displayLinkTarget: DisplayLinkTarget?
     private var fpsCounter: Int = 0
     private var lastTimestamp: CFTimeInterval = 0
     private var memoryUpdateTimer: Timer?
@@ -101,8 +102,11 @@ class PerformanceManager {
     // MARK: - Monitoring Setup
 
     private func setupMonitoring() {
-        // Monitor FPS using CADisplayLink
-        displayLink = CADisplayLink(target: self, selector: #selector(updateFPS))
+        // Monitor FPS using CADisplayLink with helper target
+        displayLinkTarget = DisplayLinkTarget { [weak self] in
+            self?.updateFPS()
+        }
+        displayLink = CADisplayLink(target: displayLinkTarget!, selector: #selector(DisplayLinkTarget.handleDisplayLink))
         displayLink?.add(to: .main, forMode: .common)
 
         // Monitor memory usage
@@ -156,7 +160,7 @@ class PerformanceManager {
 
     // MARK: - FPS Monitoring
 
-    @objc private func updateFPS() {
+    private func updateFPS() {
         guard let displayLink = displayLink else { return }
 
         if lastTimestamp == 0 {
@@ -550,5 +554,21 @@ class SongParserCache {
 
     func clear() {
         cache.removeAll()
+    }
+}
+
+// MARK: - DisplayLink Helper
+
+/// Helper class to handle CADisplayLink callbacks since @Observable classes can't use @objc
+private class DisplayLinkTarget: NSObject {
+    private let callback: () -> Void
+
+    init(callback: @escaping () -> Void) {
+        self.callback = callback
+        super.init()
+    }
+
+    @objc func handleDisplayLink() {
+        callback()
     }
 }

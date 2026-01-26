@@ -120,7 +120,7 @@ class MIDIControlManager {
 
         // Send feedback if enabled
         if feedbackEnabled {
-            sendFeedback(for: mapping, value: message.value)
+            sendFeedback(for: mapping, value: message.value.map { Int($0) })
         }
     }
 
@@ -184,21 +184,19 @@ class MIDIControlManager {
 
         switch message.type {
         case .controlChange:
-            guard let controller = message.controller else { return }
-            source = .controlChange(controller: controller, channel: message.channel)
+            source = .controlChange(controller: Int(message.controller), channel: Int(message.channel))
 
         case .noteOn, .noteOff:
-            guard let note = message.note else { return }
-            source = .note(note: note, channel: message.channel, velocitySensitive: true)
+            source = .note(note: Int(message.note), channel: Int(message.channel), velocitySensitive: true)
 
         case .pitchBend:
-            source = .pitchBend(channel: message.channel)
+            source = .pitchBend(channel: Int(message.channel))
 
         case .aftertouch:
-            source = .aftertouch(channel: message.channel)
+            source = .aftertouch(channel: Int(message.channel))
 
         case .programChange:
-            source = .programChange(channel: message.channel)
+            source = .programChange(channel: Int(message.channel))
 
         default:
             return
@@ -361,14 +359,14 @@ class MIDIControlManager {
         switch message.type {
         case .programChange:
             if let program = message.data.first {
-                manager.sendProgramChange(program: Int(program), channel: message.channel)
+                manager.sendProgramChange(program: program, channel: message.channel)
             }
 
         case .controlChange:
             if message.data.count >= 2 {
                 manager.sendControlChange(
-                    controller: Int(message.data[0]),
-                    value: Int(message.data[1]),
+                    controller: message.data[0],
+                    value: message.data[1],
                     channel: message.channel
                 )
             }
@@ -376,19 +374,19 @@ class MIDIControlManager {
         case .noteOn:
             if message.data.count >= 2 {
                 manager.sendNoteOn(
-                    note: Int(message.data[0]),
-                    velocity: Int(message.data[1]),
+                    note: message.data[0],
+                    velocity: message.data[1],
                     channel: message.channel
                 )
             }
 
         case .noteOff:
             if let note = message.data.first {
-                manager.sendNoteOff(note: Int(note), channel: message.channel)
+                manager.sendNoteOff(note: note, channel: message.channel)
             }
 
         case .sysex:
-            manager.sendSysEx(message.data)
+            manager.sendSysEx(data: message.data)
 
         case .pitchBend, .aftertouch:
             // TODO: Implement if needed
@@ -403,19 +401,19 @@ class MIDIControlManager {
 
         switch mapping.source {
         case .controlChange(let controller, let channel):
-            let outputChannel = channel == 0 ? 1 : channel
+            let outputChannel = UInt8(channel == 0 ? 1 : channel)
             MIDIManager.shared.sendControlChange(
-                controller: controller,
-                value: value,
+                controller: UInt8(controller),
+                value: UInt8(clamping: value),
                 channel: outputChannel
             )
 
         case .note(let note, let channel, _):
-            let outputChannel = channel == 0 ? 1 : channel
+            let outputChannel = UInt8(channel == 0 ? 1 : channel)
             if value > 0 {
-                MIDIManager.shared.sendNoteOn(note: note, velocity: value, channel: outputChannel)
+                MIDIManager.shared.sendNoteOn(note: UInt8(note), velocity: UInt8(clamping: value), channel: outputChannel)
             } else {
-                MIDIManager.shared.sendNoteOff(note: note, channel: outputChannel)
+                MIDIManager.shared.sendNoteOff(note: UInt8(note), channel: outputChannel)
             }
 
         default:

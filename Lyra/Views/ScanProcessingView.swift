@@ -119,7 +119,7 @@ struct ScanProcessingView: View {
 
                 // Info
                 VStack(spacing: 16) {
-                    InfoRow(icon: "doc.text", label: "Pages Scanned", value: "\(scannedImages.count)")
+                    ScanInfoRow(icon: "doc.text", label: "Pages Scanned", value: "\(scannedImages.count)")
 
                     if scannedImages.count > 1 {
                         Text("Multi-page scan will be saved as a PDF attachment with combined text")
@@ -535,7 +535,7 @@ struct ScanProcessingView: View {
 
 // MARK: - Info Row Component
 
-struct InfoRow: View {
+private struct ScanInfoRow: View {
     let icon: String
     let label: String
     let value: String

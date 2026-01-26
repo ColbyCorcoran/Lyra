@@ -438,23 +438,23 @@ struct VersionPreviewView: View {
             Text("Details")
                 .font(.headline)
 
-            InfoRow(label: "Title", value: version.snapshotTitle)
+            VersionInfoRow(label: "Title", value: version.snapshotTitle)
             if let artist = version.snapshotArtist {
-                InfoRow(label: "Artist", value: artist)
+                VersionInfoRow(label: "Artist", value: artist)
             }
             if let key = version.snapshotOriginalKey {
-                InfoRow(label: "Key", value: key)
+                VersionInfoRow(label: "Key", value: key)
             }
             if let tempo = version.snapshotTempo {
-                InfoRow(label: "Tempo", value: "\(tempo) BPM")
+                VersionInfoRow(label: "Tempo", value: "\(tempo) BPM")
             }
 
             Divider()
 
-            InfoRow(label: "Changed By", value: version.changedBy)
-            InfoRow(label: "Date", value: version.createdAt.formatted(date: .long, time: .shortened))
+            VersionInfoRow(label: "Changed By", value: version.changedBy)
+            VersionInfoRow(label: "Date", value: version.createdAt.formatted(date: .long, time: .shortened))
             if let description = version.changeDescription {
-                InfoRow(label: "Description", value: description)
+                VersionInfoRow(label: "Description", value: description)
             }
         }
     }
@@ -475,7 +475,7 @@ struct VersionPreviewView: View {
     }
 }
 
-struct InfoRow: View {
+private struct VersionInfoRow: View {
     let label: String
     let value: String
 

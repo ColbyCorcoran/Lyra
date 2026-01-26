@@ -136,7 +136,7 @@ class MusicTheoryEngine {
     }
 
     /// Extract root note from chord name
-    private func extractChordRoot(_ chord: String) -> String {
+    func extractChordRoot(_ chord: String) -> String {
         // Handle two-character roots (e.g., "C#", "Bb")
         if chord.count >= 2 {
             let firstTwo = String(chord.prefix(2))
@@ -297,7 +297,7 @@ class MusicTheoryEngine {
     }
 
     /// Get enharmonic equivalent (e.g., C# <-> Db)
-    private func getEnharmonicEquivalent(_ note: String) -> String? {
+    func getEnharmonicEquivalent(_ note: String) -> String? {
         let enharmonics: [String: String] = [
             "C#": "Db", "Db": "C#",
             "D#": "Eb", "Eb": "D#",

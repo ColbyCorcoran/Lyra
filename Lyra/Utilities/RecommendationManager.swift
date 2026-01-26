@@ -9,6 +9,7 @@
 
 import Foundation
 import SwiftData
+import Combine
 
 /// Orchestrates all recommendation engines
 @MainActor

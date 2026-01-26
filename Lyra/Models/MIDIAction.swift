@@ -218,14 +218,12 @@ enum MIDIControlSource: Codable, Equatable {
     func matches(_ message: MIDIMessage) -> Bool {
         switch (self, message.type) {
         case (.controlChange(let controller, let channel), .controlChange):
-            guard let messageController = message.controller,
-                  controller == messageController else { return false }
-            return channel == 0 || channel == message.channel
+            guard controller == Int(message.controller) else { return false }
+            return channel == 0 || channel == Int(message.channel)
 
         case (.note(let note, let channel, _), .noteOn), (.note(let note, let channel, _), .noteOff):
-            guard let messageNote = message.note,
-                  note == messageNote else { return false }
-            return channel == 0 || channel == message.channel
+            guard note == Int(message.note) else { return false }
+            return channel == 0 || channel == Int(message.channel)
 
         case (.pitchBend(let channel), .pitchBend):
             return channel == 0 || channel == message.channel

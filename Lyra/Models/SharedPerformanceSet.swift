@@ -218,7 +218,7 @@ final class SetMember {
     var displayName: String
     var permission: SetPermissionLevel
 
-    @Relationship(deleteRule: .nullify, inverse: \SharedPerformanceSet.members)
+    @Relationship(deleteRule: .nullify)
     var sharedSet: SharedPerformanceSet?
 
     // Member preferences
@@ -258,7 +258,7 @@ final class SetComment {
     var songID: UUID? // If comment is about a specific song
     var rehearsalID: UUID? // If comment is from a rehearsal
 
-    @Relationship(deleteRule: .nullify, inverse: \SharedPerformanceSet.comments)
+    @Relationship(deleteRule: .nullify)
     var sharedSet: SharedPerformanceSet?
 
     init(

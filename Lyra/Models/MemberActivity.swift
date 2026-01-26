@@ -10,7 +10,39 @@ import SwiftData
 
 /// Activity performed by a member in a shared library
 @Model
-final class MemberActivity {
+final class MemberActivity: Codable {
+    // MARK: - Codable
+
+    enum CodingKeys: String, CodingKey {
+        case id, timestamp, userRecordID, displayName
+        case activityType, libraryID, songID, songTitle, details
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        timestamp = try container.decode(Date.self, forKey: .timestamp)
+        userRecordID = try container.decode(String.self, forKey: .userRecordID)
+        displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
+        activityType = try container.decode(ActivityType.self, forKey: .activityType)
+        libraryID = try container.decodeIfPresent(UUID.self, forKey: .libraryID)
+        songID = try container.decodeIfPresent(UUID.self, forKey: .songID)
+        songTitle = try container.decodeIfPresent(String.self, forKey: .songTitle)
+        details = try container.decodeIfPresent(String.self, forKey: .details)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(timestamp, forKey: .timestamp)
+        try container.encode(userRecordID, forKey: .userRecordID)
+        try container.encodeIfPresent(displayName, forKey: .displayName)
+        try container.encode(activityType, forKey: .activityType)
+        try container.encodeIfPresent(libraryID, forKey: .libraryID)
+        try container.encodeIfPresent(songID, forKey: .songID)
+        try container.encodeIfPresent(songTitle, forKey: .songTitle)
+        try container.encodeIfPresent(details, forKey: .details)
+    }
     // MARK: - Identifiers
 
     var id: UUID

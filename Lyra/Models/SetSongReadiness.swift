@@ -19,7 +19,7 @@ final class SetSongReadiness {
     var songID: UUID
     var setEntryID: UUID
 
-    @Relationship(deleteRule: .nullify, inverse: \SharedPerformanceSet.songReadiness)
+    @Relationship(deleteRule: .nullify)
     var sharedSet: SharedPerformanceSet?
 
     // MARK: - Overall Readiness
@@ -161,7 +161,7 @@ final class MemberReadiness {
     var userRecordID: String
     var displayName: String
 
-    @Relationship(deleteRule: .nullify, inverse: \SetSongReadiness.memberReadiness)
+    @Relationship(deleteRule: .nullify)
     var songReadiness: SetSongReadiness?
 
     // Individual readiness

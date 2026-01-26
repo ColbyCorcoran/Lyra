@@ -466,6 +466,5 @@ struct HardwareHealthReport {
 extension Notification.Name {
     static let externalDisplayConnected = Notification.Name("externalDisplayConnected")
     static let externalDisplayDisconnected = Notification.Name("externalDisplayDisconnected")
-    static let midiDeviceConnected = Notification.Name("midiDeviceConnected")
-    static let midiDeviceDisconnected = Notification.Name("midiDeviceDisconnected")
+    // midiDeviceConnected and midiDeviceDisconnected are defined in MIDIManager.swift
 }

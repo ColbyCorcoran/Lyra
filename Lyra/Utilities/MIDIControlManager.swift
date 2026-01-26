@@ -101,11 +101,11 @@ class MIDIControlManager {
 
         if mapping.action.acceptsContinuousValue {
             // Map continuous value
-            let midiValue = message.value ?? 0
+            let midiValue = Int(message.value ?? 0)
             value = mapping.mapValue(midiValue)
         } else if mapping.action.isToggle {
             // Handle toggle
-            let midiValue = message.value ?? 0
+            let midiValue = Int(message.value ?? 0)
             value = mapping.shouldToggle(midiValue) == true ? 1.0 : 0.0
         } else {
             // Trigger action (no value)
@@ -355,11 +355,12 @@ class MIDIControlManager {
 
     private func sendSceneMessage(_ message: MIDISceneMessage) {
         let manager = MIDIManager.shared
+        let channel = UInt8(clamping: message.channel)
 
         switch message.type {
         case .programChange:
             if let program = message.data.first {
-                manager.sendProgramChange(program: program, channel: message.channel)
+                manager.sendProgramChange(program: program, channel: channel)
             }
 
         case .controlChange:
@@ -367,7 +368,7 @@ class MIDIControlManager {
                 manager.sendControlChange(
                     controller: message.data[0],
                     value: message.data[1],
-                    channel: message.channel
+                    channel: channel
                 )
             }
 
@@ -376,13 +377,13 @@ class MIDIControlManager {
                 manager.sendNoteOn(
                     note: message.data[0],
                     velocity: message.data[1],
-                    channel: message.channel
+                    channel: channel
                 )
             }
 
         case .noteOff:
             if let note = message.data.first {
-                manager.sendNoteOff(note: note, channel: message.channel)
+                manager.sendNoteOff(note: note, channel: channel)
             }
 
         case .sysex:

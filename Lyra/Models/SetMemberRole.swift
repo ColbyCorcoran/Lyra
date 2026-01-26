@@ -24,7 +24,7 @@ final class SetMemberRole {
     var role: MemberRole
 
     // MARK: - Relationships
-    @Relationship(deleteRule: .nullify, inverse: \SharedPerformanceSet.roleAssignments)
+    @Relationship(deleteRule: .nullify)
     var sharedSet: SharedPerformanceSet?
 
     // MARK: - Personal Settings (per role)

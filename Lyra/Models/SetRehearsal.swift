@@ -21,7 +21,7 @@ final class SetRehearsal {
     var endTime: Date?
     var location: String?
 
-    @Relationship(deleteRule: .nullify, inverse: \SharedPerformanceSet.rehearsals)
+    @Relationship(deleteRule: .nullify)
     var sharedSet: SharedPerformanceSet?
 
     // MARK: - Attendance
@@ -124,7 +124,7 @@ final class RehearsalAttendance {
 
     var reason: String? // If absent
 
-    @Relationship(deleteRule: .nullify, inverse: \SetRehearsal.attendance)
+    @Relationship(deleteRule: .nullify)
     var rehearsal: SetRehearsal?
 
     init(
@@ -165,7 +165,7 @@ final class RehearsalSongNote {
 
     var timestamp: TimeInterval? // Time in rehearsal when noted
 
-    @Relationship(deleteRule: .nullify, inverse: \SetRehearsal.songNotes)
+    @Relationship(deleteRule: .nullify)
     var rehearsal: SetRehearsal?
 
     init(

@@ -126,7 +126,7 @@ final class TemplateSection {
     var suggestedMood: String? // e.g., "Upbeat", "Reflective"
     var transitionNotes: String? // How to transition into this section
 
-    @Relationship(deleteRule: .nullify, inverse: \SetTemplate.sections)
+    @Relationship(deleteRule: .nullify)
     var template: SetTemplate?
 
     init(

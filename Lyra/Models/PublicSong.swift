@@ -324,7 +324,7 @@ final class PublicSongRating {
     var rating: Int // 1-5 stars
     var review: String? // Optional written review
 
-    @Relationship(deleteRule: .nullify, inverse: \PublicSong.ratings)
+    @Relationship(deleteRule: .nullify)
     var publicSong: PublicSong?
 
     init(userRecordID: String, rating: Int, review: String? = nil) {
@@ -351,7 +351,7 @@ final class PublicSongFlag {
     var reviewedBy: String?
     var reviewOutcome: FlagOutcome?
 
-    @Relationship(deleteRule: .nullify, inverse: \PublicSong.flags)
+    @Relationship(deleteRule: .nullify)
     var publicSong: PublicSong?
 
     init(userRecordID: String, reason: FlagReason, details: String? = nil) {

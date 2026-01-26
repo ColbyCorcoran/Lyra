@@ -8,6 +8,7 @@
 import Foundation
 import SwiftData
 import CloudKit
+import CoreImage
 
 @Model
 final class SharedLibrary {

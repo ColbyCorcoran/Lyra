@@ -182,7 +182,7 @@ final class SongVersion {
             return "Auto-saved changes"
         case .restore:
             return "Restored from version \(versionNumber)"
-        case .import:
+        case .imported:
             return "Initial import"
         }
     }

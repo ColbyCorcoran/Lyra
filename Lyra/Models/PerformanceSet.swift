@@ -24,7 +24,6 @@ final class PerformanceSet {
     var notes: String? // Overall set notes
 
     // MARK: - Collaboration
-    @Relationship(deleteRule: .nullify, inverse: \SharedPerformanceSet.performanceSet)
     var sharedSet: SharedPerformanceSet?
 
     var isShared: Bool {

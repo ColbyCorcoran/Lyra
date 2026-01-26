@@ -10,11 +10,11 @@
 import Foundation
 import SwiftData
 
-// MARK: - Discovery Engine
+// MARK: - Discovery Engine Extension
 
 /// Helps users discover new and forgotten songs
 @MainActor
-class DiscoveryEngine {
+extension DiscoveryEngine {
 
     // MARK: - Public Methods
 
@@ -107,21 +107,21 @@ class DiscoveryEngine {
         var score: Float = 0
 
         // Has complete metadata (30%)
-        if song.key != nil { score += 0.1 }
+        if song.currentKey != nil || song.originalKey != nil { score += 0.1 }
         if song.tempo != nil { score += 0.1 }
         if song.artist != nil { score += 0.1 }
 
-        // Well-formatted chords (30%)
-        if !song.chords.isEmpty { score += 0.3 }
+        // Well-formatted content (30%)
+        if !song.content.isEmpty { score += 0.3 }
 
-        // Has lyrics (20%)
-        if !song.lyrics.isEmpty { score += 0.2 }
+        // Has content/lyrics (20%)
+        if !song.content.isEmpty { score += 0.2 }
 
-        // Has tags or genre (10%)
-        if song.genre != nil { score += 0.1 }
+        // Has tags (10%)
+        if let tags = song.tags, !tags.isEmpty { score += 0.1 }
 
         // Has CCLI number (professional song) (10%)
-        if song.ccli != nil { score += 0.1 }
+        if song.ccliNumber != nil { score += 0.1 }
 
         return score
     }
@@ -165,8 +165,8 @@ class PersonalizationEngine {
 
     private let analysisEngine: SongAnalysisEngine
 
-    init(analysisEngine: SongAnalysisEngine = SongAnalysisEngine()) {
-        self.analysisEngine = analysisEngine
+    init(analysisEngine: SongAnalysisEngine? = nil) {
+        self.analysisEngine = analysisEngine ?? SongAnalysisEngine()
     }
 
     // MARK: - Taste Profile
@@ -267,7 +267,7 @@ class PersonalizationEngine {
     // MARK: - Private Methods
 
     private func extractPreferredKeys(from songs: [Song]) -> [String] {
-        let keys = songs.compactMap { $0.key }
+        let keys = songs.compactMap { $0.currentKey ?? $0.originalKey }
         return keys.frequency().prefix(5).map { $0.element }
     }
 
@@ -332,7 +332,8 @@ class PersonalizationEngine {
         var score: Float = 0
 
         // Preferred key
-        if let key = song.key, profile.preferredKeys.contains(key) {
+        let key = song.currentKey ?? song.originalKey
+        if let key = key, profile.preferredKeys.contains(key) {
             score += 0.4
         }
 
@@ -370,11 +371,11 @@ class ContextAwareRecommendationEngine {
     private let similarityEngine: SimilarityEngine
 
     init(
-        analysisEngine: SongAnalysisEngine = SongAnalysisEngine(),
-        similarityEngine: SimilarityEngine = SimilarityEngine()
+        analysisEngine: SongAnalysisEngine? = nil,
+        similarityEngine: SimilarityEngine? = nil
     ) {
-        self.analysisEngine = analysisEngine
-        self.similarityEngine = similarityEngine
+        self.analysisEngine = analysisEngine ?? SongAnalysisEngine()
+        self.similarityEngine = similarityEngine ?? SimilarityEngine()
     }
 
     // MARK: - Public Methods
@@ -415,7 +416,8 @@ class ContextAwareRecommendationEngine {
         let bridgeKeys = calculateBridgeKeys(from: fromKey, to: toKey)
 
         return songs.filter { song in
-            guard let key = song.key else { return false }
+            let key = song.currentKey ?? song.originalKey
+            guard let key = key else { return false }
 
             return bridgeKeys.contains(key) &&
                    similarityEngine.keyCompatibilityScore(fromKey, key) > 0.7 &&
@@ -459,7 +461,7 @@ class ContextAwareRecommendationEngine {
 
         // Some variety in complexity (20%)
         let complexityDiff = abs(from.chordComplexity - to.chordComplexity)
-        let varietyScore = complexityDiff > 0.1 && complexityDiff < 0.4 ? 1.0 : 0.5
+        let varietyScore: Float = complexityDiff > 0.1 && complexityDiff < 0.4 ? 1.0 : 0.5
         score += varietyScore * 0.2
 
         // Theme continuity (10%)

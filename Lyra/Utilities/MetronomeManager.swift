@@ -16,7 +16,7 @@ class MetronomeManager {
     var isPlaying: Bool = false
     var currentBeat: Int = 0
     var currentBPM: Double = 120
-    var timeSignature: TimeSignature = .fourFour
+    var timeSignature: MetronomeTimeSignature = .fourFour
     var volume: Float = 0.7
     var soundType: MetronomeSoundType = .click
     var visualOnly: Bool = false
@@ -130,7 +130,7 @@ class MetronomeManager {
         let bpm = 60.0 / avgInterval
         setBPM(bpm)
 
-        HapticManager.shared.impact(.medium)
+        HapticManager.shared.medium()
     }
 
     func resetTapTempo() {
@@ -242,9 +242,9 @@ class MetronomeManager {
 
             // Visual feedback (always, even in audio mode)
             if isDownbeat {
-                HapticManager.shared.impact(.medium)
+                HapticManager.shared.medium()
             } else {
-                HapticManager.shared.impact(.light)
+                HapticManager.shared.light()
             }
         } else {
             // Subdivision beat
@@ -289,7 +289,7 @@ class MetronomeManager {
 
 // MARK: - Time Signature
 
-enum TimeSignature: String, CaseIterable, Identifiable, Codable {
+enum MetronomeTimeSignature: String, CaseIterable, Identifiable, Codable {
     case twoFour = "2/4"
     case threeFour = "3/4"
     case fourFour = "4/4"
@@ -352,9 +352,9 @@ struct MetronomePreset: Identifiable, Codable {
     let id: UUID
     var name: String
     var bpm: Double
-    var timeSignature: TimeSignature
+    var timeSignature: MetronomeTimeSignature
 
-    init(name: String, bpm: Double, timeSignature: TimeSignature) {
+    init(name: String, bpm: Double, timeSignature: MetronomeTimeSignature) {
         self.id = UUID()
         self.name = name
         self.bpm = bpm

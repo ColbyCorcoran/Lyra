@@ -81,7 +81,7 @@ class KeyRecommendationEngine {
 
         // 2. For each probable key, create recommendation
         for detectedKey in detection.possibleKeys.prefix(5) {
-            var reasons: [RecommendationReason] = [.detectedFromChords]
+            var reasons: [KeyRecommendationReason] = [.detectedFromChords]
             var confidence = detectedKey.confidence
 
             // 3. Check vocal range fit if available
@@ -168,7 +168,7 @@ class KeyRecommendationEngine {
             )
 
             if vocalFit.fitsWithinRange {
-                var reasons: [RecommendationReason] = [.vocalRangeOptimal]
+                var reasons: [KeyRecommendationReason] = [.vocalRangeOptimal]
                 var confidence: Float = 0.8
 
                 // Prefer less transposition

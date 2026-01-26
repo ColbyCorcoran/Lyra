@@ -31,12 +31,12 @@ class FormattingManager {
     // MARK: - Public Methods
 
     /// Format a single song
-    func formatSong(_ text: String, options: FormattingOptions = .standard) async -> FormattingResult {
+    func formatSong(_ text: String, options: FormattingOptions) async -> FormattingResult {
         isProcessing = true
         progress = 0
 
         // Analyze original
-        let originalQuality = qualityEngine.calculateQualityScore(text)
+        _ = qualityEngine.calculateQualityScore(text)
         progress = 0.2
 
         // Detect structure
@@ -104,7 +104,7 @@ class FormattingManager {
     /// Batch format multiple songs
     func batchFormat(
         _ songs: [Song],
-        options: FormattingOptions = .standard,
+        options: FormattingOptions,
         progressHandler: ((Double) -> Void)? = nil
     ) async -> BatchFormattingResult {
         isProcessing = true
@@ -115,20 +115,15 @@ class FormattingManager {
         var totalIssuesFixed = 0
 
         for (index, song) in songs.enumerated() {
-            do {
-                let result = await formatSong(song.content, options: options)
-                results[song.id] = result
-                successCount += 1
+            let result = await formatSong(song.content, options: options)
+            results[song.id] = result
+            successCount += 1
 
-                // Calculate improvement
-                let originalQuality = qualityEngine.calculateQualityScore(song.content)
-                let improvement = result.qualityScore.overall - originalQuality.overall
-                totalQualityImprovement += improvement
-                totalIssuesFixed += result.changes.count
-
-            } catch {
-                failureCount += 1
-            }
+            // Calculate improvement
+            let originalQuality = qualityEngine.calculateQualityScore(song.content)
+            let improvement = result.qualityScore.overall - originalQuality.overall
+            totalQualityImprovement += improvement
+            totalIssuesFixed += result.changes.count
 
             // Update progress
             let currentProgress = Double(index + 1) / Double(songs.count)
@@ -151,7 +146,7 @@ class FormattingManager {
     }
 
     /// Preview formatting changes without applying
-    func previewFormatting(_ text: String, options: FormattingOptions = .standard) -> FormattingResult {
+    func previewFormatting(_ text: String, options: FormattingOptions) -> FormattingResult {
         let quality = qualityEngine.calculateQualityScore(text)
         let structure = structureEngine.detectStructure(text)
         let pattern = patternEngine.detectPattern(text)
@@ -300,6 +295,7 @@ class FormattingManager {
 
 extension Song {
     /// Get formatting quality score
+    @MainActor
     func getFormattingQuality() -> QualityScore {
         let manager = FormattingManager()
         return manager.getQualityScore(self.content)

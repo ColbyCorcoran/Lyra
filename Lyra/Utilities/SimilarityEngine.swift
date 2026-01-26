@@ -38,8 +38,8 @@ class SimilarityEngine {
     // MARK: - Initialization
 
     init(
-        analysisEngine: SongAnalysisEngine = SongAnalysisEngine(),
-        keyCompatibilityAnalyzer: KeyCompatibilityAnalyzer = KeyCompatibilityAnalyzer()
+        analysisEngine: SongAnalysisEngine,
+        keyCompatibilityAnalyzer: KeyCompatibilityAnalyzer
     ) {
         self.analysisEngine = analysisEngine
         self.keyCompatibilityAnalyzer = keyCompatibilityAnalyzer

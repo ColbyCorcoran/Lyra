@@ -116,10 +116,10 @@ class LowLightModeManager {
 
         // Convert to grayscale, then tint with low light color
         var white: CGFloat = 0
-        color.getWhite(&white, alpha: nil)
+        var alpha: CGFloat = 0
+        color.getWhite(&white, alpha: &alpha)
 
-        let tintColor = color.uiColor
-        return tintColor.withAlphaComponent(white * intensity)
+        return color.withAlphaComponent(white * intensity)
     }
 
     // MARK: - Private Methods
@@ -132,7 +132,7 @@ class LowLightModeManager {
         applyBrightness()
 
         // Haptic feedback
-        HapticManager.shared.impact(.medium)
+        HapticManager.shared.medium()
     }
 
     private func disableLowLightMode() {
@@ -141,11 +141,11 @@ class LowLightModeManager {
         brightnessOverride = nil
 
         // Haptic feedback
-        HapticManager.shared.impact(.light)
+        HapticManager.shared.light()
     }
 
     private func applyBrightness() {
-        let targetBrightness = brightnessOverride ?? (intensity * 0.3) // Max 30% brightness in low light
+        let targetBrightness: CGFloat = brightnessOverride ?? (intensity * 0.3) // Max 30% brightness in low light
 
         // Animate brightness change
         UIView.animate(withDuration: 0.3) {

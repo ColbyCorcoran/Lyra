@@ -70,7 +70,7 @@ class ExportManager: ObservableObject {
     func exportSong(
         _ song: Song,
         format: ExportFormat,
-        configuration: PDFExporter.PDFConfiguration = .init()
+        configuration: PDFExporter.PDFConfiguration
     ) throws -> Data {
         switch format {
         case .pdf:
@@ -90,7 +90,7 @@ class ExportManager: ObservableObject {
     func exportSet(
         _ set: PerformanceSet,
         format: ExportFormat,
-        configuration: PDFExporter.PDFConfiguration = .init()
+        configuration: PDFExporter.PDFConfiguration
     ) throws -> Data {
         switch format {
         case .pdf:
@@ -104,7 +104,7 @@ class ExportManager: ObservableObject {
     func exportBook(
         _ book: Book,
         format: ExportFormat,
-        configuration: PDFExporter.PDFConfiguration = .init()
+        configuration: PDFExporter.PDFConfiguration
     ) throws -> Data {
         switch format {
         case .pdf:
@@ -132,7 +132,7 @@ class ExportManager: ObservableObject {
         try FileManager.default.createDirectory(at: songsDir, withIntermediateDirectories: true)
 
         for song in songs {
-            let data = try exportSong(song, format: format)
+            let data = try exportSong(song, format: format, configuration: .init())
             let filename = sanitizeFilename(song.title) + "." + format.fileExtension
             let fileURL = songsDir.appendingPathComponent(filename)
             try data.write(to: fileURL)
@@ -144,7 +144,7 @@ class ExportManager: ObservableObject {
             try FileManager.default.createDirectory(at: booksDir, withIntermediateDirectories: true)
 
             for book in books {
-                let data = try exportBook(book, format: format)
+                let data = try exportBook(book, format: format, configuration: .init())
                 let filename = sanitizeFilename(book.name) + "." + format.fileExtension
                 let fileURL = booksDir.appendingPathComponent(filename)
                 try data.write(to: fileURL)
@@ -157,7 +157,7 @@ class ExportManager: ObservableObject {
             try FileManager.default.createDirectory(at: setsDir, withIntermediateDirectories: true)
 
             for set in sets {
-                let data = try exportSet(set, format: format)
+                let data = try exportSet(set, format: format, configuration: .init())
                 let filename = sanitizeFilename(set.name) + "." + format.fileExtension
                 let fileURL = setsDir.appendingPathComponent(filename)
                 try data.write(to: fileURL)
@@ -443,7 +443,7 @@ class ExportManager: ObservableObject {
             content += "\n\n"
             content += "--- Song \(entry.orderIndex + 1): \(song.title) ---\n\n"
 
-            let songData = try exportSong(song, format: format)
+            let songData = try exportSong(song, format: format, configuration: .init())
             if let songContent = String(data: songData, encoding: .utf8) {
                 content += songContent
             }
@@ -500,7 +500,7 @@ class ExportManager: ObservableObject {
             content += "\n\n"
             content += "--- \(song.title) ---\n\n"
 
-            let songData = try exportSong(song, format: format)
+            let songData = try exportSong(song, format: format, configuration: .init())
             if let songContent = String(data: songData, encoding: .utf8) {
                 content += songContent
             }

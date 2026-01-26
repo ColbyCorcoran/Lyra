@@ -21,8 +21,8 @@ class SmartPlaylistEngine {
     // MARK: - Initialization
 
     init(
-        analysisEngine: SongAnalysisEngine = SongAnalysisEngine(),
-        similarityEngine: SimilarityEngine = SimilarityEngine()
+        analysisEngine: SongAnalysisEngine,
+        similarityEngine: SimilarityEngine
     ) {
         self.analysisEngine = analysisEngine
         self.similarityEngine = similarityEngine

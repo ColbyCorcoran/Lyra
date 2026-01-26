@@ -243,7 +243,8 @@ class MetadataExtractionEngine {
         // Count chord occurrences
         var chordCounts: [String: Int] = [:]
         for chord in chords {
-            let root = chordEngine.extractRoot(chord) ?? chord
+            // Extract just the root note (first 1-2 characters)
+            let root = String(chord.prefix(while: { $0.isLetter || $0 == "#" || $0 == "b" }))
             chordCounts[root, default: 0] += 1
         }
 

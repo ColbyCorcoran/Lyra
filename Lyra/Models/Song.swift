@@ -111,7 +111,6 @@ final class Song {
     // MARK: - Shared Library
 
     /// The shared library this song belongs to (if any)
-    @Relationship(deleteRule: .nullify, inverse: \SharedLibrary.songs)
     var sharedLibrary: SharedLibrary?
 
     /// User record ID of who last edited (for shared libraries)

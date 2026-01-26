@@ -88,7 +88,7 @@ class PerformanceModeManager {
         startSessionTimer()
 
         // Haptic feedback
-        HapticManager.shared.impact(.heavy)
+        HapticManager.shared.heavy()
     }
 
     func endPerformance() {
@@ -140,17 +140,19 @@ class PerformanceModeManager {
                         usedAutoscroll: metadata.usedAutoscroll,
                         autoscrollDuration: metadata.autoscrollDuration,
                         transposeSemitones: metadata.transposeSemitones,
-                        capoFret: entry.capoOverride ?? entry.song.capo,
-                        key: entry.keyOverride ?? entry.song.currentKey,
-                        tempo: entry.tempoOverride ?? entry.song.tempo
+                        capoFret: entry.capoOverride ?? entry.song?.capo,
+                        key: entry.keyOverride ?? entry.song?.currentKey,
+                        tempo: entry.tempoOverride ?? entry.song?.tempo
                     )
                     performance.setPerformance = setPerformance
 
                     context.insert(performance)
 
                     // Update song statistics
-                    entry.song.timesPerformed += 1
-                    entry.song.lastPerformed = session.startTime
+                    if let song = entry.song {
+                        song.timesPerformed += 1
+                        song.lastPerformed = session.startTime
+                    }
                 }
             }
 
@@ -178,7 +180,7 @@ class PerformanceModeManager {
         activePreset = nil
 
         // Haptic feedback
-        HapticManager.shared.notification(.success)
+        HapticManager.shared.success()
     }
 
     // MARK: - Navigation
@@ -220,7 +222,7 @@ class PerformanceModeManager {
         performedSongIndices.insert(index)
 
         // Auto-advance if this is the current song
-        HapticManager.shared.notification(.success)
+        HapticManager.shared.success()
     }
 
     func isSongPerformed(index: Int) -> Bool {
@@ -427,7 +429,7 @@ class PerformanceModeManager {
 
 /// Active performance session for managing current performance mode state
 @Observable
-class ActiveActivePerformanceSession {
+class ActivePerformanceSession {
     var id: UUID = UUID()
     var performanceSet: PerformanceSet
     var startTime: Date

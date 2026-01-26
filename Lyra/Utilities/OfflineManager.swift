@@ -67,7 +67,7 @@ class OfflineManager {
     func queueOperation(_ operation: QueuedOperation) {
         queuedOperations.append(operation)
         saveQueuedOperations()
-        HapticManager.shared.notification(.warning)
+        HapticManager.shared.warning()
     }
 
     private func processQueuedOperations() {
@@ -146,10 +146,17 @@ class OfflineManager {
 // MARK: - Queued Operation
 
 struct QueuedOperation: Identifiable, Codable {
-    let id: UUID = UUID()
+    var id: UUID
     let type: OperationType
     let timestamp: Date
     let data: Data?
+
+    init(id: UUID = UUID(), type: OperationType, timestamp: Date, data: Data? = nil) {
+        self.id = id
+        self.type = type
+        self.timestamp = timestamp
+        self.data = data
+    }
 
     enum OperationType: String, Codable {
         case cloudFileUpload

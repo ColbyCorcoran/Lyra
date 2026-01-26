@@ -318,7 +318,7 @@ class ChordDetectionEngine {
         return detectedChords.filter { $0.duration > 0.5 }
     }
 
-    private func detectKey(from chords: [DetectedChord]) -> KeyDetectionResult? {
+    private func detectKey(from chords: [DetectedChord]) -> SimpleKeyDetectionResult? {
         guard !chords.isEmpty else { return nil }
         guard let engine = theoryEngine else { return nil }
 
@@ -326,7 +326,7 @@ class ChordDetectionEngine {
         return engine.detectKey(from: chordNames)
     }
 
-    private func suggestCapo(for keyResult: KeyDetectionResult) -> Int {
+    private func suggestCapo(for keyResult: SimpleKeyDetectionResult) -> Int {
         guard let engine = theoryEngine else { return 0 }
         return engine.suggestCapoPosition(for: keyResult.key)
     }

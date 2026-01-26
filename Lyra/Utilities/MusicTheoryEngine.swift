@@ -63,7 +63,7 @@ class MusicTheoryEngine {
     // MARK: - Key Detection
 
     /// Detect the key from a series of chords
-    func detectKey(from chords: [String]) -> KeyDetectionResult? {
+    func detectKey(from chords: [String]) -> SimpleKeyDetectionResult? {
         guard !chords.isEmpty else { return nil }
 
         var keyScores: [(key: KeySignature, score: Float)] = []
@@ -84,14 +84,18 @@ class MusicTheoryEngine {
 
         // Get alternative keys
         let alternatives = keyScores.dropFirst().prefix(3).map {
-            (key: $0.key.root, scale: $0.key.scale, confidence: $0.score)
+            SimpleKeyDetectionResult(
+                key: $0.key.root,
+                scale: $0.key.scale,
+                confidence: $0.score
+            )
         }
 
-        return KeyDetectionResult(
+        return SimpleKeyDetectionResult(
             key: topKey.key.root,
             scale: topKey.key.scale,
             confidence: confidence,
-            alternativeKeys: alternatives
+            alternatives: alternatives
         )
     }
 
@@ -391,6 +395,29 @@ class MusicTheoryEngine {
 }
 
 // MARK: - Supporting Types
+
+enum ScaleType: String, Codable {
+    case major = "Major"
+    case minor = "Minor"
+}
+
+struct SimpleKeyDetectionResult {
+    let key: String
+    let scale: ScaleType
+    let confidence: Float
+    let alternatives: [SimpleKeyDetectionResult]
+
+    init(key: String, scale: ScaleType, confidence: Float, alternatives: [SimpleKeyDetectionResult] = []) {
+        self.key = key
+        self.scale = scale
+        self.confidence = confidence
+        self.alternatives = alternatives
+    }
+
+    var fullKeyName: String {
+        "\(key) \(scale.rawValue)"
+    }
+}
 
 struct KeySignature {
     let root: String

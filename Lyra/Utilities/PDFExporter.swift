@@ -48,9 +48,10 @@ class PDFExporter {
     // MARK: - Export Methods
 
     /// Export a single song as PDF
+    @MainActor
     static func exportSong(
         _ song: Song,
-        configuration: PDFConfiguration = .init()
+        configuration: PDFConfiguration
     ) throws -> Data {
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: configuration.pageSize))
 
@@ -121,9 +122,10 @@ class PDFExporter {
     }
 
     /// Export a performance set as PDF with table of contents
+    @MainActor
     static func exportSet(
         _ set: PerformanceSet,
-        configuration: PDFConfiguration = .init()
+        configuration: PDFConfiguration
     ) throws -> Data {
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: configuration.pageSize))
 
@@ -225,9 +227,10 @@ class PDFExporter {
     }
 
     /// Export a book as PDF with cover and table of contents
+    @MainActor
     static func exportBook(
         _ book: Book,
-        configuration: PDFConfiguration = .init()
+        configuration: PDFConfiguration
     ) throws -> Data {
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(origin: .zero, size: configuration.pageSize))
 

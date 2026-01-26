@@ -23,7 +23,6 @@ final class SongVersion {
     var changedByRecordID: String? // CloudKit user record ID if available
 
     // MARK: - Song Reference
-    @Relationship(deleteRule: .nullify, inverse: \Song.versions)
     var song: Song?
 
     // MARK: - Snapshot Content

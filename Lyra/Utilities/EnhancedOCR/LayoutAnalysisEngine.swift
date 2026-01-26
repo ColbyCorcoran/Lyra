@@ -171,8 +171,8 @@ class LayoutAnalysisEngine {
 
         // Common chord patterns: C, Cm, Cmaj7, C#, Db, etc.
         let validRoots = ["A", "B", "C", "D", "E", "F", "G"]
-        let validModifiers = ["", "#", "b", "♯", "♭"]
-        let validQualities = ["", "m", "M", "maj", "min", "sus", "dim", "aug", "add"]
+        _ = ["", "#", "b", "♯", "♭"] // validModifiers for future use
+        _ = ["", "m", "M", "maj", "min", "sus", "dim", "aug", "add"] // validQualities for future use
 
         guard !trimmed.isEmpty else { return false }
 

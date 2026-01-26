@@ -28,8 +28,8 @@ class ProgressAnalyticsEngine {
     // MARK: - Overall Analytics
 
     /// Get comprehensive practice analytics
-    func getPracticeAnalytics(timeRange: TimeRange = .all) -> PracticeAnalytics {
-        let sessions = getSessionsForTimeRange(timeRange)
+    func getPracticeAnalytics(timeRange: AnalyticsTimeRange = .all) -> PracticeAnalytics {
+        let sessions = getSessionsForAnalyticsTimeRange(timeRange)
 
         // Calculate metrics
         let totalSessions = sessions.count
@@ -75,7 +75,7 @@ class ProgressAnalyticsEngine {
     }
 
     /// Get sessions for a specific time range
-    private func getSessionsForTimeRange(_ timeRange: TimeRange) -> [PracticeSession] {
+    private func getSessionsForAnalyticsTimeRange(_ timeRange: AnalyticsTimeRange) -> [PracticeSession] {
         let calendar = Calendar.current
         let now = Date()
 
@@ -281,8 +281,8 @@ class ProgressAnalyticsEngine {
     // MARK: - Improvement Charts
 
     /// Calculate improvement over time for a specific metric
-    func calculateImprovement(metric: MetricType, timeRange: TimeRange) -> [ImprovementDataPoint] {
-        let sessions = getSessionsForTimeRange(timeRange).sorted { $0.startTime < $1.startTime }
+    func calculateImprovement(metric: MetricType, timeRange: AnalyticsTimeRange) -> [ImprovementDataPoint] {
+        let sessions = getSessionsForAnalyticsTimeRange(timeRange).sorted { $0.startTime < $1.startTime }
 
         return sessions.compactMap { session -> ImprovementDataPoint? in
             guard let metrics = session.skillMetrics else { return nil }
@@ -311,8 +311,8 @@ class ProgressAnalyticsEngine {
     // MARK: - Practice Patterns
 
     /// Analyze practice patterns and consistency
-    func analyzePracticePatterns(timeRange: TimeRange = .last30Days) -> PracticePatternAnalysis {
-        let sessions = getSessionsForTimeRange(timeRange)
+    func analyzePracticePatterns(timeRange: AnalyticsTimeRange = .last30Days) -> PracticePatternAnalysis {
+        let sessions = getSessionsForAnalyticsTimeRange(timeRange)
 
         // Most active day of week
         let mostActiveDay = getMostActiveDay(sessions: sessions)
@@ -392,7 +392,7 @@ class ProgressAnalyticsEngine {
     }
 
     /// Calculate practice frequency (sessions per week)
-    private func calculatePracticeFrequency(sessions: [PracticeSession], timeRange: TimeRange) -> Float {
+    private func calculatePracticeFrequency(sessions: [PracticeSession], timeRange: AnalyticsTimeRange) -> Float {
         guard !sessions.isEmpty else { return 0 }
 
         let days: Int
@@ -412,7 +412,7 @@ class ProgressAnalyticsEngine {
 // MARK: - Supporting Types
 
 /// Time range for analytics
-enum TimeRange {
+enum AnalyticsTimeRange {
     case last7Days
     case last30Days
     case last90Days

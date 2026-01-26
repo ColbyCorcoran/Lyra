@@ -226,7 +226,7 @@ class MultiInstrumentOptimizationEngine {
         var totalWeight: Float = 0.0
 
         for member in memberScores {
-            let weight = member.overallScore < 0.5 ? 1.5 : 1.0 // Boost weight for struggling members
+            let weight: Float = member.overallScore < 0.5 ? 1.5 : 1.0 // Boost weight for struggling members
             totalScore += member.overallScore * weight
             totalWeight += weight
         }
@@ -235,7 +235,7 @@ class MultiInstrumentOptimizationEngine {
 
         // Penalty if anyone has very low score (< 0.3)
         let worstScore = memberScores.map { $0.overallScore }.min() ?? 1.0
-        let penalty = worstScore < 0.3 ? 0.2 : 0.0
+        let penalty: Float = worstScore < 0.3 ? 0.2 : 0.0
 
         return max(0.0, averageScore - penalty)
     }

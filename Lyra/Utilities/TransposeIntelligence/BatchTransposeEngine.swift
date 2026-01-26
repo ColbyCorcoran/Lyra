@@ -35,7 +35,7 @@ class BatchTransposeEngine {
     func analyzeSetlistKeys(songIDs: [UUID]) -> SetlistKeyAnalysis {
         let songs = fetchSongs(songIDs: songIDs)
         guard !songs.isEmpty else {
-            return SetlistKeyAnalysis(
+            return BatchSetlistKeyAnalysis(
                 songs: [],
                 keyFlow: [],
                 averageKeyJump: 0.0,
@@ -73,7 +73,7 @@ class BatchTransposeEngine {
         let averageJump = keyJumps.isEmpty ? 0.0 :
             Float(keyJumps.reduce(0, +)) / Float(keyJumps.count)
 
-        return SetlistKeyAnalysis(
+        return BatchSetlistKeyAnalysis(
             songs: songs.map { SongKeyInfo(id: $0.id, title: $0.title, currentKey: $0.currentKey ?? $0.originalKey ?? "C") },
             keyFlow: keyFlow,
             averageKeyJump: averageJump,

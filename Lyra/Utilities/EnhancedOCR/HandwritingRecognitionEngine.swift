@@ -219,8 +219,9 @@ class HandwritingRecognitionEngine {
         guard let modelContext = modelContext else { return result }
 
         // Load recent corrections for this user
+        let handwritingLearningType = CorrectionType.handwritingLearning.rawValue
         let descriptor = FetchDescriptor<OCRCorrectionHistory>(
-            predicate: #Predicate { $0.correctionType == CorrectionType.handwritingLearning.rawValue },
+            predicate: #Predicate { $0.correctionType == handwritingLearningType },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
 
@@ -270,9 +271,10 @@ class HandwritingRecognitionEngine {
         guard let modelContext = modelContext else { return profile.accuracyScore }
 
         // Count accepted corrections for this user
+        let handwritingLearningType = CorrectionType.handwritingLearning.rawValue
         let descriptor = FetchDescriptor<OCRCorrectionHistory>(
             predicate: #Predicate {
-                $0.correctionType == CorrectionType.handwritingLearning.rawValue &&
+                $0.correctionType == handwritingLearningType &&
                 $0.accepted == true
             }
         )
@@ -317,8 +319,9 @@ class HandwritingRecognitionEngine {
     func getCorrectionCount(userId: String = "default") -> Int {
         guard let modelContext = modelContext else { return 0 }
 
+        let handwritingLearningType = CorrectionType.handwritingLearning.rawValue
         let descriptor = FetchDescriptor<OCRCorrectionHistory>(
-            predicate: #Predicate { $0.correctionType == CorrectionType.handwritingLearning.rawValue }
+            predicate: #Predicate { $0.correctionType == handwritingLearningType }
         )
 
         do {

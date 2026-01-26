@@ -285,7 +285,7 @@ class AccessibilityManager {
     }
 
     /// Announce text with VoiceOver or speech
-    func announce(_ text: String, priority: UIAccessibility.Announcement.Priority = .default) {
+    func announce(_ text: String) {
         if isVoiceOverRunning {
             // Use VoiceOver announcement
             UIAccessibility.post(notification: .announcement, argument: text)

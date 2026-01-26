@@ -353,8 +353,7 @@ struct ExternalDisplayContent {
 
 /// Notification names for external display
 extension Notification.Name {
-    static let externalDisplayConnected = Notification.Name("externalDisplayConnected")
-    static let externalDisplayDisconnected = Notification.Name("externalDisplayDisconnected")
+    // Note: externalDisplayConnected and externalDisplayDisconnected are defined in HardwareStatusManager.swift
     static let externalDisplayConfigurationChanged = Notification.Name("externalDisplayConfigurationChanged")
     static let externalDisplayContentChanged = Notification.Name("externalDisplayContentChanged")
 }

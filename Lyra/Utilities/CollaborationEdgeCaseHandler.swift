@@ -463,12 +463,12 @@ enum ConflictPrediction {
 
 // MARK: - Merge Result
 
-enum CollaborationCollaborationMergeResult {
+enum CollaborationMergeResult {
     case success(merged: String)
     case conflicted(merged: String, conflicts: [CollaborationMergeConflict])
 }
 
-struct CollaborationCollaborationMergeConflict {
+struct CollaborationMergeConflict {
     let lineNumber: Int
     let base: String
     let local: String
@@ -477,7 +477,7 @@ struct CollaborationCollaborationMergeConflict {
 
 // MARK: - Edge Case User Presence
 
-struct EdgeCaseEdgeCaseUserPresence {
+struct EdgeCaseUserPresence {
     let userRecordID: String
     let status: PresenceStatus
     let currentSongID: UUID?

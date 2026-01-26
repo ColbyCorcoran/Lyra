@@ -304,11 +304,10 @@ class TransposeLearningEngine {
         boost += (keyPreference - 0.5) * 20.0 // Max ±10 points
 
         // Boost if recommendation matches user patterns
-        if let recID = recommendation.id {
-            let wasChosen = history.contains { $0.recommendationID == recID && $0.kept }
-            if wasChosen {
-                boost += 5.0
-            }
+        let recID = recommendation.id
+        let wasChosen = history.contains { $0.recommendationID == recID && $0.kept }
+        if wasChosen {
+            boost += 5.0
         }
 
         return boost

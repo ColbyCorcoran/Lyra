@@ -152,7 +152,7 @@ class CloudKitSyncCoordinator {
         let conflictType: SyncConflict.ConflictType
         if clientRecord["isDeleted"] as? Bool == true || serverRecord["isDeleted"] as? Bool == true {
             conflictType = .deletion
-        } else if clientRecord["content"] != serverRecord["content"] {
+        } else if (clientRecord["content"] as? String) != (serverRecord["content"] as? String) {
             conflictType = .contentModification
         } else {
             conflictType = .propertyConflict
@@ -228,7 +228,7 @@ class CloudKitSyncCoordinator {
     }
 
     /// Fetches changes since last sync using history tracking
-    nonisolated private func fetchChangesSinceLastSync() async throws -> [NSPersistentHistoryChange] {
+    private func fetchChangesSinceLastSync() async throws -> [NSPersistentHistoryChange] {
         guard let container = persistentContainer else { return [] }
 
         let context = container.newBackgroundContext()

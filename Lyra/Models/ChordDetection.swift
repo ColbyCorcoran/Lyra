@@ -401,11 +401,6 @@ struct ChordBasedKeyDetection {
     }
 }
 
-enum ScaleType: String, Codable {
-    case major = "Major"
-    case minor = "Minor"
-}
-
 // MARK: - Chord Inversion
 
 enum ChordInversion: String, Codable {

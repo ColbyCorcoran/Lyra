@@ -537,7 +537,7 @@ class AudioPlaybackManager {
         }
     }
 
-    private func executeMarkerAction(_ action: MarkerAction, marker: AudioMarker) {
+    private func executeMarkerAction(_ action: BackingTrackMarkerAction, marker: AudioMarker) {
         switch action {
         case .jumpToSection:
             // Handled by external listener

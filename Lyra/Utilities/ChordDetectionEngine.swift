@@ -26,7 +26,7 @@ class ChordDetectionEngine {
     private var theoryEngine: MusicTheoryEngine?
 
     // Background processing
-    private var analysisTask: Task<Void, Error>?
+    private var analysisTask: Task<ChordDetectionSession, Error>?
 
     // MARK: - Initialization
 

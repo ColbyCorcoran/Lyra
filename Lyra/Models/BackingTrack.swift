@@ -263,7 +263,7 @@ enum MarkerType: String, Codable, CaseIterable {
     }
 }
 
-enum BackingTrackBackingTrackMarkerAction: String, Codable {
+enum BackingTrackMarkerAction: String, Codable {
     case jumpToSection = "Jump to Section"
     case showMessage = "Show Message"
     case triggerMIDI = "Trigger MIDI"

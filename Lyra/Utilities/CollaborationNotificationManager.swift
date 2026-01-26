@@ -146,7 +146,9 @@ class CollaborationNotificationManager {
         }
 
         // Send push notification if app in background
-        sendPushNotification(notification)
+        Task {
+            await sendPushNotification(notification)
+        }
     }
 
     private func sendEditingNotification(for presence: UserPresence) {
@@ -166,7 +168,9 @@ class CollaborationNotificationManager {
         pendingNotifications.insert(notification, at: 0)
 
         // Send push notification
-        sendPushNotification(notification)
+        Task {
+            await sendPushNotification(notification)
+        }
     }
 
     func sendVersionRestoreNotification(

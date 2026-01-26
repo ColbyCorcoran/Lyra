@@ -36,7 +36,7 @@ enum PedalModel: String, Codable, CaseIterable, Identifiable {
             return 4
         case .airTurnQUAD, .airturnPED:
             return 4
-        case .airTurnPEDPro:
+        case .airturnPEDPro:
             return 6
         case .airTurnDUO:
             return 2

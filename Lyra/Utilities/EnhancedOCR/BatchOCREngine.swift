@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+import Combine
 
 /// Engine for batch processing multiple OCR jobs
 @MainActor
@@ -101,7 +102,7 @@ class BatchOCREngine: ObservableObject {
     ///   - imageIndex: Index of the image that failed
     /// - Returns: Whether error is recoverable
     func handleErrors(job: inout BatchOCRJob, error: Error, imageIndex: Int) -> Bool {
-        let batchError = BatchError(
+        let batchError = BatchOCRError(
             imageIndex: imageIndex,
             error: error.localizedDescription,
             recoverable: isRecoverable(error)
@@ -149,9 +150,9 @@ class BatchOCREngine: ObservableObject {
         images: [UIImage],
         processor: @escaping (UIImage) async throws -> EnhancedOCRResult,
         maxConcurrent: Int
-    ) async throws -> [(index: Int, result: EnhancedOCRResult?, error: BatchError?)] {
-        return try await withThrowingTaskGroup(of: (Int, EnhancedOCRResult?, BatchError?).self) { group in
-            var results: [(Int, EnhancedOCRResult?, BatchError?)] = []
+    ) async throws -> [(index: Int, result: EnhancedOCRResult?, error: BatchOCRError?)] {
+        return try await withThrowingTaskGroup(of: (Int, EnhancedOCRResult?, BatchOCRError?).self) { group in
+            var results: [(Int, EnhancedOCRResult?, BatchOCRError?)] = []
             var processedCount = 0
 
             // Submit initial batch of tasks
@@ -161,7 +162,7 @@ class BatchOCREngine: ObservableObject {
                         let result = try await processor(image)
                         return (index, result, nil)
                     } catch {
-                        let batchError = BatchError(
+                        let batchError = BatchOCRError(
                             imageIndex: index,
                             error: error.localizedDescription,
                             recoverable: self.isRecoverable(error)
@@ -189,7 +190,7 @@ class BatchOCREngine: ObservableObject {
                             let result = try await processor(image)
                             return (index, result, nil)
                         } catch {
-                            let batchError = BatchError(
+                            let batchError = BatchOCRError(
                                 imageIndex: index,
                                 error: error.localizedDescription,
                                 recoverable: self.isRecoverable(error)
@@ -211,9 +212,9 @@ class BatchOCREngine: ObservableObject {
         processor: @escaping (UIImage) async throws -> EnhancedOCRResult,
         maxConcurrent: Int,
         progressUpdate: @escaping (Double) -> Void
-    ) async throws -> [(index: Int, result: EnhancedOCRResult?, error: BatchError?)] {
-        return try await withThrowingTaskGroup(of: (Int, EnhancedOCRResult?, BatchError?).self) { group in
-            var results: [(Int, EnhancedOCRResult?, BatchError?)] = []
+    ) async throws -> [(index: Int, result: EnhancedOCRResult?, error: BatchOCRError?)] {
+        return try await withThrowingTaskGroup(of: (Int, EnhancedOCRResult?, BatchOCRError?).self) { group in
+            var results: [(Int, EnhancedOCRResult?, BatchOCRError?)] = []
             var processedCount = 0
 
             // Submit initial batch of tasks
@@ -223,7 +224,7 @@ class BatchOCREngine: ObservableObject {
                         let result = try await processor(image)
                         return (index, result, nil)
                     } catch {
-                        let batchError = BatchError(
+                        let batchError = BatchOCRError(
                             imageIndex: index,
                             error: error.localizedDescription,
                             recoverable: self.isRecoverable(error)
@@ -257,7 +258,7 @@ class BatchOCREngine: ObservableObject {
                             let result = try await processor(image)
                             return (index, result, nil)
                         } catch {
-                            let batchError = BatchError(
+                            let batchError = BatchOCRError(
                                 imageIndex: index,
                                 error: error.localizedDescription,
                                 recoverable: self.isRecoverable(error)
@@ -274,7 +275,7 @@ class BatchOCREngine: ObservableObject {
     }
 
     /// Check if error is recoverable
-    private func isRecoverable(_ error: Error) -> Bool {
+    private nonisolated func isRecoverable(_ error: Error) -> Bool {
         // Check error type to determine if recoverable
         if let ocrError = error as? OCRError {
             switch ocrError {

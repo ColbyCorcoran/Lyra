@@ -32,7 +32,7 @@ class BatchTransposeEngine {
     /// Analyze current keys in a setlist
     /// - Parameter songIDs: Array of song IDs in setlist
     /// - Returns: Setlist key analysis
-    func analyzeSetlistKeys(songIDs: [UUID]) -> SetlistKeyAnalysis {
+    func analyzeSetlistKeys(songIDs: [UUID]) -> BatchSetlistKeyAnalysis {
         let songs = fetchSongs(songIDs: songIDs)
         guard !songs.isEmpty else {
             return BatchSetlistKeyAnalysis(
@@ -342,7 +342,7 @@ class BatchTransposeEngine {
 // MARK: - Supporting Types
 
 /// Analysis of setlist key flow
-struct SetlistKeyAnalysis {
+struct BatchSetlistKeyAnalysis {
     var songs: [SongKeyInfo]
     var keyFlow: [String]
     var averageKeyJump: Float

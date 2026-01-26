@@ -214,10 +214,10 @@ final class UserPresence {
         record["colorHex"] = colorHex as CKRecordValue
         record["status"] = status.rawValue as CKRecordValue
         record["lastSeenAt"] = lastSeenAt as CKRecordValue
-        record["isOnline"] = isOnline ? 1 : 0 as CKRecordValue
+        record["isOnline"] = (isOnline ? 1 : 0) as CKRecordValue
         record["deviceType"] = deviceType as CKRecordValue
         record["currentActivity"] = currentActivity.rawValue as CKRecordValue
-        record["isEditing"] = isEditing ? 1 : 0 as CKRecordValue
+        record["isEditing"] = (isEditing ? 1 : 0) as CKRecordValue
 
         if let libraryID = currentLibraryID {
             record["currentLibraryID"] = libraryID.uuidString as CKRecordValue

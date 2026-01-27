@@ -86,17 +86,6 @@ final class Song {
 
     var importRecord: ImportRecord?
 
-    // MARK: - MIDI Configuration
-
-    /// MIDI settings for this song (program changes, control changes, etc.)
-    var midiConfigurationData: Data? // Encoded SongMIDIConfiguration
-
-    /// MIDI triggers for automatic song loading
-    var midiTriggersData: Data? // Encoded [MIDITrigger]
-
-    /// MIDI feedback configuration
-    var midiFeedbackData: Data? // Encoded MIDIFeedbackConfiguration
-
     // MARK: - Initializer
     init(
         title: String,
@@ -155,102 +144,6 @@ final class Song {
     /// Clear custom display settings (revert to global defaults)
     func clearCustomDisplaySettings() {
         displaySettingsData = nil
-    }
-
-    // MARK: - MIDI Configuration Helpers
-
-    /// Get MIDI configuration
-    var midiConfiguration: SongMIDIConfiguration {
-        get {
-            if let data = midiConfigurationData {
-                do {
-                    return try JSONDecoder().decode(SongMIDIConfiguration.self, from: data)
-                } catch {
-                    print("⚠️ Error decoding MIDI configuration: \(error.localizedDescription)")
-                    return SongMIDIConfiguration()
-                }
-            }
-            return SongMIDIConfiguration()
-        }
-        set {
-            do {
-                midiConfigurationData = try JSONEncoder().encode(newValue)
-            } catch {
-                print("⚠️ Error encoding MIDI configuration: \(error.localizedDescription)")
-                midiConfigurationData = nil
-            }
-        }
-    }
-
-    /// Check if song has MIDI configuration
-    var hasMIDIConfiguration: Bool {
-        return midiConfigurationData != nil && midiConfiguration.hasMessages
-    }
-
-    /// Clear MIDI configuration
-    func clearMIDIConfiguration() {
-        midiConfigurationData = nil
-    }
-
-    /// Get MIDI triggers
-    var midiTriggers: [MIDITrigger] {
-        get {
-            if let data = midiTriggersData {
-                do {
-                    return try JSONDecoder().decode([MIDITrigger].self, from: data)
-                } catch {
-                    print("⚠️ Error decoding MIDI triggers: \(error.localizedDescription)")
-                    return []
-                }
-            }
-            return []
-        }
-        set {
-            do {
-                midiTriggersData = try JSONEncoder().encode(newValue)
-            } catch {
-                print("⚠️ Error encoding MIDI triggers: \(error.localizedDescription)")
-                midiTriggersData = nil
-            }
-        }
-    }
-
-    /// Check if song has MIDI triggers
-    var hasMIDITriggers: Bool {
-        return !midiTriggers.isEmpty
-    }
-
-    /// Clear MIDI triggers
-    func clearMIDITriggers() {
-        midiTriggersData = nil
-    }
-
-    /// Get MIDI feedback configuration
-    var midiFeedback: MIDIFeedbackConfiguration {
-        get {
-            if let data = midiFeedbackData {
-                do {
-                    return try JSONDecoder().decode(MIDIFeedbackConfiguration.self, from: data)
-                } catch {
-                    print("⚠️ Error decoding MIDI feedback: \(error.localizedDescription)")
-                    return MIDIFeedbackConfiguration()
-                }
-            }
-            return MIDIFeedbackConfiguration()
-        }
-        set {
-            do {
-                midiFeedbackData = try JSONEncoder().encode(newValue)
-            } catch {
-                print("⚠️ Error encoding MIDI feedback: \(error.localizedDescription)")
-                midiFeedbackData = nil
-            }
-        }
-    }
-
-    /// Check if song has MIDI feedback enabled
-    var hasMIDIFeedback: Bool {
-        return midiFeedback.enabled
     }
 
 }

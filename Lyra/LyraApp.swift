@@ -13,8 +13,6 @@ import BackgroundTasks
 struct LyraApp: App {
     @AppStorage("onboarding.completed") private var hasCompletedOnboarding: Bool = false
 
-    @State private var syncCoordinator = CloudKitSyncCoordinator.shared
-
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Song.self,
@@ -57,20 +55,9 @@ struct LyraApp: App {
         }
     }()
 
-    init() {
-        // Register background tasks
-        registerBackgroundTasks()
-    }
-
     var body: some Scene {
         WindowGroup {
             MainTabView()
-                .onAppear {
-                    // Set up CloudKit sync coordinator
-                    Task {
-                        await setupCloudKitSync()
-                    }
-                }
                 .onOpenURL { url in
                     handleDeepLink(url: url)
                 }
@@ -81,9 +68,6 @@ struct LyraApp: App {
                 }
         }
         .modelContainer(sharedModelContainer)
-        .backgroundTask(.appRefresh("com.lyra.syncCheck")) {
-            await performBackgroundSync()
-        }
     }
 
     // MARK: - Deep Linking
@@ -97,65 +81,6 @@ struct LyraApp: App {
     private func handleUniversalLink(url: URL) {
         Task { @MainActor in
             DeepLinkHandler.shared.handleUniversalLink(url: url)
-        }
-    }
-
-    // MARK: - CloudKit Setup
-
-    @MainActor
-    private func setupCloudKitSync() {
-        // Initialize CloudKitSyncCoordinator with the model container
-        syncCoordinator.setup(with: sharedModelContainer)
-
-        // Check for pending conflicts
-        Task {
-            await syncCoordinator.performConflictDetection()
-        }
-    }
-
-    // MARK: - Background Sync
-
-    private func registerBackgroundTasks() {
-        // Register background sync task
-        BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: "com.lyra.syncCheck",
-            using: nil
-        ) { task in
-            Task {
-                await self.handleBackgroundSync(task: task as! BGAppRefreshTask)
-            }
-        }
-    }
-
-    private func performBackgroundSync() async {
-        // Perform sync
-        await syncCoordinator.performBackgroundSync()
-
-        // Schedule next background refresh
-        scheduleBackgroundSync()
-    }
-
-    private func handleBackgroundSync(task: BGAppRefreshTask) async {
-        // Set up task expiration handler
-        task.expirationHandler = {
-            task.setTaskCompleted(success: false)
-        }
-
-        // Perform sync
-        await performBackgroundSync()
-
-        // Mark task as completed
-        task.setTaskCompleted(success: true)
-    }
-
-    private func scheduleBackgroundSync() {
-        let request = BGAppRefreshTaskRequest(identifier: "com.lyra.syncCheck")
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60) // 15 minutes
-
-        do {
-            try BGTaskScheduler.shared.submit(request)
-        } catch {
-            print("❌ Could not schedule background sync: \(error)")
         }
     }
 }

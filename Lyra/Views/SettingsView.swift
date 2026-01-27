@@ -13,7 +13,6 @@ struct SettingsView: View {
     @AppStorage("globalLyricsColor") private var globalLyricsColor: String = "#000000"
     @AppStorage("globalSpacing") private var globalSpacing: Double = 8
 
-    @State private var showLibraryStats: Bool = false
     @State private var showOnSongImport: Bool = false
     @State private var showImportHistory: Bool = false
     @State private var showDropboxAuth: Bool = false
@@ -36,19 +35,6 @@ struct SettingsView: View {
             Form {
                 // Library Section
                 Section {
-                    Button {
-                        showLibraryStats = true
-                    } label: {
-                        HStack {
-                            Label("Library Statistics", systemImage: "chart.bar.fill")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-
                     Button {
                         showOnSongImport = true
                     } label: {
@@ -444,9 +430,6 @@ struct SettingsView: View {
             }
             .onChange(of: globalSpacing) { _, _ in
                 saveGlobalSettings()
-            }
-            .sheet(isPresented: $showLibraryStats) {
-                LibraryStatsView()
             }
             .sheet(isPresented: $showOnSongImport) {
                 OnSongImportView()

@@ -45,26 +45,8 @@ struct LibraryView: View {
     @State private var pasteErrorMessage: String = ""
     @State private var pasteRecoverySuggestion: String = ""
 
-    // Stats state
-    @State private var showLibraryStats: Bool = false
-
     // Search state
     @State private var showSearch: Bool = false
-
-    // Help state
-    @State private var showImportHelp: Bool = false
-
-    // Dropbox import state
-    @State private var showDropboxImport: Bool = false
-    @StateObject private var dropboxManager = DropboxManager.shared
-
-    // Google Drive import state
-    @State private var showGoogleDriveImport: Bool = false
-    @StateObject private var driveManager = GoogleDriveManager.shared
-
-    // Bulk import state
-    @State private var showBulkImportProgress: Bool = false
-    @StateObject private var queueManager = ImportQueueManager.shared
 
     // Scanner state
     @State private var showScanner: Bool = false
@@ -110,15 +92,6 @@ struct LibraryView: View {
                     }
                 }
 
-                // Stats button
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showLibraryStats = true
-                    } label: {
-                        Label("Statistics", systemImage: "chart.bar.fill")
-                    }
-                }
-
                 // Add button - Menu for Songs, simple button for Books/Sets
                 ToolbarItem(placement: .topBarTrailing) {
                     if selectedSection == .allSongs {
@@ -140,34 +113,6 @@ struct LibraryView: View {
                                 Label("Import from Files", systemImage: "folder")
                             }
 
-                            if dropboxManager.isAuthenticated {
-                                Button {
-                                    showDropboxImport = true
-                                } label: {
-                                    Label("Import from Dropbox", systemImage: "cloud")
-                                }
-                            } else {
-                                Button {
-                                    showDropboxImport = true
-                                } label: {
-                                    Label("Connect Dropbox...", systemImage: "cloud")
-                                }
-                            }
-
-                            if driveManager.isAuthenticated {
-                                Button {
-                                    showGoogleDriveImport = true
-                                } label: {
-                                    Label("Import from Google Drive", systemImage: "internaldrive")
-                                }
-                            } else {
-                                Button {
-                                    showGoogleDriveImport = true
-                                } label: {
-                                    Label("Connect Google Drive...", systemImage: "internaldrive")
-                                }
-                            }
-
                             Divider()
 
                             // Scan option
@@ -186,15 +131,6 @@ struct LibraryView: View {
                                 Label("Paste from Clipboard", systemImage: "doc.on.clipboard")
                             }
                             .disabled(!ClipboardManager.shared.hasClipboardContent())
-
-                            Divider()
-
-                            // Help option
-                            Button {
-                                showImportHelp = true
-                            } label: {
-                                Label("Import Help", systemImage: "questionmark.circle")
-                            }
                         } label: {
                             Image(systemName: "plus")
                         }
@@ -219,31 +155,8 @@ struct LibraryView: View {
             .sheet(isPresented: $showAddSetSheet) {
                 AddPerformanceSetView()
             }
-            .sheet(isPresented: $showLibraryStats) {
-                LibraryStatsView()
-            }
             .sheet(isPresented: $showSearch) {
                 LibrarySearchView()
-            }
-            .sheet(isPresented: $showImportHelp) {
-                ImportHelpView()
-            }
-            .sheet(isPresented: $showDropboxImport) {
-                if dropboxManager.isAuthenticated {
-                    DropboxImportView()
-                } else {
-                    DropboxAuthView()
-                }
-            }
-            .sheet(isPresented: $showGoogleDriveImport) {
-                if driveManager.isAuthenticated {
-                    GoogleDriveImportView()
-                } else {
-                    GoogleDriveAuthView()
-                }
-            }
-            .sheet(isPresented: $showBulkImportProgress) {
-                BulkImportProgressView()
             }
             .sheet(isPresented: $showScanner) {
                 DocumentScannerView { images in

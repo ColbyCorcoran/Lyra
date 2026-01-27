@@ -38,7 +38,7 @@ struct SongDisplayView: View {
     @State private var temporaryTransposeSemitones: Int = 0
     @State private var temporaryTransposePreferSharps: Bool = true
     @State private var showCapo: Bool = false
-    @State private var capoDisplayMode: CapoDisplayMode = .capo
+    @State private var showCapoInOriginalKey: Bool = false
     @State private var contentHeight: CGFloat = 0
     @State private var visibleHeight: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
@@ -54,17 +54,15 @@ struct SongDisplayView: View {
     // Export & Share
     @State private var showExportOptions: Bool = false
     @State private var showShareSheet: Bool = false
-    @State private var shareItem: ShareItem?
+    @State private var shareItem: SongDisplayShareItem?
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
     @State private var showExportError: Bool = false
 
-    @StateObject private var autoscrollManager = AutoscrollManager()
-    @StateObject private var metronomeManager = MetronomeManager()
-    @StateObject private var lowLightManager = LowLightModeManager()
-    @StateObject private var shortcutsManager = ShortcutsManager()
-    @StateObject private var footPedalManager = FootPedalManager()
-    @StateObject private var gestureManager = GestureShortcutsManager()
+    @State private var autoscrollManager = AutoscrollManager()
+    @State private var metronomeManager = MetronomeManager()
+    @State private var lowLightManager = LowLightModeManager()
+    @State private var shortcutsManager = ShortcutsManager()
 
     /// Get the active capo position (from set override or song)
     private var activeCapo: Int {

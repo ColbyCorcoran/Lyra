@@ -173,16 +173,7 @@ class DeepLinkHandler {
         components.path = "/\(book.id.uuidString)"
         return components.url
     }
-    
-    /// Generates a deep link URL for a shared library
-    func generateDeepLink(for library: SharedLibrary) -> URL? {
-        var components = URLComponents()
-        components.scheme = "lyra"
-        components.host = "library"
-        components.path = "/shared/\(library.id.uuidString)"
-        return components.url
-    }
-    
+
     /// Generates an import deep link with encoded data
     func generateImportLink(data: Data) -> URL? {
         var components = URLComponents()

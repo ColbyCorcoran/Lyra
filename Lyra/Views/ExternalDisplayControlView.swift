@@ -78,7 +78,7 @@ struct ExternalDisplayControlWidget: View {
 
             // Quick Actions
             HStack(spacing: 12) {
-                QuickActionButton(
+                DisplayQuickActionButton(
                     icon: "rectangle.fill",
                     label: "Blank",
                     color: .orange
@@ -86,7 +86,7 @@ struct ExternalDisplayControlWidget: View {
                     displayManager.blankDisplay()
                 }
 
-                QuickActionButton(
+                DisplayQuickActionButton(
                     icon: "xmark.rectangle",
                     label: "Clear",
                     color: .red
@@ -94,7 +94,7 @@ struct ExternalDisplayControlWidget: View {
                     displayManager.clearDisplay()
                 }
 
-                QuickActionButton(
+                DisplayQuickActionButton(
                     icon: "arrow.up",
                     label: "Next",
                     color: .blue
@@ -129,7 +129,7 @@ struct ExternalDisplayControlWidget: View {
     }
 }
 
-struct QuickActionButton: View {
+private struct DisplayQuickActionButton: View {
     let icon: String
     let label: String
     let color: Color

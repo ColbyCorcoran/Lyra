@@ -13,11 +13,6 @@ struct MainTabView: View {
     @AppStorage("onboarding.completed") private var hasCompletedOnboarding: Bool = false
 
     @State private var showOnboarding: Bool = false
-    @State private var showMigrationStatus: Bool = false
-    @State private var showWhatsNew: Bool = false
-    @State private var migrationManager = DataMigrationManager.shared
-    @State private var offlineManager = OfflineManager.shared
-    @State private var whatsNewManager = WhatsNewManager.shared
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -25,16 +20,6 @@ struct MainTabView: View {
                 LibraryView()
                     .tabItem {
                         Label("Library", systemImage: "book.fill")
-                    }
-
-                AnalyticsDashboardView()
-                    .tabItem {
-                        Label("Analytics", systemImage: "chart.bar.fill")
-                    }
-
-                PerformanceInsightsView()
-                    .tabItem {
-                        Label("Insights", systemImage: "lightbulb.fill")
                     }
 
                 SettingsView()
@@ -46,40 +31,17 @@ struct MainTabView: View {
             // Status banners
             VStack(spacing: 0) {
                 OfflineStatusBanner()
-                ConflictBanner()
-                MigrationBanner(showMigrationStatus: $showMigrationStatus)
             }
         }
         .onAppear {
-            // Initialize offline monitoring
-            offlineManager.startMonitoring()
-
             // Check onboarding
             if !hasCompletedOnboarding {
                 showOnboarding = true
-            } else if whatsNewManager.shouldShowWhatsNew() {
-                // Show What's New after onboarding is complete
-                // Delay slightly to ensure smooth presentation
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    showWhatsNew = true
-                }
-            }
-
-            // Check for migrations
-            if migrationManager.needsMigration() {
-                // Show migration banner automatically
-                print("⚠️  Migration needed: \(migrationManager.installedSchemaVersion) → \(DataMigrationManager.currentSchemaVersion)")
             }
         }
         .sheet(isPresented: $showOnboarding) {
             OnboardingView()
                 .interactiveDismissDisabled()
-        }
-        .sheet(isPresented: $showWhatsNew) {
-            WhatsNewView()
-        }
-        .sheet(isPresented: $showMigrationStatus) {
-            MigrationStatusView()
         }
     }
 }

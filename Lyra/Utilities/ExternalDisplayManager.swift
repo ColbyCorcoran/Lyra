@@ -407,22 +407,15 @@ struct ExternalProjectionView: View {
                         radius: configuration.shadowRadius
                     )
                     .overlay {
+                        // Text outline effect using stacked shadows
                         if configuration.outlineEnabled {
+                            let outlineColor = Color(hex: configuration.outlineColor) ?? .black
                             Text(section)
                                 .font(.system(size: configuration.fontSize, weight: .regular, design: .rounded))
-                                .foregroundStyle(.clear)
+                                .foregroundStyle(outlineColor)
                                 .multilineTextAlignment(configuration.textAlignment.textAlignment)
                                 .lineSpacing(configuration.lineSpacing)
-                                .overlay(
-                                    Text(section)
-                                        .font(.system(size: configuration.fontSize, weight: .regular, design: .rounded))
-                                        .foregroundStyle(.clear)
-                                        .multilineTextAlignment(configuration.textAlignment.textAlignment)
-                                        .stroke(
-                                            Color(hex: configuration.outlineColor) ?? .black,
-                                            lineWidth: configuration.outlineWidth
-                                        )
-                                )
+                                .blur(radius: configuration.outlineWidth)
                         }
                     }
             }

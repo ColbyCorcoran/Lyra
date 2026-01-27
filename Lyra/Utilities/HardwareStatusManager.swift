@@ -10,6 +10,9 @@ import Foundation
 import SwiftUI
 import Observation
 import AVFoundation
+#if os(iOS)
+import UIKit
+#endif
 
 /// Hardware status notification coordinator for professional use
 @Observable
@@ -60,22 +63,7 @@ class HardwareStatusManager {
             self?.handleExternalDisplayDisconnected()
         }
 
-        // Listen for MIDI events
-        NotificationCenter.default.addObserver(
-            forName: .midiDeviceConnected,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            self?.handleMIDIDeviceConnected(notification)
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: .midiDeviceDisconnected,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            self?.handleMIDIDeviceDisconnected(notification)
-        }
+        // MIDI events (disabled - MIDIManager not available)
 
         // Listen for audio routing changes
         NotificationCenter.default.addObserver(
@@ -257,12 +245,8 @@ class HardwareStatusManager {
             detail: "Throttling to 100 msg/sec",
             severity: .warning,
             timestamp: Date(),
-            actionLabel: "MIDI Panic",
-            action: {
-                Task { @MainActor in
-                    await MIDIManager.shared.sendAllNotesOff()
-                }
-            }
+            actionLabel: "Dismiss",
+            action: nil
         )
 
         addAlert(alert)
@@ -350,22 +334,18 @@ class HardwareStatusManager {
             warnings.append("No MIDI device connected")
         }
 
-        // Check performance
-        let perfManager = PerformanceManager.shared
-        if perfManager.currentFPS < 30 {
-            issues.append("Low frame rate: \(Int(perfManager.currentFPS)) fps")
+        // Check battery level using UIDevice
+        #if os(iOS)
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let batteryLevel = UIDevice.current.batteryLevel
+        if batteryLevel >= 0 {  // -1 means unknown
+            if batteryLevel < 0.2 {
+                issues.append("Low battery: \(Int(batteryLevel * 100))%")
+            } else if batteryLevel < 0.3 {
+                warnings.append("Battery below 30%")
+            }
         }
-
-        if perfManager.memoryUsageMB > 400 {
-            warnings.append("High memory usage: \(Int(perfManager.memoryUsageMB)) MB")
-        }
-
-        // Check battery
-        if perfManager.batteryLevel < 0.2 {
-            issues.append("Low battery: \(Int(perfManager.batteryLevel * 100))%")
-        } else if perfManager.batteryLevel < 0.3 {
-            warnings.append("Battery below 30%")
-        }
+        #endif
 
         return HardwareHealthReport(
             timestamp: Date(),

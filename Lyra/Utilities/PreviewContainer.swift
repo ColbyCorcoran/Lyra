@@ -21,10 +21,8 @@ class PreviewContainer {
             Book.self,
             PerformanceSet.self,
             SetEntry.self,
-            Attachment.self,
             Annotation.self,
-            UserSettings.self,
-            ImportRecord.self
+            UserSettings.self
         ])
 
         let modelConfiguration = ModelConfiguration(
@@ -136,25 +134,6 @@ class PreviewContainer {
         // Create user settings
         let settings = UserSettings()
 
-        // Create sample import record
-        let importRecord = ImportRecord(
-            importSource: "Files",
-            importMethod: "Bulk Import",
-            totalFileCount: 3,
-            successCount: 3,
-            failedCount: 0,
-            duplicateCount: 0,
-            skippedCount: 0,
-            originalFilePaths: ["/Documents/song1.cho", "/Documents/song2.cho", "/Documents/song3.cho"],
-            fileTypes: ["cho"],
-            cloudFolderPath: nil,
-            cloudSyncEnabled: false
-        )
-        importRecord.importDuration = 2.5
-        importRecord.addImportedSong(song1)
-        importRecord.addImportedSong(song2)
-        importRecord.addImportedSong(song3)
-
         // Insert all into context
         context.insert(song1)
         context.insert(song2)
@@ -167,7 +146,6 @@ class PreviewContainer {
         context.insert(entry3)
         context.insert(annotation)
         context.insert(settings)
-        context.insert(importRecord)
 
         // Save context
         do {

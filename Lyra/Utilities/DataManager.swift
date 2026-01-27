@@ -192,48 +192,6 @@ class DataManager {
         try context.save()
     }
 
-    // MARK: - Attachment Operations
-
-    func addAttachment(
-        to song: Song,
-        filename: String,
-        fileType: String,
-        fileData: Data?,
-        filePath: String?
-    ) throws -> Attachment {
-        let context = try getContext()
-
-        let attachment = Attachment(
-            filename: filename,
-            fileType: fileType,
-            fileSize: fileData?.count ?? 0
-        )
-        attachment.song = song
-        attachment.fileData = fileData
-        attachment.filePath = filePath
-
-        context.insert(attachment)
-
-        if song.attachments == nil {
-            song.attachments = []
-        }
-        song.attachments?.append(attachment)
-
-        song.modifiedAt = Date()
-        try context.save()
-
-        return attachment
-    }
-
-    func deleteAttachment(_ attachment: Attachment) throws {
-        let context = try getContext()
-        if let song = attachment.song {
-            song.modifiedAt = Date()
-        }
-        context.delete(attachment)
-        try context.save()
-    }
-
     // MARK: - Annotation Operations
 
     func addAnnotation(

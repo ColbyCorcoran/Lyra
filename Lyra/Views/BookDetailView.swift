@@ -17,10 +17,7 @@ struct BookDetailView: View {
     @State private var showSongPicker: Bool = false
     @State private var showEditBook: Bool = false
     @State private var showDeleteConfirmation: Bool = false
-    @State private var showExportOptions: Bool = false
     @State private var shareItem: BookDetailShareItem?
-    @State private var exportError: Error?
-    @State private var showError: Bool = false
 
     private var songs: [Song] {
         book.songs ?? []
@@ -113,20 +110,6 @@ struct BookDetailView: View {
 
                     Divider()
 
-                    Button {
-                        showExportOptions = true
-                    } label: {
-                        Label("Export Book", systemImage: "square.and.arrow.up")
-                    }
-
-                    Button {
-                        printBook()
-                    } label: {
-                        Label("Print Book", systemImage: "printer")
-                    }
-
-                    Divider()
-
                     Button(role: .destructive) {
                         showDeleteConfirmation = true
                     } label: {
@@ -144,14 +127,6 @@ struct BookDetailView: View {
         .sheet(isPresented: $showEditBook) {
             EditBookView(book: book)
         }
-        .sheet(isPresented: $showExportOptions) {
-            ExportOptionsView(
-                exportType: .book(book),
-                onExport: { format, configuration in
-                    exportBook(format: format, configuration: configuration)
-                }
-            )
-        }
         .sheet(item: $shareItem) { (item: BookDetailShareItem) in
             BookDetailShareSheet(activityItems: item.items)
         }
@@ -162,13 +137,6 @@ struct BookDetailView: View {
             }
         } message: {
             Text("This will permanently delete \"\(book.name)\". Songs in this book will not be deleted.")
-        }
-        .alert("Export Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            if let error = exportError {
-                Text(error.localizedDescription)
-            }
         }
     }
 
@@ -203,60 +171,6 @@ struct BookDetailView: View {
         }
     }
 
-    // MARK: - Export Actions
-
-    private func exportBook(format: ExportManager.ExportFormat, configuration: PDFExporter.PDFConfiguration) {
-        Task {
-            do {
-                let data = try ExportManager.shared.exportBook(book, format: format, configuration: configuration)
-                let filename = "\(book.name).\(format.fileExtension)"
-
-                // Save to temporary file
-                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-                try data.write(to: tempURL)
-
-                // Show share sheet
-                await MainActor.run {
-                    shareItem = BookDetailShareItem(items: [tempURL])
-                    HapticManager.shared.success()
-                }
-            } catch {
-                await MainActor.run {
-                    exportError = error
-                    showError = true
-                    HapticManager.shared.operationFailed()
-                }
-            }
-        }
-    }
-
-    private func printBook() {
-        Task {
-            do {
-                let data = try ExportManager.shared.exportBook(book, format: .pdf)
-                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(book.name).pdf")
-                try data.write(to: tempURL)
-
-                await MainActor.run {
-                    let printController = UIPrintInteractionController.shared
-                    printController.printingItem = tempURL
-
-                    let printInfo = UIPrintInfo.printInfo()
-                    printInfo.outputType = .general
-                    printInfo.jobName = book.name
-                    printController.printInfo = printInfo
-
-                    printController.present(animated: true) { _, _, _ in }
-                }
-            } catch {
-                await MainActor.run {
-                    exportError = error
-                    showError = true
-                    HapticManager.shared.operationFailed()
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Book Song Row View

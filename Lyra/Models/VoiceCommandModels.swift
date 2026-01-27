@@ -60,7 +60,7 @@ enum CommandIntent: String, Codable {
 
     // System intents
     case help
-    case repeat
+    case `repeat`
     case cancel
     case unknown
 
@@ -100,11 +100,11 @@ enum IntentCategory: String, Codable {
 
 /// Extracted entities from voice commands
 struct CommandEntity: Codable, Identifiable {
-    let id = UUID()
+    let id: UUID
     let type: EntityType
     let value: String
     let confidence: Float
-    let range: Range<String.Index>?
+    let range: Range<String.Index>?  // Not included in Codable
 
     enum EntityType: String, Codable {
         case songTitle
@@ -119,6 +119,28 @@ struct CommandEntity: Codable, Identifiable {
         case attribute
         case timeSignature
         case capoPosition
+    }
+
+    // Exclude range from Codable since Range<String.Index> is not serializable
+    enum CodingKeys: String, CodingKey {
+        case id, type, value, confidence
+    }
+
+    init(id: UUID = UUID(), type: EntityType, value: String, confidence: Float, range: Range<String.Index>? = nil) {
+        self.id = id
+        self.type = type
+        self.value = value
+        self.confidence = confidence
+        self.range = range
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        type = try container.decode(EntityType.self, forKey: .type)
+        value = try container.decode(String.self, forKey: .value)
+        confidence = try container.decode(Float.self, forKey: .confidence)
+        range = nil  // Cannot be decoded
     }
 }
 
@@ -248,6 +270,7 @@ class ConversationContext {
         self.commands = []
         self.lastSearchResults = []
         self.recentTopics = []
+        self.themRefers = []
     }
 
     func updateActivity() {

@@ -15,8 +15,6 @@ struct SettingsView: View {
 
     @State private var showOnSongImport: Bool = false
     @State private var showImportHistory: Bool = false
-    @State private var showDropboxAuth: Bool = false
-    @State private var showGoogleDriveAuth: Bool = false
     @State private var showExportLibrary: Bool = false
     @State private var showAttachmentStorage: Bool = false
     @State private var showAutoscrollSettings: Bool = false
@@ -27,10 +25,8 @@ struct SettingsView: View {
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
     @State private var showError: Bool = false
-    @StateObject private var dropboxManager = DropboxManager.shared
-    @StateObject private var driveManager = GoogleDriveManager.shared
 
-    var body: some View{
+    var body: some View {
         NavigationStack {
             Form {
                 // Library Section
@@ -126,113 +122,6 @@ struct SettingsView: View {
                     Label("Song Display", systemImage: "music.note")
                 } footer: {
                     Text("Configure autoscroll and accessibility features for viewing songs")
-                }
-
-                // Cloud Services Section
-                Section {
-                    Button {
-                        showDropboxAuth = true
-                    } label: {
-                        HStack(spacing: 12) {
-                            // Dropbox icon
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(Color.blue)
-                                    .frame(width: 32, height: 32)
-
-                                Image(systemName: "cloud.fill")
-                                    .foregroundStyle(.white)
-                                    .font(.system(size: 16))
-                            }
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Dropbox")
-                                    .font(.body)
-
-                                if dropboxManager.isAuthenticated {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.caption2)
-                                            .foregroundStyle(.green)
-
-                                        Text("Connected")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                } else {
-                                    Text("Not connected")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-                    .accessibilityLabel(dropboxManager.isAuthenticated ? "Dropbox: Connected" : "Dropbox: Not connected")
-                    .accessibilityHint("Tap to manage Dropbox connection")
-
-                    Button {
-                        showGoogleDriveAuth = true
-                    } label: {
-                        HStack(spacing: 12) {
-                            // Google Drive icon
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 6)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [.blue, .green, .yellow, .red],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 32, height: 32)
-
-                                Image(systemName: "internaldrive")
-                                    .foregroundStyle(.white)
-                                    .font(.system(size: 16))
-                            }
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Google Drive")
-                                    .font(.body)
-
-                                if driveManager.isAuthenticated {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.caption2)
-                                            .foregroundStyle(.green)
-
-                                        Text("Connected")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                } else {
-                                    Text("Not connected")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-                    .accessibilityLabel(driveManager.isAuthenticated ? "Google Drive: Connected" : "Google Drive: Not connected")
-                    .accessibilityHint("Tap to manage Google Drive connection")
-                } header: {
-                    Label("Cloud Services", systemImage: "cloud")
-                } footer: {
-                    Text("Connect cloud storage services to import your chord charts and song files.")
                 }
 
                 // Display Defaults Section
@@ -436,12 +325,6 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showImportHistory) {
                 ImportHistoryView()
-            }
-            .sheet(isPresented: $showDropboxAuth) {
-                DropboxAuthView()
-            }
-            .sheet(isPresented: $showGoogleDriveAuth) {
-                GoogleDriveAuthView()
             }
             .sheet(isPresented: $showExportLibrary) {
                 LibraryExportView()

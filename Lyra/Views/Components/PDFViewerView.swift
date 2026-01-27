@@ -261,34 +261,13 @@ struct PDFKitView: UIViewRepresentable {
     }
 
     private func applyLowLightFilter(to pdfView: PDFView, manager: LowLightModeManager) {
-        // Apply a color multiply filter to tint the PDF
-        guard let layer = pdfView.layer.sublayers?.first else { return }
-
-        // Create color matrix filter for tinting
-        let colorMatrix = CAFilter()
-        colorMatrix.name = "colorMatrix"
-
-        // Get RGB components from low light color
-        var red: CGFloat = 0
-        var green: CGFloat = 0
-        var blue: CGFloat = 0
-        var alpha: CGFloat = 0
-
-        manager.color.uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-
-        // Apply tint with intensity
+        // Apply low-light tint using background color
         let intensity = CGFloat(manager.intensity)
-        colorMatrix.setValue(CIVector(x: red * intensity, y: 0, z: 0, w: 0), forKey: "inputRVector")
-        colorMatrix.setValue(CIVector(x: 0, y: green * intensity, z: 0, w: 0), forKey: "inputGVector")
-        colorMatrix.setValue(CIVector(x: 0, y: 0, z: blue * intensity, w: 0), forKey: "inputBVector")
-        colorMatrix.setValue(CIVector(x: 0, y: 0, z: 0, w: 1), forKey: "inputAVector")
-
-        layer.filters = [colorMatrix]
+        pdfView.backgroundColor = manager.color.uiColor.withAlphaComponent(intensity * 0.3)
     }
 
     private func removeLowLightFilter(from pdfView: PDFView) {
-        guard let layer = pdfView.layer.sublayers?.first else { return }
-        layer.filters = nil
+        pdfView.backgroundColor = .systemBackground
     }
 }
 

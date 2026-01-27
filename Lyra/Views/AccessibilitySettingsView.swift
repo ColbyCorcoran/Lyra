@@ -385,7 +385,7 @@ struct AccessibilitySettingsView: View {
     // MARK: - Actions
 
     private func testVoiceOver() {
-        accessibilityManager.announce("VoiceOver test. All systems functional.", priority: .high)
+        accessibilityManager.announce("VoiceOver test. All systems functional.")
         HapticManager.shared.success()
     }
 

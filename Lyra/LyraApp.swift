@@ -19,24 +19,13 @@ struct LyraApp: App {
             Book.self,
             PerformanceSet.self,
             SetEntry.self,
-            Attachment.self,
             Annotation.self,
-            UserSettings.self,
-            // Phase 7.5: Recommendation Intelligence
-            SongRecommendation.self,
-            UserTasteProfile.self,
-            RecommendationFeedback.self,
-            SmartPlaylist.self,
-            PlayHistoryEntry.self
+            UserSettings.self
         ])
-
-        // Check if iCloud sync is enabled
-        let iCloudEnabled = CloudSyncManager.shared.isSyncEnabled
 
         let modelConfiguration = ModelConfiguration(
             schema: schema,
-            isStoredInMemoryOnly: false,
-            cloudKitDatabase: iCloudEnabled ? .automatic : .none
+            isStoredInMemoryOnly: false
         )
 
         do {

@@ -38,10 +38,6 @@ final class Song {
     @Relationship(deleteRule: .nullify, inverse: \SetEntry.song)
     var setEntries: [SetEntry]?
 
-    // MARK: - Attachments (for PDFs, images, etc.)
-    @Relationship(deleteRule: .cascade, inverse: \Attachment.song)
-    var attachments: [Attachment]?
-
     // MARK: - Annotations (sticky notes, drawings, etc.)
     @Relationship(deleteRule: .cascade, inverse: \Annotation.song)
     var annotations: [Annotation]?
@@ -73,8 +69,6 @@ final class Song {
 
     var cloudFileModifiedDate: Date? // Last modified date from cloud
     var cloudFilePath: String? // Full path in cloud storage
-
-    var importRecord: ImportRecord?
 
     // MARK: - Initializer
     init(

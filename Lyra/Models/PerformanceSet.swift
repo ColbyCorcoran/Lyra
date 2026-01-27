@@ -15,20 +15,10 @@ final class PerformanceSet {
     @Relationship(deleteRule: .cascade, inverse: \SetEntry.performanceSet)
     var songEntries: [SetEntry]? // Ordered list
 
-    @Relationship(deleteRule: .cascade, inverse: \SetPerformance.performanceSet)
-    var setPerformances: [SetPerformance]? // Track performance history
-
     var isArchived: Bool
     var folder: String? // For organizing sets by venue/band
 
     var notes: String? // Overall set notes
-
-    // MARK: - Collaboration
-    var sharedSet: SharedPerformanceSet?
-
-    var isShared: Bool {
-        sharedSet != nil
-    }
 
     init(name: String, scheduledDate: Date? = nil) {
         self.id = UUID()

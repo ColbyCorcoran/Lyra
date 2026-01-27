@@ -20,7 +20,7 @@ class PublicLibraryManager {
 
     // MARK: - Upload to Public Library
 
-    /// Uploads a song to the public library
+    /// Uploads a song to the public library with AI moderation
     func uploadSong(
         _ song: Song,
         genre: SongGenre,
@@ -34,6 +34,29 @@ class PublicLibraryManager {
         // Get current user info
         let userRecordID = try await getCurrentUserRecordID()
         let displayName = isAnonymous ? "Anonymous" : (PresenceManager.shared.currentUserPresence?.displayName ?? "User")
+
+        // Check rate limiting
+        if !isAnonymous {
+            let isLimited = try UserReputationManager.shared.isRateLimited(
+                for: userRecordID,
+                modelContext: modelContext
+            )
+
+            if isLimited {
+                throw PublicLibraryError.rateLimited
+            }
+        }
+
+        // Get user reputation
+        let reputation = isAnonymous ? nil : try? UserReputationManager.shared.fetchReputation(
+            for: userRecordID,
+            modelContext: modelContext
+        )
+
+        // Check if user is banned
+        if let reputation = reputation, reputation.isBanned {
+            throw PublicLibraryError.userBanned(reason: reputation.banReason ?? "Policy violation")
+        }
 
         // Create PublicSong model
         let publicSong = PublicSong(
@@ -56,6 +79,40 @@ class PublicLibraryManager {
         publicSong.licenseType = licenseType
         publicSong.copyrightInfo = copyrightInfo
 
+        // Get recent uploads for spam detection
+        let recentUploads = isAnonymous ? [] : try UserReputationManager.shared.getRecentUploads(
+            for: userRecordID,
+            limit: 20,
+            modelContext: modelContext
+        )
+
+        // Run AI content moderation analysis
+        let moderationResult = await AIContentModerationEngine.shared.analyzeSong(
+            publicSong,
+            uploaderReputation: reputation,
+            recentUploads: recentUploads
+        )
+
+        // Apply moderation decision
+        switch moderationResult.decision {
+        case .autoApprove:
+            publicSong.moderationStatus = .approved
+            publicSong.moderatedBy = "AI Moderation"
+            publicSong.moderatedAt = Date()
+
+        case .requiresReview:
+            publicSong.moderationStatus = .pending
+            publicSong.moderationNotes = moderationResult.details
+
+        case .quarantine:
+            publicSong.moderationStatus = .flagged
+            publicSong.moderationNotes = "Quarantined for review: " + moderationResult.details
+
+        case .rejected:
+            // Don't save rejected songs
+            throw PublicLibraryError.contentRejected(reason: moderationResult.details)
+        }
+
         // Save to local database first
         modelContext.insert(publicSong)
         try modelContext.save()
@@ -66,11 +123,28 @@ class PublicLibraryManager {
 
         try modelContext.save()
 
+        // Update user reputation
+        if !isAnonymous {
+            if moderationResult.isApproved {
+                try UserReputationManager.shared.recordApproval(
+                    for: userRecordID,
+                    publicSong: publicSong,
+                    qualityScore: (1.0 - moderationResult.score) * 100,
+                    isAutoApproved: true,
+                    modelContext: modelContext
+                )
+            }
+        }
+
         // Post notification
         NotificationCenter.default.post(
             name: .songUploadedToPublic,
             object: nil,
-            userInfo: ["songID": publicSong.id]
+            userInfo: [
+                "songID": publicSong.id,
+                "moderationDecision": moderationResult.decision.rawValue,
+                "autoApproved": moderationResult.isApproved
+            ]
         )
 
         return publicSong
@@ -522,4 +596,23 @@ extension Notification.Name {
     static let songUploadedToPublic = Notification.Name("songUploadedToPublic")
     static let songDownloadedFromPublic = Notification.Name("songDownloadedFromPublic")
     static let publicSongFlagged = Notification.Name("publicSongFlagged")
+}
+
+// MARK: - Errors
+
+enum PublicLibraryError: LocalizedError {
+    case rateLimited
+    case userBanned(reason: String)
+    case contentRejected(reason: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .rateLimited:
+            return "You're uploading too quickly. Please wait a few minutes before uploading again."
+        case .userBanned(let reason):
+            return "Your account has been temporarily restricted: \(reason)"
+        case .contentRejected(let reason):
+            return "Content was rejected: \(reason)"
+        }
+    }
 }

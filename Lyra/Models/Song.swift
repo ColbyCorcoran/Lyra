@@ -86,17 +86,6 @@ final class Song {
 
     var importRecord: ImportRecord?
 
-    // MARK: - Sync Metadata
-
-    // Hash of last synced content for conflict detection
-    var lastSyncedHash: String?
-
-    // Incremented on each conflict resolution
-    var conflictVersion: Int = 0
-
-    // Device name that made last change
-    var deviceModifiedOn: String?
-
     // MARK: - MIDI Configuration
 
     /// MIDI settings for this song (program changes, control changes, etc.)
@@ -107,12 +96,6 @@ final class Song {
 
     /// MIDI feedback configuration
     var midiFeedbackData: Data? // Encoded MIDIFeedbackConfiguration
-
-    // MARK: - Version History
-
-    /// Historical versions of this song
-    @Relationship(deleteRule: .cascade, inverse: \SongVersion.song)
-    var versions: [SongVersion]?
 
     // MARK: - Initializer
     init(
@@ -270,32 +253,6 @@ final class Song {
         return midiFeedback.enabled
     }
 
-    // MARK: - Sync Helpers
-
-    /// Generates a hash of the song content for conflict detection
-    func generateContentHash() -> String {
-        var hashContent = ""
-        hashContent += title
-        hashContent += artist ?? ""
-        hashContent += content
-        hashContent += originalKey ?? ""
-        hashContent += modifiedAt.description
-
-        return String(hashContent.hashValue)
-    }
-
-    /// Updates sync metadata after modification
-    func updateSyncMetadata() {
-        modifiedAt = Date()
-        lastSyncedHash = generateContentHash()
-        deviceModifiedOn = UIDevice.current.name
-    }
-
-    /// Checks if content has changed since last sync
-    func hasChangedSinceLastSync() -> Bool {
-        guard let lastHash = lastSyncedHash else { return true }
-        return generateContentHash() != lastHash
-    }
 }
 
 // MARK: - UIDevice Extension

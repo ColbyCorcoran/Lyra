@@ -22,16 +22,12 @@ struct LyraApp: App {
             Attachment.self,
             Annotation.self,
             UserSettings.self,
-            Performance.self,
-            SetPerformance.self,
             // Phase 7.5: Recommendation Intelligence
             SongRecommendation.self,
             UserTasteProfile.self,
             RecommendationFeedback.self,
             SmartPlaylist.self,
-            PlayHistoryEntry.self,
-            // Phase 7.8: Performance Insights
-            PerformanceSession.self
+            PlayHistoryEntry.self
         ])
 
         // Check if iCloud sync is enabled

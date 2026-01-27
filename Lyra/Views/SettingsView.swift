@@ -21,13 +21,7 @@ struct SettingsView: View {
     @State private var showExportLibrary: Bool = false
     @State private var showAttachmentStorage: Bool = false
     @State private var showAutoscrollSettings: Bool = false
-    @State private var showFootPedalSettings: Bool = false
-    @State private var showShortcutsSettings: Bool = false
     @State private var showAccessibilitySettings: Bool = false
-    @State private var showPerformanceMonitor: Bool = false
-    @State private var showHardwareHealthCheck: Bool = false
-    @State private var showSyncSettings: Bool = false
-    @State private var showMigrationStatus: Bool = false
     @State private var showHelp: Bool = false
     @State private var showWhatsNew: Bool = false
     @State private var shareItem: SettingsShareItem?
@@ -36,9 +30,6 @@ struct SettingsView: View {
     @State private var showError: Bool = false
     @StateObject private var dropboxManager = DropboxManager.shared
     @StateObject private var driveManager = GoogleDriveManager.shared
-    @StateObject private var footPedalManager = FootPedalManager()
-    @StateObject private var shortcutsManager = ShortcutsManager()
-    @StateObject private var gestureManager = GestureShortcutsManager()
 
     var body: some View{
         NavigationStack {
@@ -113,39 +104,13 @@ struct SettingsView: View {
                     Label("Library", systemImage: "books.vertical")
                 }
 
-                // Performance Section
+                // Song Display Section
                 Section {
                     Button {
                         showAutoscrollSettings = true
                     } label: {
                         HStack {
                             Label("Autoscroll Settings", systemImage: "play.circle")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-
-                    Button {
-                        showFootPedalSettings = true
-                    } label: {
-                        HStack {
-                            Label("Foot Pedals", systemImage: "chevron.left.forwardslash.chevron.right")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-
-                    Button {
-                        showShortcutsSettings = true
-                    } label: {
-                        HStack {
-                            Label("Shortcuts & Gestures", systemImage: "keyboard")
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption)
@@ -172,9 +137,9 @@ struct SettingsView: View {
                         .foregroundStyle(.primary)
                     }
                 } header: {
-                    Label("Performance", systemImage: "music.note")
+                    Label("Song Display", systemImage: "music.note")
                 } footer: {
-                    Text("Configure hands-free controls, keyboard shortcuts, and accessibility features")
+                    Text("Configure autoscroll and accessibility features for viewing songs")
                 }
 
                 // Cloud Services Section
@@ -282,39 +247,6 @@ struct SettingsView: View {
                     Label("Cloud Services", systemImage: "cloud")
                 } footer: {
                     Text("Connect cloud storage services to import your chord charts and song files.")
-                }
-
-                // Sync & Backup Section
-                Section {
-                    Button {
-                        showSyncSettings = true
-                    } label: {
-                        HStack {
-                            Label("Sync & Backup", systemImage: "icloud.and.arrow.up.and.down")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-
-                    Button {
-                        showMigrationStatus = true
-                    } label: {
-                        HStack {
-                            Label("Data Migration", systemImage: "arrow.triangle.2.circlepath")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-                } header: {
-                    Label("Data Management", systemImage: "externaldrive")
-                } footer: {
-                    Text("Configure iCloud sync, local backups, and data migration settings.")
                 }
 
                 // Display Defaults Section
@@ -436,62 +368,6 @@ struct SettingsView: View {
                     Text("These settings apply to all new songs. Individual songs can override these defaults.")
                 }
 
-                // Developer Section
-                Section {
-                    Button {
-                        showPerformanceMonitor = true
-                    } label: {
-                        HStack {
-                            Label("Performance Monitor", systemImage: "speedometer")
-                            Spacer()
-
-                            // Show performance grade
-                            Text(PerformanceManager.shared.performanceGrade)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(performanceGradeColor)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(performanceGradeColor.opacity(0.2))
-                                .clipShape(Capsule())
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-
-                    Button {
-                        showHardwareHealthCheck = true
-                    } label: {
-                        HStack {
-                            Label("Hardware Health Check", systemImage: "checkmark.shield.fill")
-                            Spacer()
-
-                            // Show hardware status indicator
-                            let healthReport = HardwareStatusManager.shared.performHealthCheck()
-                            Text(healthReport.grade)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(healthReport.allSystemsGo ? .green : .orange)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background((healthReport.allSystemsGo ? Color.green : Color.orange).opacity(0.2))
-                                .clipShape(Capsule())
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-                } header: {
-                    Label("Developer", systemImage: "wrench.and.screwdriver")
-                } footer: {
-                    Text("Monitor app performance and verify hardware before performances")
-                }
-
                 // App Information Section
                 Section {
                     HStack {
@@ -593,33 +469,8 @@ struct SettingsView: View {
             .sheet(isPresented: $showAutoscrollSettings) {
                 AutoscrollSettingsView()
             }
-            .sheet(isPresented: $showFootPedalSettings) {
-                NavigationStack {
-                    FootPedalSettingsView(footPedalManager: footPedalManager)
-                }
-            }
-            .sheet(isPresented: $showShortcutsSettings) {
-                NavigationStack {
-                    ShortcutsSettingsView(
-                        shortcutsManager: shortcutsManager,
-                        gestureManager: gestureManager
-                    )
-                }
-            }
             .sheet(isPresented: $showAccessibilitySettings) {
                 AccessibilitySettingsView()
-            }
-            .sheet(isPresented: $showPerformanceMonitor) {
-                PerformanceMonitorView()
-            }
-            .sheet(isPresented: $showHardwareHealthCheck) {
-                HardwareHealthCheckView()
-            }
-            .sheet(isPresented: $showSyncSettings) {
-                SyncSettingsView()
-            }
-            .sheet(isPresented: $showMigrationStatus) {
-                MigrationStatusView()
             }
             .sheet(isPresented: $showHelp) {
                 HelpView()
@@ -657,17 +508,6 @@ struct SettingsView: View {
         globalLyricsColor = "#000000"
         globalSpacing = 8
         saveGlobalSettings()
-    }
-
-    private var performanceGradeColor: Color {
-        let score = PerformanceManager.shared.performanceScore
-        switch score {
-        case 90...100: return .green
-        case 80..<90: return .blue
-        case 70..<80: return .yellow
-        case 60..<70: return .orange
-        default: return .red
-        }
     }
 }
 

@@ -46,10 +46,6 @@ final class Song {
     @Relationship(deleteRule: .cascade, inverse: \Annotation.song)
     var annotations: [Annotation]?
 
-    // MARK: - Performance Tracking
-    @Relationship(deleteRule: .cascade, inverse: \Performance.song)
-    var performances: [Performance]?
-
     // MARK: - Performance Settings
     var autoscrollDuration: Int? // Seconds
     var autoscrollEnabled: Bool
@@ -65,12 +61,6 @@ final class Song {
     var customField1: String? // User-defined
     var customField2: String?
     var customField3: String?
-
-    // MARK: - Usage Statistics
-    var timesViewed: Int
-    var timesPerformed: Int
-    var lastViewed: Date?
-    var lastPerformed: Date?
 
     // MARK: - Import Information
     var importSource: String? // e.g., "Dropbox", "SongSelect", "Manual"
@@ -104,8 +94,6 @@ final class Song {
         self.originalKey = originalKey
         self.currentKey = originalKey
         self.autoscrollEnabled = false
-        self.timesViewed = 0
-        self.timesPerformed = 0
     }
 
     // MARK: - Display Settings Helpers

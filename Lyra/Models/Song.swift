@@ -108,19 +108,6 @@ final class Song {
     /// MIDI feedback configuration
     var midiFeedbackData: Data? // Encoded MIDIFeedbackConfiguration
 
-    // MARK: - Shared Library
-
-    /// The shared library this song belongs to (if any)
-    var sharedLibrary: SharedLibrary?
-
-    /// User record ID of who last edited (for shared libraries)
-    var lastEditedBy: String?
-
-    /// Whether this song is shared
-    var isShared: Bool {
-        sharedLibrary != nil
-    }
-
     // MARK: - Version History
 
     /// Historical versions of this song

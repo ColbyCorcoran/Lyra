@@ -27,8 +27,6 @@ struct SongDisplayView: View {
     @State private var displaySettings: DisplaySettings
     @State private var isLoadingSong: Bool = false
     @State private var showEditSongSheet: Bool = false
-    @State private var showQuickBookPicker: Bool = false
-    @State private var showQuickSetPicker: Bool = false
     @State private var viewMode: SongViewMode = .text
     @State private var showExtractText: Bool = false
     @State private var showAutoscrollDuration: Bool = false
@@ -52,8 +50,6 @@ struct SongDisplayView: View {
     @State private var showQuickActionMenu: Bool = false
     @State private var quickActionMenuPosition: CGPoint = .zero
     @State private var scrollProxy: ScrollViewProxy? = nil
-    @State private var showComments: Bool = false
-    @State private var commentCount: Int = 0
 
     // Export & Share
     @State private var showExportOptions: Bool = false
@@ -62,8 +58,6 @@ struct SongDisplayView: View {
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
     @State private var showExportError: Bool = false
-
-    @Query private var allComments: [Comment]
 
     @StateObject private var autoscrollManager = AutoscrollManager()
     @StateObject private var metronomeManager = MetronomeManager()
@@ -109,9 +103,6 @@ struct SongDisplayView: View {
                 isAnnotationMode = false
             }
             HapticManager.shared.selection()
-        }
-        shortcutsManager.onAddToSet = {
-            showQuickSetPicker = true
         }
         shortcutsManager.onEditSong = {
             showEditSongSheet = true
@@ -413,32 +404,6 @@ struct SongDisplayView: View {
                 }
             }
 
-            // Comments button (for shared songs)
-            if song.sharedLibrary != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showComments = true
-                    } label: {
-                        ZStack {
-                            Image(systemName: "bubble.left.and.bubble.right")
-
-                            // Show badge with count if comments exist
-                            if commentCount > 0 {
-                                Text("\(commentCount)")
-                                    .font(.caption2)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(.white)
-                                    .padding(4)
-                                    .background(Circle().fill(.red))
-                                    .offset(x: 10, y: -8)
-                            }
-                        }
-                    }
-                    .accessibilityLabel("Comments")
-                    .accessibilityHint(commentCount > 0 ? "\(commentCount) comments" : "View and add comments")
-                }
-            }
-
             // Extract Text button (only for PDF view)
             if viewMode == .pdf, hasPDFAttachment {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -450,17 +415,6 @@ struct SongDisplayView: View {
                     .accessibilityLabel("Extract text from PDF")
                     .accessibilityHint("Convert PDF to editable text")
                 }
-            }
-
-            // Organization menu
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    OrganizationMenuView(song: song)
-                } label: {
-                    Image(systemName: "folder.badge.plus")
-                }
-                .accessibilityLabel("Add to collection")
-                .accessibilityHint("Add this song to books or sets")
             }
 
             // More menu
@@ -579,12 +533,6 @@ struct SongDisplayView: View {
         .sheet(isPresented: $showEditSongSheet) {
             EditSongView(song: song)
         }
-        .sheet(isPresented: $showQuickBookPicker) {
-            QuickOrganizationPicker(song: song, mode: .book)
-        }
-        .sheet(isPresented: $showQuickSetPicker) {
-            QuickOrganizationPicker(song: song, mode: .set)
-        }
         .sheet(isPresented: $showExtractText) {
             if let attachment = pdfAttachment,
                let pdfData = attachment.fileData ?? loadPDFData(from: attachment),
@@ -628,9 +576,6 @@ struct SongDisplayView: View {
                 handleCapoChange(capoFret: capoFret)
             }
         }
-        .sheet(isPresented: $showComments) {
-            CommentsView(song: song)
-        }
         .sheet(isPresented: $showExportOptions) {
             ExportOptionsView(
                 exportType: .song(song),
@@ -649,19 +594,6 @@ struct SongDisplayView: View {
                 Text(error.localizedDescription)
             }
         }
-        .task {
-            // Update comment count
-            updateCommentCount()
-
-            // Listen for comment changes
-            NotificationCenter.default.addObserver(
-                forName: .commentAdded,
-                object: nil,
-                queue: .main
-            ) { _ in
-                updateCommentCount()
-            }
-        }
         .background {
             // Keyboard event handler
             KeyboardEventHandler { input, modifierFlags in
@@ -670,18 +602,6 @@ struct SongDisplayView: View {
             .frame(width: 0, height: 0)
 
             // Keyboard shortcuts (invisible buttons)
-            Button("") {
-                showQuickBookPicker = true
-            }
-            .keyboardShortcut("b", modifiers: .command)
-            .hidden()
-
-            Button("") {
-                showQuickSetPicker = true
-            }
-            .keyboardShortcut("s", modifiers: [.command, .shift])
-            .hidden()
-
             Button("") {
                 lowLightManager.toggle()
             }
@@ -1106,11 +1026,6 @@ struct SongDisplayView: View {
         }
     }
 
-    /// Update comment count for this song
-    private func updateCommentCount() {
-        commentCount = allComments.filter { $0.songID == song.id }.count
-    }
-
     // MARK: - Transposition Methods
 
     /// Handle transposition based on save mode
@@ -1474,9 +1389,6 @@ struct SongHeaderView: View {
                     }
                 }
             }
-
-            // Organization pills (books/sets this song belongs to)
-            OrganizationPillsView(song: song)
 
             // Musical Metadata Card
             if hasMusicalMetadata {

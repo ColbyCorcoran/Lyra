@@ -15,23 +15,15 @@ struct AnalyticsDashboardView: View {
     @Query(sort: \Performance.performanceDate, order: .reverse) private var allPerformances: [Performance]
     @Query(sort: \SetPerformance.performanceDate, order: .reverse) private var allSetPerformances: [SetPerformance]
     @Query private var allSongs: [Song]
-    @Query private var allSharedLibraries: [SharedLibrary]
 
     @State private var selectedTimeRange: TimeRange = .month
     @State private var showExportOptions: Bool = false
     @State private var showInsights: Bool = false
-    @State private var selectedLibraryForAnalytics: SharedLibrary?
-    @State private var showTeamAnalytics: Bool = false
 
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Team collaboration section (if there are shared libraries)
-                    if !allSharedLibraries.isEmpty {
-                        teamCollaborationSection
-                    }
-
                     // Time range picker
                     timeRangePicker
 
@@ -87,71 +79,6 @@ struct AnalyticsDashboardView: View {
             }
             .sheet(isPresented: $showExportOptions) {
                 PerformanceDataExportView(performances: filteredPerformances, setPerformances: filteredSetPerformances)
-            }
-            .sheet(isPresented: $showTeamAnalytics) {
-                if let library = selectedLibraryForAnalytics {
-                    TeamAnalyticsView(library: library)
-                }
-            }
-        }
-    }
-
-    // MARK: - Team Collaboration Section
-
-    private var teamCollaborationSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "person.3.fill")
-                    .foregroundStyle(.blue)
-                Text("Team Collaboration")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Spacer()
-            }
-
-            VStack(spacing: 8) {
-                ForEach(allSharedLibraries) { library in
-                    Button {
-                        selectedLibraryForAnalytics = library
-                        showTeamAnalytics = true
-                    } label: {
-                        HStack {
-                            Image(systemName: library.displayIcon)
-                                .foregroundStyle(.white)
-                                .frame(width: 40, height: 40)
-                                .background(Color.blue.gradient)
-                                .clipShape(Circle())
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(library.name)
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-
-                                HStack(spacing: 12) {
-                                    Label("\(library.memberCount) members", systemImage: "person.2.fill")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-
-                                    Label("\(library.songCount) songs", systemImage: "music.note")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chart.bar.fill")
-                                .foregroundStyle(.blue)
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                }
             }
         }
     }

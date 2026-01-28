@@ -27,9 +27,9 @@ struct LibrarySearchView: View {
     @State private var searchTask: Task<Void, Never>?
 
     // Results
-    @State private var songResults: [SearchResult] = []
-    @State private var bookResults: [SearchResult] = []
-    @State private var setResults: [SearchResult] = []
+    @State private var songResults: [LegacySearchResult] = []
+    @State private var bookResults: [LegacySearchResult] = []
+    @State private var setResults: [LegacySearchResult] = []
 
     // Suggestions
     @State private var suggestions: [String] = []
@@ -228,7 +228,7 @@ struct LibrarySearchView: View {
             // Songs section
             if !songResults.isEmpty {
                 Section {
-                    ForEach(songResults.prefix(10)) { result in
+                    ForEach(Array(songResults.prefix(10))) { result in
                         if let song = result.song {
                             NavigationLink(destination: SongDisplayView(song: song)) {
                                 SongResultRow(result: result, song: song)
@@ -485,7 +485,7 @@ struct ScopeButton: View {
 // MARK: - Result Rows
 
 struct SongResultRow: View {
-    let result: SearchResult
+    let result: LegacySearchResult
     let song: Song
 
     var body: some View {

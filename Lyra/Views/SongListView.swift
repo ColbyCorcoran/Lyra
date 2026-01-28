@@ -33,8 +33,6 @@ struct SongListView: View {
     @State private var selectedSort: SortOption = .titleAZ
     @State private var showAddSongSheet: Bool = false
     @State private var showEditSongSheet: Bool = false
-    @State private var showQuickBookPicker: Bool = false
-    @State private var showQuickSetPicker: Bool = false
     @State private var selectedSong: Song?
 
     var body: some View {
@@ -65,16 +63,6 @@ struct SongListView: View {
         .sheet(isPresented: $showEditSongSheet) {
             if let song = selectedSong {
                 EditSongView(song: song)
-            }
-        }
-        .sheet(isPresented: $showQuickBookPicker) {
-            if let song = selectedSong {
-                QuickOrganizationPicker(song: song, mode: .book)
-            }
-        }
-        .sheet(isPresented: $showQuickSetPicker) {
-            if let song = selectedSong {
-                QuickOrganizationPicker(song: song, mode: .set)
             }
         }
     }
@@ -115,16 +103,9 @@ struct SongListView: View {
                 .contextMenu {
                     Button {
                         selectedSong = song
-                        showQuickBookPicker = true
+                        showEditSongSheet = true
                     } label: {
-                        Label("Add to Book", systemImage: "folder.badge.plus")
-                    }
-
-                    Button {
-                        selectedSong = song
-                        showQuickSetPicker = true
-                    } label: {
-                        Label("Add to Set", systemImage: "calendar.badge.plus")
+                        Label("Edit", systemImage: "pencil")
                     }
 
                     Divider()
@@ -177,7 +158,8 @@ struct SongListView: View {
         case .recentlyAdded:
             songs.sort { $0.createdAt > $1.createdAt }
         case .recentlyViewed:
-            songs.sort { ($0.lastViewed ?? Date.distantPast) > ($1.lastViewed ?? Date.distantPast) }
+            // View stats feature was removed, fall back to recently modified
+            songs.sort { $0.modifiedAt > $1.modifiedAt }
         }
 
         // Note: SwiftData @Query already efficiently handles large datasets
@@ -236,8 +218,6 @@ struct EnhancedSongRowView: View {
                     if let capo = song.capo, capo > 0 {
                         CapoBadge(fret: capo)
                     }
-
-                    OrganizationBadge(song: song)
                 }
                 .padding(.top, 2)
             }

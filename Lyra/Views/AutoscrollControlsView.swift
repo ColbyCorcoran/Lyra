@@ -11,7 +11,6 @@ struct AutoscrollControlsView: View {
     @ObservedObject var autoscrollManager: AutoscrollManager
 
     let onJumpToTop: () -> Void
-    let onConfigureDuration: () -> Void
 
     @State private var showSpeedPicker: Bool = false
 
@@ -244,18 +243,6 @@ struct AutoscrollControlsView: View {
             }
             .buttonStyle(.plain)
 
-            // Configure duration
-            Button {
-                onConfigureDuration()
-            } label: {
-                Image(systemName: "timer")
-                    .font(.system(size: 20))
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.orange.opacity(0.9)))
-                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-            }
-            .buttonStyle(.plain)
         }
     }
 
@@ -386,8 +373,7 @@ struct AutoscrollIndicatorView: View {
                 manager.speedMultiplier = 1.0
                 return manager
             }(),
-            onJumpToTop: {},
-            onConfigureDuration: {}
+            onJumpToTop: {}
         )
     }
 }

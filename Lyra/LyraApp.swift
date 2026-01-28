@@ -23,9 +23,11 @@ struct LyraApp: App {
             UserSettings.self
         ])
 
+        // Disable CloudKit integration - we're using local-only storage
         let modelConfiguration = ModelConfiguration(
             schema: schema,
-            isStoredInMemoryOnly: false
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: .none  // Disable CloudKit to avoid unique constraint issues
         )
 
         do {

@@ -8,12 +8,6 @@
 
 import SwiftUI
 import SwiftData
-import PDFKit
-
-enum SongViewMode {
-    case text
-    case pdf
-}
 
 struct SongDisplayView: View {
     @Environment(\.modelContext) private var modelContext
@@ -27,18 +21,9 @@ struct SongDisplayView: View {
     @State private var displaySettings: DisplaySettings
     @State private var isLoadingSong: Bool = false
     @State private var showEditSongSheet: Bool = false
-    @State private var viewMode: SongViewMode = .text
-    @State private var showExtractText: Bool = false
-    @State private var showAutoscrollDuration: Bool = false
-    @State private var showSpeedZones: Bool = false
-    @State private var showTimelineRecording: Bool = false
-    @State private var showMarkers: Bool = false
-    @State private var showPresets: Bool = false
     @State private var showTranspose: Bool = false
     @State private var temporaryTransposeSemitones: Int = 0
     @State private var temporaryTransposePreferSharps: Bool = true
-    @State private var showCapo: Bool = false
-    @State private var showCapoInOriginalKey: Bool = false
     @State private var contentHeight: CGFloat = 0
     @State private var visibleHeight: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
@@ -64,20 +49,15 @@ struct SongDisplayView: View {
     @State private var lowLightManager = LowLightModeManager()
     @State private var shortcutsManager = ShortcutsManager()
 
-    /// Get the active capo position (from set override or song)
-    private var activeCapo: Int {
-        setEntry?.capoOverride ?? song.capo ?? 0
-    }
-
     init(song: Song, setEntry: SetEntry? = nil) {
         self.song = song
         self.setEntry = setEntry
         _displaySettings = State(initialValue: song.displaySettings)
     }
 
-    // MARK: - Shortcuts and Gestures Setup
+    // MARK: - Shortcuts Setup
 
-    private func setupShortcutsAndGestures() {
+    private func setupShortcuts() {
         // ShortcutsManager callbacks
         shortcutsManager.onToggleTranspose = {
             showTranspose = true
@@ -117,90 +97,23 @@ struct SongDisplayView: View {
         shortcutsManager.onShare = {
             showExportOptions = true
         }
-
-        // FootPedalManager callbacks
-        footPedalManager.onToggleAutoscroll = {
-            autoscrollManager.toggle()
-        }
-        footPedalManager.onToggleMetronome = {
-            metronomeManager.toggle()
-        }
-        footPedalManager.onScrollDown = {
-            // Scroll down is handled by natural arrow key behavior
-        }
-        footPedalManager.onScrollUp = {
-            // Scroll up is handled by natural arrow key behavior
-        }
-        footPedalManager.onNextSong = {
-            // Navigate to next song in set if available
-            navigateToNextSong()
-        }
-        footPedalManager.onPreviousSong = {
-            // Navigate to previous song in set if available
-            navigateToPreviousSong()
-        }
-        footPedalManager.onTransposeUp = {
-            quickTranspose(by: 1)
-        }
-        footPedalManager.onTransposeDown = {
-            quickTranspose(by: -1)
-        }
-
-        // GestureShortcutsManager callbacks
-        gestureManager.onScrollToTop = {
-            scrollToTop()
-        }
-        gestureManager.onScrollToBottom = {
-            scrollToBottom()
-        }
-        gestureManager.onToggleAutoscroll = {
-            autoscrollManager.toggle()
-        }
-        gestureManager.onToggleAnnotations = {
-            isAnnotationMode.toggle()
-            if isAnnotationMode {
-                isDrawingMode = false
-            }
-            HapticManager.shared.selection()
-        }
     }
 
     // MARK: - Computed Properties
-
-    private var hasPDFAttachment: Bool {
-        song.attachments?.contains(where: { $0.fileType.lowercased() == "pdf" }) ?? false
-    }
-
-    private var pdfAttachment: Attachment? {
-        song.attachments?.first(where: { $0.fileType.lowercased() == "pdf" })
-    }
 
     private var hasTextContent: Bool {
         !song.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var showViewModePicker: Bool {
-        hasPDFAttachment && hasTextContent
-    }
-
-    /// Get displayed content (with transpose and/or capo applied)
+    /// Get displayed content (with transpose applied)
     private var displayedContent: String {
         var content = song.content
 
-        // Step 1: Apply transpose if active
+        // Apply transpose if active
         if temporaryTransposeSemitones != 0 {
             content = TransposeEngine.transposeContent(
                 content,
                 by: temporaryTransposeSemitones,
-                preferSharps: temporaryTransposePreferSharps
-            )
-        }
-
-        // Step 2: Apply capo chords if in capo display mode
-        if capoDisplayMode == .capo && activeCapo > 0 {
-            content = CapoEngine.capoContent(
-                content,
-                capoFret: activeCapo,
                 preferSharps: temporaryTransposePreferSharps
             )
         }
@@ -218,108 +131,59 @@ struct SongDisplayView: View {
                 SetContextBanner(setName: set.name, songPosition: entry.orderIndex + 1, totalSongs: set.songEntries?.count ?? 0)
             }
 
-            // View mode picker (if both PDF and text exist)
-            if showViewModePicker {
-                viewModePicker
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    .padding(.bottom, 8)
-                    .background(.regularMaterial)
-            }
-
-            // Capo badge (when capo is active)
-            if activeCapo > 0 && viewMode == .text {
-                capoBadge
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(Color.orange.opacity(0.1))
-            }
-
-            // Content based on view mode
-            if viewMode == .pdf, let attachment = pdfAttachment {
-                pdfContentView(attachment: attachment)
-            } else {
-                textContentView
-            }
+            // Main content
+            textContentView
         }
         .background(lowLightManager.isEnabled ? Color.black : displaySettings.backgroundColorValue())
         .preferredColorScheme(lowLightManager.isEnabled ? .dark : displaySettings.darkModePreference.colorScheme)
         .navigationTitle(song.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Edit button (only for text view)
-            if viewMode == .text {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showEditSongSheet = true
-                    } label: {
-                        Image(systemName: "pencil")
-                    }
-                    .accessibilityLabel("Edit song")
-                    .accessibilityHint("Opens song metadata editor")
+            // Edit button
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showEditSongSheet = true
+                } label: {
+                    Image(systemName: "pencil")
                 }
+                .accessibilityLabel("Edit song")
+                .accessibilityHint("Opens song metadata editor")
             }
 
-            // Transpose button (only for text view)
-            if viewMode == .text {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showTranspose = true
-                    } label: {
-                        ZStack {
-                            Image(systemName: "arrow.up.arrow.down")
+            // Transpose button
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showTranspose = true
+                } label: {
+                    ZStack {
+                        Image(systemName: "arrow.up.arrow.down")
 
-                            // Show indicator if temporarily transposed
-                            if temporaryTransposeSemitones != 0 {
-                                Circle()
-                                    .fill(.blue)
-                                    .frame(width: 8, height: 8)
-                                    .offset(x: 8, y: -8)
-                            }
+                        // Show indicator if temporarily transposed
+                        if temporaryTransposeSemitones != 0 {
+                            Circle()
+                                .fill(.blue)
+                                .frame(width: 8, height: 8)
+                                .offset(x: 8, y: -8)
                         }
                     }
-                    .accessibilityLabel("Transpose")
-                    .accessibilityHint(temporaryTransposeSemitones != 0 ? "Currently transposed by \(temporaryTransposeSemitones) semitones" : "Transpose this song")
                 }
+                .accessibilityLabel("Transpose")
+                .accessibilityHint(temporaryTransposeSemitones != 0 ? "Currently transposed by \(temporaryTransposeSemitones) semitones" : "Transpose this song")
             }
 
-            // Capo button (only for text view)
-            if viewMode == .text {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showCapo = true
-                    } label: {
-                        ZStack {
-                            Image(systemName: "guitars")
-
-                            // Show indicator if capo is active
-                            if activeCapo > 0 {
-                                Circle()
-                                    .fill(.orange)
-                                    .frame(width: 8, height: 8)
-                                    .offset(x: 8, y: -8)
-                            }
-                        }
-                    }
-                    .accessibilityLabel("Capo")
-                    .accessibilityHint(activeCapo > 0 ? "Capo on fret \(activeCapo)" : "Set capo position")
+            // Capo button
+            // Display Settings button
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showDisplaySettings = true
+                } label: {
+                    Image(systemName: "textformat.size")
                 }
+                .accessibilityLabel("Display settings")
+                .accessibilityHint("Adjust font size, colors, and spacing")
             }
 
-            // Display Settings button (only for text view)
-            if viewMode == .text {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showDisplaySettings = true
-                    } label: {
-                        Image(systemName: "textformat.size")
-                    }
-                    .accessibilityLabel("Display settings")
-                    .accessibilityHint("Adjust font size, colors, and spacing")
-                }
-            }
-
-            // Low Light Mode toggle (for both text and PDF views)
+            // Low Light Mode toggle
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     lowLightManager.toggle()
@@ -348,71 +212,54 @@ struct SongDisplayView: View {
                 }
             }
 
-            // Annotate button (only for text view)
-            if viewMode == .text {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isAnnotationMode.toggle()
+            // Annotate button
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isAnnotationMode.toggle()
+                    if isAnnotationMode {
+                        isDrawingMode = false // Exit drawing mode
+                    }
+                    HapticManager.shared.selection()
+                } label: {
+                    ZStack {
+                        Image(systemName: isAnnotationMode ? "note.text.badge.plus" : "note.text")
+
+                        // Show indicator if annotation mode is active
                         if isAnnotationMode {
-                            isDrawingMode = false // Exit drawing mode
-                        }
-                        HapticManager.shared.selection()
-                    } label: {
-                        ZStack {
-                            Image(systemName: isAnnotationMode ? "note.text.badge.plus" : "note.text")
-
-                            // Show indicator if annotation mode is active
-                            if isAnnotationMode {
-                                Circle()
-                                    .fill(.orange)
-                                    .frame(width: 8, height: 8)
-                                    .offset(x: 8, y: -8)
-                            }
+                            Circle()
+                                .fill(.orange)
+                                .frame(width: 8, height: 8)
+                                .offset(x: 8, y: -8)
                         }
                     }
-                    .accessibilityLabel("Annotations")
-                    .accessibilityHint(isAnnotationMode ? "Exit annotation mode" : "Add sticky notes")
                 }
+                .accessibilityLabel("Annotations")
+                .accessibilityHint(isAnnotationMode ? "Exit annotation mode" : "Add sticky notes")
             }
 
-            // Draw button (only for text view)
-            if viewMode == .text {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isDrawingMode.toggle()
+            // Draw button
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isDrawingMode.toggle()
+                    if isDrawingMode {
+                        isAnnotationMode = false // Exit annotation mode
+                    }
+                    HapticManager.shared.selection()
+                } label: {
+                    ZStack {
+                        Image(systemName: isDrawingMode ? "pencil.tip.crop.circle.badge.plus" : "pencil.tip.crop.circle")
+
+                        // Show indicator if drawing mode is active
                         if isDrawingMode {
-                            isAnnotationMode = false // Exit annotation mode
-                        }
-                        HapticManager.shared.selection()
-                    } label: {
-                        ZStack {
-                            Image(systemName: isDrawingMode ? "pencil.tip.crop.circle.badge.plus" : "pencil.tip.crop.circle")
-
-                            // Show indicator if drawing mode is active
-                            if isDrawingMode {
-                                Circle()
-                                    .fill(.green)
-                                    .frame(width: 8, height: 8)
-                                    .offset(x: 8, y: -8)
-                            }
+                            Circle()
+                                .fill(.green)
+                                .frame(width: 8, height: 8)
+                                .offset(x: 8, y: -8)
                         }
                     }
-                    .accessibilityLabel("Drawing")
-                    .accessibilityHint(isDrawingMode ? "Exit drawing mode" : "Draw on chart")
                 }
-            }
-
-            // Extract Text button (only for PDF view)
-            if viewMode == .pdf, hasPDFAttachment {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showExtractText = true
-                    } label: {
-                        Image(systemName: "doc.text.magnifyingglass")
-                    }
-                    .accessibilityLabel("Extract text from PDF")
-                    .accessibilityHint("Convert PDF to editable text")
-                }
+                .accessibilityLabel("Drawing")
+                .accessibilityHint(isDrawingMode ? "Exit drawing mode" : "Draw on chart")
             }
 
             // More menu
@@ -442,49 +289,15 @@ struct SongDisplayView: View {
                     Divider()
 
                     // Autoscroll
-                    if viewMode == .text {
-                        Section("Autoscroll") {
-                            Button {
-                                showAutoscrollDuration = true
-                            } label: {
-                                Label("Configure Duration", systemImage: "timer")
+                    Section("Autoscroll") {
+                        Toggle(isOn: Binding(
+                            get: { song.autoscrollEnabled },
+                            set: { enabled in
+                                song.autoscrollEnabled = enabled
+                                try? modelContext.save()
                             }
-
-                            Toggle(isOn: Binding(
-                                get: { song.autoscrollEnabled },
-                                set: { enabled in
-                                    song.autoscrollEnabled = enabled
-                                    try? modelContext.save()
-                                }
-                            )) {
-                                Label("Enable Autoscroll", systemImage: song.autoscrollEnabled ? "play.circle.fill" : "play.circle")
-                            }
-                        }
-
-                        Section("Advanced Autoscroll") {
-                            Button {
-                                showSpeedZones = true
-                            } label: {
-                                Label("Speed Zones", systemImage: "gauge.with.dots.needle.67percent")
-                            }
-
-                            Button {
-                                showTimelineRecording = true
-                            } label: {
-                                Label("Timeline Recording", systemImage: "waveform")
-                            }
-
-                            Button {
-                                showMarkers = true
-                            } label: {
-                                Label("Smart Markers", systemImage: "mappin.circle")
-                            }
-
-                            Button {
-                                showPresets = true
-                            } label: {
-                                Label("Presets", systemImage: "square.stack.3d.up")
-                            }
+                        )) {
+                            Label("Enable Autoscroll", systemImage: song.autoscrollEnabled ? "play.circle.fill" : "play.circle")
                         }
                     }
 
@@ -531,59 +344,19 @@ struct SongDisplayView: View {
         .sheet(isPresented: $showEditSongSheet) {
             EditSongView(song: song)
         }
-        .sheet(isPresented: $showExtractText) {
-            if let attachment = pdfAttachment,
-               let pdfData = attachment.fileData ?? loadPDFData(from: attachment),
-               let pdfDocument = PDFDocument(data: pdfData) {
-                ExtractTextFromPDFView(pdfDocument: pdfDocument, song: song)
-                    .onDisappear {
-                        // Refresh song content and switch to text view if extraction was successful
-                        if hasTextContent {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                viewMode = .text
-                            }
-                            parseSong()
-                        }
-                    }
-            }
-        }
-        .sheet(isPresented: $showAutoscrollDuration) {
-            AutoscrollDurationView(song: song)
-        }
-        .sheet(isPresented: $showSpeedZones) {
-            if let parsed = parsedSong {
-                SectionSpeedZoneEditorView(song: song, parsedSong: parsed)
-            }
-        }
-        .sheet(isPresented: $showTimelineRecording) {
-            TimelineRecordingView(song: song, autoscrollManager: autoscrollManager)
-        }
-        .sheet(isPresented: $showMarkers) {
-            AutoscrollMarkersView(song: song)
-        }
-        .sheet(isPresented: $showPresets) {
-            AutoscrollPresetsView(song: song, autoscrollManager: autoscrollManager)
-        }
         .sheet(isPresented: $showTranspose) {
             TransposeView(song: song) { semitones, preferSharps, saveMode in
                 handleTransposition(semitones: semitones, preferSharps: preferSharps, saveMode: saveMode)
             }
         }
-        .sheet(isPresented: $showCapo) {
-            CapoView(song: song, setEntry: setEntry) { capoFret in
-                handleCapoChange(capoFret: capoFret)
+        .onChange(of: showExportOptions) { _, show in
+            if show {
+                shareSongText()
+                showExportOptions = false
             }
         }
-        .sheet(isPresented: $showExportOptions) {
-            ExportOptionsView(
-                exportType: .song(song),
-                onExport: { format, configuration in
-                    exportSong(format: format, configuration: configuration)
-                }
-            )
-        }
         .sheet(item: $shareItem) { item in
-            ShareSheet(activityItems: item.items)
+            SongDisplayShareSheet(activityItems: item.items)
         }
         .alert("Export Error", isPresented: $showExportError) {
             Button("OK", role: .cancel) {}
@@ -617,18 +390,14 @@ struct SongDisplayView: View {
         .onAppear {
             parseSong()
             trackSongView()
-            // Default to PDF view if no text content exists
-            if hasPDFAttachment && !hasTextContent {
-                viewMode = .pdf
-            }
             // Auto-load tempo from song if available
             if let tempo = song.tempo, tempo > 0 {
                 metronomeManager.setBPM(Double(tempo))
             }
             // Check if low light mode should auto-enable
             lowLightManager.checkAutoEnable()
-            // Setup shortcuts and gestures
-            setupShortcutsAndGestures()
+            // Setup shortcuts
+            setupShortcuts()
         }
         .onChange(of: song.content) { _, _ in
             parseSong()
@@ -640,113 +409,6 @@ struct SongDisplayView: View {
     }
 
     // MARK: - View Components
-
-    @ViewBuilder
-    private var viewModePicker: some View {
-        Picker("View Mode", selection: $viewMode) {
-            if hasTextContent {
-                Label("Text", systemImage: "text.alignleft")
-                    .tag(SongViewMode.text)
-            }
-            if hasPDFAttachment {
-                Label("PDF", systemImage: "doc.fill")
-                    .tag(SongViewMode.pdf)
-            }
-        }
-        .pickerStyle(.segmented)
-        .accessibilityLabel("View mode")
-        .accessibilityHint("Switch between text and PDF views")
-    }
-
-    private var capoBadge: some View {
-        HStack(spacing: 12) {
-            // Capo indicator
-            HStack(spacing: 6) {
-                Image(systemName: "guitars")
-                    .foregroundStyle(.orange)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Capo Fret \(activeCapo)")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-
-                    if let key = song.currentKey {
-                        let playKey = CapoEngine.writtenKey(soundingKey: key, capoFret: activeCapo) ?? "?"
-                        Text("Play \(playKey) shapes")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            Spacer()
-
-            // Display mode toggle
-            Menu {
-                Picker("Display", selection: $capoDisplayMode) {
-                    ForEach(CapoDisplayMode.allCases) { mode in
-                        Label(mode.rawValue, systemImage: mode.icon)
-                            .tag(mode)
-                    }
-                }
-                .onChange(of: capoDisplayMode) { _, _ in
-                    parseSong()
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: capoDisplayMode.icon)
-                    Text(capoDisplayMode == .actual ? "Actual" : capoDisplayMode == .capo ? "Capo" : "Both")
-                        .font(.caption)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color(.systemGray5))
-                .clipShape(Capsule())
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func pdfContentView(attachment: Attachment) -> some View {
-        Group {
-            if let pdfData = attachment.fileData ?? loadPDFData(from: attachment),
-               let pdfDocument = PDFDocument(data: pdfData) {
-                PDFViewerView(
-                    pdfDocument: pdfDocument,
-                    filename: attachment.filename,
-                    lowLightManager: lowLightManager
-                )
-            } else {
-                // PDF loading error
-                VStack(spacing: 16) {
-                    Image(systemName: "doc.badge.exclamationmark")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.red)
-
-                    Text("Unable to load PDF")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-
-                    Text("The PDF file may be corrupted or missing.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-
-                    if hasTextContent {
-                        Button("View Text Version") {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                viewMode = .text
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding()
-            }
-        }
-    }
 
     @ViewBuilder
     private var textContentView: some View {
@@ -814,16 +476,6 @@ struct SongDisplayView: View {
                                         Text("No content available")
                                             .font(.headline)
                                             .foregroundStyle(.secondary)
-
-                                        if hasPDFAttachment {
-                                            Button("View PDF") {
-                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                    viewMode = .pdf
-                                                }
-                                            }
-                                            .buttonStyle(.bordered)
-                                            .padding(.top, 8)
-                                        }
                                     }
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .padding()
@@ -866,20 +518,17 @@ struct SongDisplayView: View {
             }
 
             // Autoscroll controls overlay
-            if song.autoscrollEnabled && viewMode == .text {
+            if song.autoscrollEnabled {
                 AutoscrollControlsView(
                     autoscrollManager: autoscrollManager,
                     onJumpToTop: {
-                        // Handled by manager
-                    },
-                    onConfigureDuration: {
-                        showAutoscrollDuration = true
+                        scrollToTop()
                     }
                 )
             }
 
             // Autoscroll indicator
-            if song.autoscrollEnabled && viewMode == .text {
+            if song.autoscrollEnabled {
                 VStack {
                     HStack {
                         Spacer()
@@ -923,44 +572,23 @@ struct SongDisplayView: View {
             }
 
             // Metronome indicator (bottom right)
-            if viewMode == .text {
-                VStack {
+            VStack {
+                Spacer()
+
+                HStack {
                     Spacer()
 
-                    HStack {
-                        Spacer()
-
-                        MetronomeIndicatorView(
-                            metronome: metronomeManager,
-                            onTap: {
-                                showMetronomeControls = true
-                            }
-                        )
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 16)
-                    }
+                    MetronomeIndicatorView(
+                        metronome: metronomeManager,
+                        onTap: {
+                            showMetronomeControls = true
+                        }
+                    )
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
                 }
             }
 
-            // Multi-finger gesture recognizer overlay
-            MultiFingerGestureView(
-                onLongPress: { location in
-                    handleLongPress(at: location)
-                },
-                onTwoFingerSwipeUp: {
-                    gestureManager.handleTwoFingerSwipeUp()
-                },
-                onTwoFingerSwipeDown: {
-                    gestureManager.handleTwoFingerSwipeDown()
-                },
-                onTwoFingerTap: {
-                    gestureManager.handleTwoFingerTap()
-                },
-                onThreeFingerTap: {
-                    gestureManager.handleThreeFingerTap()
-                }
-            )
-            .allowsHitTesting(!isAnnotationMode && !isDrawingMode)
         }
         .sheet(isPresented: $showMetronomeControls) {
             MetronomeControlsView(
@@ -972,26 +600,11 @@ struct SongDisplayView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        .environment(\.colorScheme, lowLightManager.isEnabled ? .dark : nil)
+        .preferredColorScheme(lowLightManager.isEnabled ? .dark : nil)
         .foregroundStyle(lowLightManager.isEnabled ? lowLightManager.textColor(for: .primary) : .primary)
     }
 
     // MARK: - Helper Methods
-
-    private func loadPDFData(from attachment: Attachment) -> Data? {
-        guard let filePath = attachment.filePath else { return nil }
-
-        // Construct full path in documents directory
-        let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let fileURL = documentsDirectory.appendingPathComponent(filePath)
-
-        do {
-            return try Data(contentsOf: fileURL)
-        } catch {
-            print("❌ Error loading PDF from \(filePath): \(error.localizedDescription)")
-            return nil
-        }
-    }
 
     private func parseSong() {
         isLoadingSong = true
@@ -1013,15 +626,7 @@ struct SongDisplayView: View {
 
     /// Track that the user viewed this song
     private func trackSongView() {
-        song.lastViewed = Date()
-        song.timesViewed += 1
-
-        // Save to SwiftData
-        do {
-            try modelContext.save()
-        } catch {
-            print("Error tracking song view: \(error)")
-        }
+        // Song view tracking removed - view stats feature was deleted
     }
 
     // MARK: - Transposition Methods
@@ -1221,7 +826,7 @@ struct SongDisplayView: View {
         withAnimation(.easeOut(duration: 0.3)) {
             proxy.scrollTo("scrollContent", anchor: .top)
         }
-        HapticManager.shared.impact(.light)
+        HapticManager.shared.light()
     }
 
     private func scrollToBottom() {
@@ -1229,7 +834,7 @@ struct SongDisplayView: View {
         withAnimation(.easeOut(duration: 0.3)) {
             proxy.scrollTo("scrollContent", anchor: .bottom)
         }
-        HapticManager.shared.impact(.light)
+        HapticManager.shared.light()
     }
 
     private func navigateToNextSong() {
@@ -1249,75 +854,49 @@ struct SongDisplayView: View {
         HapticManager.shared.selection()
     }
 
-    // MARK: - Export and Share Methods
+    // MARK: - Share Methods
 
-    private func exportSong(format: ExportManager.ExportFormat, configuration: PDFExporter.PDFConfiguration) {
-        isExporting = true
+    private func shareSongText() {
+        guard let data = song.content.data(using: .utf8) else { return }
+        let filename = "\(song.title).txt"
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
 
-        Task {
-            do {
-                let data = try await ExportManager.shared.exportSong(song, format: format, configuration: configuration)
-                let filename = "\(song.title).\(format.fileExtension)"
-
-                // Save to temporary file
-                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-                try data.write(to: tempURL)
-
-                // Show share sheet
-                await MainActor.run {
-                    shareItem = ShareItem(items: [tempURL])
-                    showShareSheet = true
-                    isExporting = false
-                }
-            } catch {
-                await MainActor.run {
-                    exportError = error
-                    showExportError = true
-                    isExporting = false
-                }
-            }
+        do {
+            try data.write(to: tempURL)
+            shareItem = SongDisplayShareItem(items: [tempURL])
+        } catch {
+            print("Error creating share file: \(error)")
         }
     }
 
     private func printSong() {
-        Task {
-            do {
-                let data = try await ExportManager.shared.exportSong(song, format: .pdf)
-                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(song.title).pdf")
-                try data.write(to: tempURL)
+        guard let data = song.content.data(using: .utf8) else { return }
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(song.title).txt")
 
-                await MainActor.run {
-                    let printController = UIPrintInteractionController.shared
-                    printController.printingItem = tempURL
-
-                    printController.present(animated: true) { _, completed, error in
-                        if let error = error {
-                            exportError = error
-                            showExportError = true
-                        }
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    exportError = error
-                    showExportError = true
+        do {
+            try data.write(to: tempURL)
+            let printController = UIPrintInteractionController.shared
+            printController.printingItem = tempURL
+            printController.present(animated: true) { _, _, error in
+                if let error = error {
+                    print("Print error: \(error)")
                 }
             }
+        } catch {
+            print("Error creating print file: \(error)")
         }
     }
 
     // MARK: - Keyboard and Gesture Handlers
 
     private func handleKeyCommand(_ input: String, modifierFlags: UIKeyModifierFlags) {
-        // Forward to both managers
         shortcutsManager.handleKeyCommand(input, modifierFlags: modifierFlags)
-        footPedalManager.handleKeyCommand(input, modifierFlags: modifierFlags)
     }
 
     private func handleLongPress(at location: CGPoint) {
         quickActionMenuPosition = location
         showQuickActionMenu = true
-        HapticManager.shared.impact(.medium)
+        HapticManager.shared.medium()
     }
 }
 
@@ -1898,14 +1477,14 @@ struct SetContextBanner: View {
 
 // MARK: - Share Item
 
-struct ShareItem: Identifiable {
+struct SongDisplayShareItem: Identifiable {
     let id = UUID()
     let items: [Any]
 }
 
 // MARK: - Share Sheet
 
-private struct ShareSheet: UIViewControllerRepresentable {
+private struct SongDisplayShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {

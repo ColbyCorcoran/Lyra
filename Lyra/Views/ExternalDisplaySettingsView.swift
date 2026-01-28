@@ -328,12 +328,12 @@ struct DisplayAppearanceView: View {
                 Section("Colors") {
                     ColorPicker("Background", selection: Binding(
                         get: { Color(hex: displayManager.configuration.backgroundColor) ?? .black },
-                        set: { displayManager.configuration.backgroundColor = $0.toHex() }
+                        set: { displayManager.configuration.backgroundColor = $0.toHex() ?? "#000000" }
                     ))
 
                     ColorPicker("Text", selection: Binding(
                         get: { Color(hex: displayManager.configuration.textColor) ?? .white },
-                        set: { displayManager.configuration.textColor = $0.toHex() }
+                        set: { displayManager.configuration.textColor = $0.toHex() ?? "#FFFFFF" }
                     ))
                 }
 
@@ -364,7 +364,7 @@ struct DisplayAppearanceView: View {
                     if displayManager.configuration.shadowEnabled {
                         ColorPicker("Shadow Color", selection: Binding(
                             get: { Color(hex: displayManager.configuration.shadowColor) ?? .black },
-                            set: { displayManager.configuration.shadowColor = $0.toHex() }
+                            set: { displayManager.configuration.shadowColor = $0.toHex() ?? "#000000" }
                         ))
 
                         VStack(alignment: .leading, spacing: 8) {
@@ -378,7 +378,7 @@ struct DisplayAppearanceView: View {
                     if displayManager.configuration.outlineEnabled {
                         ColorPicker("Outline Color", selection: Binding(
                             get: { Color(hex: displayManager.configuration.outlineColor) ?? .black },
-                            set: { displayManager.configuration.outlineColor = $0.toHex() }
+                            set: { displayManager.configuration.outlineColor = $0.toHex() ?? "#000000" }
                         ))
 
                         VStack(alignment: .leading, spacing: 8) {

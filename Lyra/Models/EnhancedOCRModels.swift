@@ -8,7 +8,6 @@
 
 import Foundation
 import SwiftUI
-import SwiftData
 import UIKit
 
 // MARK: - Enhanced OCR Result
@@ -290,12 +289,11 @@ struct BatchOCRError: Identifiable {
     var recoverable: Bool
 }
 
-// MARK: - SwiftData Models
+// MARK: - SwiftData Models (converted to regular structs - not persisted)
 
 /// User-specific handwriting profile for personalized recognition
-@Model
-class HandwritingProfile {
-    @Attribute(.unique) var id: UUID
+class HandwritingProfile: Codable {
+    var id: UUID
     var userId: String
     var samplesData: Data // Encoded character samples
     var createdAt: Date
@@ -313,9 +311,8 @@ class HandwritingProfile {
 }
 
 /// History of OCR corrections for learning
-@Model
-class OCRCorrectionHistory {
-    @Attribute(.unique) var id: UUID
+class OCRCorrectionHistory: Codable {
+    var id: UUID
     var originalText: String
     var correctedText: String
     var correctionType: String // CorrectionType.rawValue
@@ -335,9 +332,8 @@ class OCRCorrectionHistory {
 }
 
 /// Cache of OCR processing results
-@Model
-class OCRProcessingCache {
-    @Attribute(.unique) var imageHash: String
+class OCRProcessingCache: Codable {
+    var imageHash: String
     var resultData: Data // Encoded EnhancedOCRResult
     var timestamp: Date
 

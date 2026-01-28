@@ -231,7 +231,7 @@ struct MetronomeControlsView: View {
                 .font(.headline)
 
             Picker("Time Signature", selection: $metronome.timeSignature) {
-                ForEach(TimeSignature.allCases) { signature in
+                ForEach(MetronomeTimeSignature.allCases) { signature in
                     Text(signature.displayName).tag(signature)
                 }
             }

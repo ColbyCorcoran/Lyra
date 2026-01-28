@@ -30,10 +30,10 @@ class LowLightModeManager {
     var autoEnableStartHour: Int = 20 // 8 PM
     var autoEnableEndHour: Int = 7 // 7 AM
 
-    // MARK: - Private Properties
+    // MARK: - Internal Properties
 
     private var originalBrightness: CGFloat = 0.5
-    private var brightnessOverride: CGFloat?
+    var brightnessOverride: CGFloat?
 
     // MARK: - Initialization
 

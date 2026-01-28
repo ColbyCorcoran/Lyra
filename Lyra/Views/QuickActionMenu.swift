@@ -151,13 +151,13 @@ class GestureShortcutsManager {
     func handleTwoFingerSwipeUp() {
         guard isEnabled && twoFingerSwipeEnabled else { return }
         onScrollToTop?()
-        HapticManager.shared.impact(.medium)
+        HapticManager.shared.medium()
     }
 
     func handleTwoFingerSwipeDown() {
         guard isEnabled && twoFingerSwipeEnabled else { return }
         onScrollToBottom?()
-        HapticManager.shared.impact(.medium)
+        HapticManager.shared.medium()
     }
 
     func handleTwoFingerTap() {

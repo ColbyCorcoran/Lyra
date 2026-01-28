@@ -9,7 +9,6 @@
 //
 
 import Foundation
-import SwiftData
 
 // MARK: - Formatting Result
 
@@ -482,8 +481,8 @@ struct BatchFormattingResult: Codable {
 // MARK: - Formatting History
 
 /// Historical record of formatting operations
-@Model
-class FormattingHistory {
+// @Model removed - converted to struct (not persisted)
+class FormattingHistory: Codable {
     var id: UUID = UUID()
     var songID: UUID
     var timestamp: Date = Date()

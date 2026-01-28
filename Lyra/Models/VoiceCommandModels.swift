@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import SwiftData
 
 // MARK: - Command Intent
 
@@ -147,8 +146,8 @@ struct CommandEntity: Codable, Identifiable {
 // MARK: - Voice Command
 
 /// Represents a processed voice command
-@Model
-class VoiceCommand {
+// @Model removed - converted to struct
+class VoiceCommand: Codable {
     var id: UUID
     var rawText: String
     var processedText: String
@@ -244,8 +243,8 @@ struct CommandOption: Identifiable {
 // MARK: - Conversation Context
 
 /// Maintains conversation state
-@Model
-class ConversationContext {
+// @Model removed - converted to struct
+class ConversationContext: Codable {
     var id: UUID
     var sessionStart: Date
     var lastActivity: Date
@@ -286,8 +285,8 @@ class ConversationContext {
 // MARK: - Command Pattern
 
 /// Learned command pattern
-@Model
-class CommandPattern {
+// @Model removed - converted to struct
+class CommandPattern: Codable {
     var id: UUID
     var patternText: String
     var intent: String
@@ -331,8 +330,8 @@ class CommandPattern {
 // MARK: - User Command Vocabulary
 
 /// User's custom vocabulary and shortcuts
-@Model
-class UserCommandVocabulary {
+// @Model removed - converted to struct
+class UserCommandVocabulary: Codable {
     var id: UUID
     var userID: String
     var customTerms: Data  // [String: String] encoded (custom term -> standard term)
@@ -370,8 +369,8 @@ class UserCommandVocabulary {
 // MARK: - Command Feedback
 
 /// User feedback on command execution
-@Model
-class CommandFeedback {
+// @Model removed - converted to struct
+class CommandFeedback: Codable {
     var id: UUID
     var commandID: UUID
     var wasCorrect: Bool
@@ -482,8 +481,8 @@ struct NaturalLanguageQuery: Codable {
 // MARK: - Command Statistics
 
 /// Statistics for command usage
-@Model
-class CommandStatistics {
+// @Model removed - converted to struct
+class CommandStatistics: Codable {
     var id: UUID
     var intentCounts: Data  // [String: Int] encoded
     var entityCounts: Data  // [String: Int] encoded

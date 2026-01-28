@@ -181,6 +181,17 @@ class AutoscrollManager: ObservableObject {
         generator.impactOccurred()
     }
 
+    /// Toggle autoscroll state
+    func toggle() {
+        if !isScrolling {
+            start()
+        } else if isPaused {
+            resume()
+        } else {
+            pause()
+        }
+    }
+
     func stop() {
         isScrolling = false
         isPaused = false

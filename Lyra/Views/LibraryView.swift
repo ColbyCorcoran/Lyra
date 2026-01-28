@@ -172,8 +172,8 @@ struct LibraryView: View {
             }
             .fileImporter(
                 isPresented: $showFileImporter,
-                allowedContentTypes: ImportManager.supportedTypes,
-                allowsMultipleSelection: true
+                allowedContentTypes: [.text, .plainText, .data],
+                allowsMultipleSelection: false
             ) { result in
                 handleFileImport(result: result)
             }
@@ -283,17 +283,8 @@ struct LibraryView: View {
     private func handleFileImport(result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
-            guard !urls.isEmpty else { return }
-
-            // If multiple files, use bulk import
-            if urls.count > 1 {
-                queueManager.clearQueue()
-                queueManager.addToQueue(urls: urls)
-                showBulkImportProgress = true
-            } else {
-                // Single file, use regular import
-                importFile(from: urls[0])
-            }
+            guard let url = urls.first else { return }
+            importFile(from: url)
 
         case .failure(let error):
             showError(
@@ -308,40 +299,40 @@ struct LibraryView: View {
         importProgress = 0.0
 
         do {
-            let result = try ImportManager.shared.importFile(
-                from: url,
-                to: modelContext,
-                progress: { progress in
-                    importProgress = progress
-                }
-            )
-
-            importedSong = result.song
-            isImporting = false
-
-            if result.hadParsingWarnings {
-                HapticManager.shared.warning()
-                // Show warning but still treat as success
-                showError(
-                    message: "Import completed with warnings",
-                    recovery: "The file was imported but some ChordPro formatting may not have been recognized."
-                )
-            } else {
-                HapticManager.shared.success()
-                showImportSuccess = true
+            // Start accessing security scoped resource
+            guard url.startAccessingSecurityScopedResource() else {
+                throw NSError(domain: "Lyra", code: 1, userInfo: [NSLocalizedDescriptionKey: "Cannot access file"])
             }
+            defer { url.stopAccessingSecurityScopedResource() }
 
-        } catch let error as ImportError {
-            isImporting = false
-            failedImportURL = url
-            HapticManager.shared.operationFailed()
-            showError(
-                message: error.errorDescription ?? "Import failed",
-                recovery: error.recoverySuggestion ?? ""
+            // Read file content
+            let content = try String(contentsOf: url, encoding: .utf8)
+            let filename = url.deletingPathExtension().lastPathComponent
+
+            // Create song from content
+            let song = Song(
+                title: filename,
+                content: content,
+                contentFormat: .chordPro
             )
+            song.importSource = "File Import"
+            song.importedAt = Date()
+
+            // Try to parse metadata from ChordPro directives
+            parseChordProMetadata(from: content, into: song)
+
+            // Insert into context
+            modelContext.insert(song)
+            try modelContext.save()
+
+            importedSong = song
+            isImporting = false
+            HapticManager.shared.success()
+            showImportSuccess = true
 
         } catch {
             isImporting = false
+            failedImportURL = url
             HapticManager.shared.operationFailed()
             showError(
                 message: "Import failed",
@@ -350,16 +341,70 @@ struct LibraryView: View {
         }
     }
 
+    private func parseChordProMetadata(from content: String, into song: Song) {
+        let lines = content.components(separatedBy: .newlines)
+
+        for line in lines.prefix(50) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("{title:") || trimmed.hasPrefix("{t:") {
+                if let value = extractDirectiveValue(from: trimmed) {
+                    song.title = value
+                }
+            } else if trimmed.hasPrefix("{artist:") || trimmed.hasPrefix("{a:") {
+                if let value = extractDirectiveValue(from: trimmed) {
+                    song.artist = value
+                }
+            } else if trimmed.hasPrefix("{key:") || trimmed.hasPrefix("{k:") {
+                if let value = extractDirectiveValue(from: trimmed) {
+                    song.originalKey = value
+                    song.currentKey = value
+                }
+            } else if trimmed.hasPrefix("{tempo:") {
+                if let value = extractDirectiveValue(from: trimmed), let tempo = Int(value) {
+                    song.tempo = tempo
+                }
+            } else if trimmed.hasPrefix("{capo:") {
+                if let value = extractDirectiveValue(from: trimmed), let capo = Int(value) {
+                    song.capo = capo
+                }
+            }
+        }
+    }
+
+    private func extractDirectiveValue(from line: String) -> String? {
+        guard let colonIndex = line.firstIndex(of: ":"),
+              let closingBrace = line.lastIndex(of: "}") else {
+            return nil
+        }
+        let startIndex = line.index(after: colonIndex)
+        let value = String(line[startIndex..<closingBrace]).trimmingCharacters(in: .whitespaces)
+        return value.isEmpty ? nil : value
+    }
+
     private func importAsPlainText() {
         guard let url = failedImportURL else { return }
 
         do {
-            let result = try ImportManager.shared.importAsPlainText(
-                from: url,
-                to: modelContext
-            )
+            guard url.startAccessingSecurityScopedResource() else {
+                throw NSError(domain: "Lyra", code: 1, userInfo: [NSLocalizedDescriptionKey: "Cannot access file"])
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
 
-            importedSong = result.song
+            let content = try String(contentsOf: url, encoding: .utf8)
+            let filename = url.deletingPathExtension().lastPathComponent
+
+            let song = Song(
+                title: filename,
+                content: content,
+                contentFormat: .plainText
+            )
+            song.importSource = "Plain Text Import"
+            song.importedAt = Date()
+
+            modelContext.insert(song)
+            try modelContext.save()
+
+            importedSong = song
             failedImportURL = nil
             showImportSuccess = true
 

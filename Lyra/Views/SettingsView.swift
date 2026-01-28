@@ -13,10 +13,6 @@ struct SettingsView: View {
     @AppStorage("globalLyricsColor") private var globalLyricsColor: String = "#000000"
     @AppStorage("globalSpacing") private var globalSpacing: Double = 8
 
-    @State private var showOnSongImport: Bool = false
-    @State private var showImportHistory: Bool = false
-    @State private var showExportLibrary: Bool = false
-    @State private var showAttachmentStorage: Bool = false
     @State private var showAutoscrollSettings: Bool = false
     @State private var showAccessibilitySettings: Bool = false
     @State private var showHelp: Bool = false
@@ -29,63 +25,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Library Section
-                Section {
-                    Button {
-                        showOnSongImport = true
-                    } label: {
-                        HStack {
-                            Label("Import from OnSong", systemImage: "arrow.down.doc.fill")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-
-                    Button {
-                        showImportHistory = true
-                    } label: {
-                        HStack {
-                            Label("Import History", systemImage: "clock.arrow.circlepath")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-
-                    Button {
-                        showExportLibrary = true
-                    } label: {
-                        HStack {
-                            Label("Export Library", systemImage: "square.and.arrow.up.on.square")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-
-                    Button {
-                        showAttachmentStorage = true
-                    } label: {
-                        HStack {
-                            Label("Attachment Storage", systemImage: "externaldrive")
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .foregroundStyle(.primary)
-                    }
-                } header: {
-                    Label("Library", systemImage: "books.vertical")
-                }
-
                 // Song Display Section
                 Section {
                     Button {
@@ -319,18 +258,6 @@ struct SettingsView: View {
             }
             .onChange(of: globalSpacing) { _, _ in
                 saveGlobalSettings()
-            }
-            .sheet(isPresented: $showOnSongImport) {
-                OnSongImportView()
-            }
-            .sheet(isPresented: $showImportHistory) {
-                ImportHistoryView()
-            }
-            .sheet(isPresented: $showExportLibrary) {
-                LibraryExportView()
-            }
-            .sheet(isPresented: $showAttachmentStorage) {
-                AttachmentStorageView()
             }
             .sheet(isPresented: $showAutoscrollSettings) {
                 AutoscrollSettingsView()

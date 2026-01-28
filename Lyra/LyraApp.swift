@@ -20,7 +20,8 @@ struct LyraApp: App {
             PerformanceSet.self,
             SetEntry.self,
             Annotation.self,
-            UserSettings.self
+            UserSettings.self,
+            RecurrenceRule.self
         ])
 
         // Disable CloudKit integration - we're using local-only storage
@@ -53,6 +54,9 @@ struct LyraApp: App {
                         handleUniversalLink(url: url)
                     }
                 }
+                .task {
+                    await generateRecurringInstances()
+                }
         }
         .modelContainer(sharedModelContainer)
     }
@@ -68,6 +72,31 @@ struct LyraApp: App {
     private func handleUniversalLink(url: URL) {
         Task { @MainActor in
             DeepLinkHandler.shared.handleUniversalLink(url: url)
+        }
+    }
+
+    // MARK: - Recurring Set Instance Generation
+
+    @MainActor
+    private func generateRecurringInstances() async {
+        let context = sharedModelContainer.mainContext
+        let monthsAhead = UserDefaults.standard.integer(forKey: "recurringInstanceGenerationMonths")
+        let months = monthsAhead > 0 ? monthsAhead : 3
+
+        let descriptor = FetchDescriptor<PerformanceSet>(
+            predicate: #Predicate { set in
+                set.recurrenceRule != nil && set.recurrenceStopped == false
+            }
+        )
+
+        guard let templates = try? context.fetch(descriptor) else { return }
+
+        for template in templates {
+            try? RecurrenceManager.generateInstancesIfNeeded(
+                for: template,
+                context: context,
+                monthsAhead: months
+            )
         }
     }
 }

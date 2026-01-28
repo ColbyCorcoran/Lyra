@@ -182,6 +182,9 @@ struct SettingsView: View {
                     Text("These settings apply to all new songs. Individual songs can override these defaults.")
                 }
 
+                // Recurring Sets Section
+                RecurringSetPreferencesSection()
+
                 // App Information Section
                 Section {
                     HStack {
@@ -319,6 +322,28 @@ private struct SettingsShareSheet: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+// MARK: - Recurring Set Preferences Section
+
+struct RecurringSetPreferencesSection: View {
+    @AppStorage("recurringInstanceGenerationMonths") private var recurringInstanceGenerationMonths: Int = 3
+
+    var body: some View {
+        Section {
+            Picker("Generate Recurring Sets", selection: $recurringInstanceGenerationMonths) {
+                Text("1 month ahead").tag(1)
+                Text("2 months ahead").tag(2)
+                Text("3 months ahead").tag(3)
+                Text("6 months ahead").tag(6)
+                Text("12 months ahead").tag(12)
+            }
+        } header: {
+            Label("Recurring Sets", systemImage: "repeat")
+        } footer: {
+            Text("Controls how far in advance recurring set instances are generated. More months will create more instances but use more storage.")
+        }
+    }
 }
 
 // MARK: - Preview

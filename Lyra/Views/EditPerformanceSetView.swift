@@ -23,6 +23,11 @@ struct EditPerformanceSetView: View {
     @State private var hasScheduledDate: Bool
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
+    @State private var showEditRecurringAlert: Bool = false
+    @State private var recurrenceRule: RecurrenceRule?
+    @State private var showRecurrenceBuilder: Bool = false
+    @State private var showVenueSuggestions: Bool = false
+    @State private var venueSuggestions: [String] = []
 
     init(performanceSet: PerformanceSet) {
         self.performanceSet = performanceSet
@@ -33,6 +38,7 @@ struct EditPerformanceSetView: View {
         _notes = State(initialValue: performanceSet.notes ?? "")
         _scheduledDate = State(initialValue: performanceSet.scheduledDate ?? Date())
         _hasScheduledDate = State(initialValue: performanceSet.scheduledDate != nil)
+        _recurrenceRule = State(initialValue: performanceSet.recurrenceRule)
     }
 
     var body: some View {
@@ -63,8 +69,42 @@ struct EditPerformanceSetView: View {
                 // MARK: - Event Details Section
 
                 Section {
-                    TextField("Venue", text: $venue)
-                        .autocorrectionDisabled()
+                    VStack(alignment: .leading, spacing: 0) {
+                        TextField("Venue", text: $venue)
+                            .autocorrectionDisabled()
+                            .onChange(of: venue) { _, newValue in
+                                updateVenueSuggestions(for: newValue)
+                            }
+
+                        if !venueSuggestions.isEmpty && !venue.isEmpty {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ForEach(venueSuggestions, id: \.self) { suggestion in
+                                    Button {
+                                        venue = suggestion
+                                        venueSuggestions = []
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "mappin.circle")
+                                                .foregroundStyle(.secondary)
+                                            Text(suggestion)
+                                                .foregroundStyle(.primary)
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 12)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if suggestion != venueSuggestions.last {
+                                        Divider()
+                                    }
+                                }
+                            }
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                            .padding(.top, 4)
+                        }
+                    }
 
                     TextField("Folder/Category", text: $folder)
                         .autocorrectionDisabled()
@@ -79,12 +119,43 @@ struct EditPerformanceSetView: View {
                             displayedComponents: [.date, .hourAndMinute]
                         )
                         .datePickerStyle(.graphical)
+
+                        // Only show recurrence for template sets, not instances
+                        if !performanceSet.isRecurringInstance {
+                            Button {
+                                showRecurrenceBuilder = true
+                            } label: {
+                                HStack {
+                                    Label("Recurrence", systemImage: "repeat")
+                                    Spacer()
+                                    if let rule = recurrenceRule {
+                                        Text(rule.humanReadableDescription)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    } else {
+                                        Text("None")
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 } header: {
                     Text("Event Details")
                 } footer: {
                     if hasScheduledDate {
-                        Text("The set will be organized by this scheduled date")
+                        if performanceSet.isRecurringInstance {
+                            Text("This is a recurring instance. Changes may affect this instance only or all future instances.")
+                        } else if recurrenceRule != nil {
+                            Text("This set will automatically create recurring instances")
+                        } else {
+                            Text("The set will be organized by this scheduled date")
+                        }
                     }
                 }
 
@@ -131,6 +202,20 @@ struct EditPerformanceSetView: View {
             } message: {
                 Text(errorMessage)
             }
+            .alert("Edit Recurring Set", isPresented: $showEditRecurringAlert) {
+                Button("Cancel", role: .cancel) {}
+                Button("This One Only") {
+                    saveChangesThisInstanceOnly()
+                }
+                Button("This and All Future") {
+                    saveChangesTemplateAndFuture()
+                }
+            } message: {
+                Text("This is a recurring set instance. Do you want to edit just this instance or all future instances?")
+            }
+            .sheet(isPresented: $showRecurrenceBuilder) {
+                RecurrenceRuleBuilderView(recurrenceRule: $recurrenceRule)
+            }
         }
     }
 
@@ -146,14 +231,15 @@ struct EditPerformanceSetView: View {
             return
         }
 
-        // Update set properties
-        performanceSet.name = trimmedName
-        performanceSet.setDescription = setDescription.isEmpty ? nil : setDescription
-        performanceSet.venue = venue.isEmpty ? nil : venue
-        performanceSet.folder = folder.isEmpty ? nil : folder
-        performanceSet.notes = notes.isEmpty ? nil : notes
-        performanceSet.scheduledDate = hasScheduledDate ? scheduledDate : nil
-        performanceSet.modifiedAt = Date()
+        // Check if this is a recurring instance - if so, show alert
+        if performanceSet.isRecurringInstance {
+            showEditRecurringAlert = true
+            return
+        }
+
+        // Not a recurring instance, save normally
+        applyChanges(to: performanceSet)
+        attachRecurrenceRule()
 
         // Save to SwiftData
         do {
@@ -166,6 +252,65 @@ struct EditPerformanceSetView: View {
             showErrorAlert = true
             HapticManager.shared.operationFailed()
         }
+    }
+
+    private func saveChangesThisInstanceOnly() {
+        do {
+            try RecurrenceManager.updateSingleInstance(
+                performanceSet,
+                updateBlock: { set in
+                    applyChanges(to: set)
+                },
+                context: modelContext
+            )
+            HapticManager.shared.saveSuccess()
+            dismiss()
+        } catch {
+            print("❌ Error saving instance changes: \(error.localizedDescription)")
+            errorMessage = "Unable to save changes. Please try again."
+            showErrorAlert = true
+            HapticManager.shared.operationFailed()
+        }
+    }
+
+    private func saveChangesTemplateAndFuture() {
+        do {
+            try RecurrenceManager.updateTemplateAndFutureInstances(
+                performanceSet,
+                updateBlock: { set in
+                    applyChanges(to: set)
+                },
+                context: modelContext
+            )
+            HapticManager.shared.saveSuccess()
+            dismiss()
+        } catch {
+            print("❌ Error saving template changes: \(error.localizedDescription)")
+            errorMessage = "Unable to save changes. Please try again."
+            showErrorAlert = true
+            HapticManager.shared.operationFailed()
+        }
+    }
+
+    private func applyChanges(to set: PerformanceSet) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        set.name = trimmedName
+        set.setDescription = setDescription.isEmpty ? nil : setDescription
+        set.venue = venue.isEmpty ? nil : venue
+        set.folder = folder.isEmpty ? nil : folder
+        set.notes = notes.isEmpty ? nil : notes
+        set.scheduledDate = hasScheduledDate ? scheduledDate : nil
+        set.modifiedAt = Date()
+    }
+
+    private func attachRecurrenceRule() {
+        if let rule = recurrenceRule {
+            performanceSet.recurrenceRule = rule
+        }
+    }
+
+    private func updateVenueSuggestions(for searchText: String) {
+        venueSuggestions = RecurrenceManager.getVenueHistory(matching: searchText, context: modelContext)
     }
 }
 

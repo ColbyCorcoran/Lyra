@@ -116,6 +116,9 @@ struct SetListView: View {
         .sheet(isPresented: $showAddSetSheet) {
             AddPerformanceSetView()
         }
+        .task {
+            await generateRecurringInstancesIfNeeded()
+        }
     }
 
     // MARK: - Set List Content
@@ -214,6 +217,28 @@ struct SetListView: View {
             HapticManager.shared.operationFailed()
         }
     }
+
+    @MainActor
+    private func generateRecurringInstancesIfNeeded() async {
+        let monthsAhead = UserDefaults.standard.integer(forKey: "recurringInstanceGenerationMonths")
+        let months = monthsAhead > 0 ? monthsAhead : 3
+
+        let descriptor = FetchDescriptor<PerformanceSet>(
+            predicate: #Predicate { set in
+                set.recurrenceRule != nil && set.recurrenceStopped == false
+            }
+        )
+
+        guard let templates = try? modelContext.fetch(descriptor) else { return }
+
+        for template in templates {
+            try? RecurrenceManager.generateInstancesIfNeeded(
+                for: template,
+                context: modelContext,
+                monthsAhead: months
+            )
+        }
+    }
 }
 
 // MARK: - Enhanced Set Empty State View
@@ -300,6 +325,16 @@ struct SetRowView: View {
                         Image(systemName: "archivebox.fill")
                             .font(.caption)
                             .foregroundStyle(.orange)
+                    }
+
+                    if performanceSet.isRecurringTemplate {
+                        Image(systemName: "repeat")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                    } else if performanceSet.isRecurringInstance {
+                        Image(systemName: "link")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
                     }
                 }
 

@@ -20,6 +20,10 @@ struct AddPerformanceSetView: View {
     @State private var hasScheduledDate: Bool = false
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
+    @State private var recurrenceRule: RecurrenceRule?
+    @State private var showRecurrenceBuilder: Bool = false
+    @State private var showVenueSuggestions: Bool = false
+    @State private var venueSuggestions: [String] = []
 
     var body: some View {
         NavigationStack {
@@ -49,8 +53,42 @@ struct AddPerformanceSetView: View {
                 // MARK: - Event Details Section
 
                 Section {
-                    TextField("Venue", text: $venue)
-                        .autocorrectionDisabled()
+                    VStack(alignment: .leading, spacing: 0) {
+                        TextField("Venue", text: $venue)
+                            .autocorrectionDisabled()
+                            .onChange(of: venue) { _, newValue in
+                                updateVenueSuggestions(for: newValue)
+                            }
+
+                        if !venueSuggestions.isEmpty && !venue.isEmpty {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ForEach(venueSuggestions, id: \.self) { suggestion in
+                                    Button {
+                                        venue = suggestion
+                                        venueSuggestions = []
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "mappin.circle")
+                                                .foregroundStyle(.secondary)
+                                            Text(suggestion)
+                                                .foregroundStyle(.primary)
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 12)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if suggestion != venueSuggestions.last {
+                                        Divider()
+                                    }
+                                }
+                            }
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                            .padding(.top, 4)
+                        }
+                    }
 
                     FolderPickerField(selectedFolder: $folder)
 
@@ -64,12 +102,38 @@ struct AddPerformanceSetView: View {
                             displayedComponents: [.date, .hourAndMinute]
                         )
                         .datePickerStyle(.graphical)
+
+                        Button {
+                            showRecurrenceBuilder = true
+                        } label: {
+                            HStack {
+                                Label("Recurrence", systemImage: "repeat")
+                                Spacer()
+                                if let rule = recurrenceRule {
+                                    Text(rule.humanReadableDescription)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                } else {
+                                    Text("None")
+                                        .foregroundStyle(.secondary)
+                                }
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .buttonStyle(.plain)
                     }
                 } header: {
                     Text("Event Details")
                 } footer: {
                     if hasScheduledDate {
-                        Text("The set will be organized by this scheduled date")
+                        if recurrenceRule != nil {
+                            Text("This set will automatically create recurring instances")
+                        } else {
+                            Text("The set will be organized by this scheduled date")
+                        }
                     }
                 }
 
@@ -110,6 +174,9 @@ struct AddPerformanceSetView: View {
             } message: {
                 Text(errorMessage)
             }
+            .sheet(isPresented: $showRecurrenceBuilder) {
+                RecurrenceRuleBuilderView(recurrenceRule: $recurrenceRule)
+            }
         }
     }
 
@@ -134,6 +201,11 @@ struct AddPerformanceSetView: View {
         newSet.venue = venue.isEmpty ? nil : venue
         newSet.folder = folder
 
+        // Attach recurrence rule if set
+        if let rule = recurrenceRule {
+            newSet.recurrenceRule = rule
+        }
+
         modelContext.insert(newSet)
 
         do {
@@ -146,6 +218,10 @@ struct AddPerformanceSetView: View {
             showErrorAlert = true
             HapticManager.shared.operationFailed()
         }
+    }
+
+    private func updateVenueSuggestions(for searchText: String) {
+        venueSuggestions = RecurrenceManager.getVenueHistory(matching: searchText, context: modelContext)
     }
 }
 

@@ -27,6 +27,9 @@ struct SetDetailView: View {
     @State private var selectedEntry: SetEntry?
     @State private var cachedEntries: [SetEntry] = []
     @State private var shareItem: SetDetailShareItem?
+    @State private var showDuplicateSheet: Bool = false
+    @State private var showDeleteRecurringAlert: Bool = false
+    @State private var showStopRecurrenceConfirmation: Bool = false
 
     private var songCount: Int {
         cachedEntries.count
@@ -65,6 +68,9 @@ struct SetDetailView: View {
         .sheet(item: $shareItem) { (item: SetDetailShareItem) in
             SetDetailShareSheet(activityItems: item.items)
         }
+        .sheet(isPresented: $showDuplicateSheet) {
+            DuplicateSetView(originalSet: performanceSet)
+        }
         .alert("Delete Set?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -72,6 +78,28 @@ struct SetDetailView: View {
             }
         } message: {
             Text("This will permanently delete \"\(performanceSet.name)\". Songs will not be deleted.")
+        }
+        .alert("Delete Recurring Set", isPresented: $showDeleteRecurringAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete This One Only", role: .destructive) {
+                deleteRecurringSet(option: .thisOnly)
+            }
+            Button("Delete All Future", role: .destructive) {
+                deleteRecurringSet(option: .allFuture)
+            }
+            Button("Stop Creating New (Keep Existing)", role: .destructive) {
+                deleteRecurringSet(option: .stopRecurrence)
+            }
+        } message: {
+            Text("This is a recurring set instance. How would you like to proceed?")
+        }
+        .alert("Stop Recurrence?", isPresented: $showStopRecurrenceConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Stop", role: .destructive) {
+                stopRecurrence()
+            }
+        } message: {
+            Text("No new instances will be created, but existing instances will remain.")
         }
         .onAppear {
             refreshEntries()
@@ -105,6 +133,14 @@ struct SetDetailView: View {
                     Text(formatDate(date))
                         .font(.subheadline)
                 }
+            } else if performanceSet.isMonthYearOnly {
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(performanceSet.displayDate)
+                        .font(.subheadline)
+                }
             }
 
             if let venue = performanceSet.venue, !venue.isEmpty {
@@ -114,6 +150,27 @@ struct SetDetailView: View {
                         .foregroundStyle(.secondary)
                     Text(venue)
                         .font(.subheadline)
+                }
+            }
+
+            // Recurring indicators
+            if performanceSet.isRecurringTemplate {
+                HStack(spacing: 6) {
+                    Image(systemName: "repeat")
+                        .font(.subheadline)
+                        .foregroundStyle(.blue)
+                    Text("Template")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
+            } else if performanceSet.isRecurringInstance {
+                HStack(spacing: 6) {
+                    Image(systemName: "link")
+                        .font(.subheadline)
+                        .foregroundStyle(.blue)
+                    Text("Recurring")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
                 }
             }
         }
@@ -251,10 +308,30 @@ struct SetDetailView: View {
                     Label("Edit Set", systemImage: "pencil")
                 }
 
+                Button {
+                    showDuplicateSheet = true
+                } label: {
+                    Label("Duplicate Set", systemImage: "plus.square.on.square")
+                }
+
                 Divider()
 
+                if performanceSet.isRecurringTemplate && !performanceSet.recurrenceStopped {
+                    Button {
+                        showStopRecurrenceConfirmation = true
+                    } label: {
+                        Label("Stop Recurrence", systemImage: "stop.circle")
+                    }
+
+                    Divider()
+                }
+
                 Button(role: .destructive) {
-                    showDeleteConfirmation = true
+                    if performanceSet.isRecurringInstance {
+                        showDeleteRecurringAlert = true
+                    } else {
+                        showDeleteConfirmation = true
+                    }
                 } label: {
                     Label("Delete Set", systemImage: "trash")
                 }
@@ -309,6 +386,35 @@ struct SetDetailView: View {
             dismiss()
         } catch {
             print("❌ Error deleting set: \(error.localizedDescription)")
+            HapticManager.shared.operationFailed()
+        }
+    }
+
+    private func deleteRecurringSet(option: RecurrenceDeleteOption) {
+        do {
+            try RecurrenceManager.deleteRecurringSet(
+                performanceSet,
+                option: option,
+                context: modelContext
+            )
+            HapticManager.shared.success()
+
+            // Dismiss only if we deleted this instance
+            if option == .thisOnly || option == .allFuture {
+                dismiss()
+            }
+        } catch {
+            print("❌ Error deleting recurring set: \(error.localizedDescription)")
+            HapticManager.shared.operationFailed()
+        }
+    }
+
+    private func stopRecurrence() {
+        do {
+            try RecurrenceManager.stopRecurrence(for: performanceSet, context: modelContext)
+            HapticManager.shared.success()
+        } catch {
+            print("❌ Error stopping recurrence: \(error.localizedDescription)")
             HapticManager.shared.operationFailed()
         }
     }

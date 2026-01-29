@@ -32,6 +32,13 @@ enum SectionBreakBehavior: String, Codable {
     case spaceBefore
 }
 
+enum ImportSource: String, Codable {
+    case pdf
+    case word
+    case plainText
+    case inAppDesigner
+}
+
 // MARK: - Template Model
 
 @Model
@@ -69,6 +76,11 @@ final class Template {
     // MARK: - Layout Rules
     var sectionBreakBehavior: SectionBreakBehavior
 
+    // MARK: - Import Metadata
+    var importSource: ImportSource?
+    var importedFromURL: String?
+    var importedAt: Date?
+
     // MARK: - Relationships
     // Note: The relationship with Song will be established when Song.swift is modified
     // to add the template property (as per Phase 1 implementation plan)
@@ -88,7 +100,10 @@ final class Template {
         headingFontSize: Double = 18.0,
         bodyFontSize: Double = 16.0,
         chordFontSize: Double = 14.0,
-        sectionBreakBehavior: SectionBreakBehavior = .spaceBefore
+        sectionBreakBehavior: SectionBreakBehavior = .spaceBefore,
+        importSource: ImportSource? = nil,
+        importedFromURL: String? = nil,
+        importedAt: Date? = nil
     ) {
         self.id = UUID()
         self.createdAt = Date()
@@ -107,6 +122,9 @@ final class Template {
         self.bodyFontSize = bodyFontSize
         self.chordFontSize = chordFontSize
         self.sectionBreakBehavior = sectionBreakBehavior
+        self.importSource = importSource
+        self.importedFromURL = importedFromURL
+        self.importedAt = importedAt
     }
 
     // MARK: - Built-in Templates

@@ -343,6 +343,134 @@ struct TemplateTests {
         #expect(behavior3.rawValue == "spaceBefore")
     }
 
+    @Test("ImportSource enum has correct cases")
+    func testImportSourceEnum() throws {
+        let source1 = ImportSource.pdf
+        let source2 = ImportSource.word
+        let source3 = ImportSource.plainText
+        let source4 = ImportSource.inAppDesigner
+
+        #expect(source1.rawValue == "pdf")
+        #expect(source2.rawValue == "word")
+        #expect(source3.rawValue == "plainText")
+        #expect(source4.rawValue == "inAppDesigner")
+    }
+
+    // MARK: - Import Metadata Tests
+
+    @Test("Template creation with default import metadata")
+    func testTemplateCreationWithDefaultImportMetadata() throws {
+        let template = Template(name: "Test Template")
+
+        #expect(template.importSource == nil)
+        #expect(template.importedFromURL == nil)
+        #expect(template.importedAt == nil)
+    }
+
+    @Test("Template creation with PDF import metadata")
+    func testTemplateCreationWithPDFImportMetadata() throws {
+        let importDate = Date()
+        let template = Template(
+            name: "Imported Template",
+            importSource: .pdf,
+            importedFromURL: "/path/to/template.pdf",
+            importedAt: importDate
+        )
+
+        #expect(template.importSource == .pdf)
+        #expect(template.importedFromURL == "/path/to/template.pdf")
+        #expect(template.importedAt == importDate)
+    }
+
+    @Test("Template creation with Word import metadata")
+    func testTemplateCreationWithWordImportMetadata() throws {
+        let importDate = Date()
+        let template = Template(
+            name: "Word Template",
+            importSource: .word,
+            importedFromURL: "/path/to/template.docx",
+            importedAt: importDate
+        )
+
+        #expect(template.importSource == .word)
+        #expect(template.importedFromURL == "/path/to/template.docx")
+        #expect(template.importedAt == importDate)
+    }
+
+    @Test("Template creation with plain text import metadata")
+    func testTemplateCreationWithPlainTextImportMetadata() throws {
+        let importDate = Date()
+        let template = Template(
+            name: "Text Template",
+            importSource: .plainText,
+            importedFromURL: "/path/to/template.txt",
+            importedAt: importDate
+        )
+
+        #expect(template.importSource == .plainText)
+        #expect(template.importedFromURL == "/path/to/template.txt")
+        #expect(template.importedAt == importDate)
+    }
+
+    @Test("Template creation with inAppDesigner source")
+    func testTemplateCreationWithInAppDesignerSource() throws {
+        let template = Template(
+            name: "Custom Template",
+            importSource: .inAppDesigner
+        )
+
+        #expect(template.importSource == .inAppDesigner)
+        #expect(template.importedFromURL == nil)
+        #expect(template.importedAt == nil)
+    }
+
+    @Test("Import metadata persists in SwiftData")
+    func testImportMetadataPersistence() throws {
+        let importDate = Date()
+        let template = Template(
+            name: "Imported Template",
+            columnCount: 2,
+            importSource: .pdf,
+            importedFromURL: "/path/to/document.pdf",
+            importedAt: importDate
+        )
+
+        context.insert(template)
+        try context.save()
+
+        let descriptor = FetchDescriptor<Template>()
+        let templates = try context.fetch(descriptor)
+
+        #expect(templates.count == 1)
+        #expect(templates[0].name == "Imported Template")
+        #expect(templates[0].importSource == .pdf)
+        #expect(templates[0].importedFromURL == "/path/to/document.pdf")
+        #expect(templates[0].importedAt != nil)
+    }
+
+    @Test("Import metadata can be updated")
+    func testImportMetadataUpdate() throws {
+        let template = Template(name: "Test Template")
+        context.insert(template)
+        try context.save()
+
+        #expect(template.importSource == nil)
+
+        let importDate = Date()
+        template.importSource = .pdf
+        template.importedFromURL = "/new/path.pdf"
+        template.importedAt = importDate
+        try context.save()
+
+        let descriptor = FetchDescriptor<Template>()
+        let templates = try context.fetch(descriptor)
+
+        #expect(templates.count == 1)
+        #expect(templates[0].importSource == .pdf)
+        #expect(templates[0].importedFromURL == "/new/path.pdf")
+        #expect(templates[0].importedAt != nil)
+    }
+
     // MARK: - SwiftData Persistence Tests
 
     @Test("Template can be saved and fetched from SwiftData")

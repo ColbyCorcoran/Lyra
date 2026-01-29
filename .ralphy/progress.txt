@@ -16,3 +16,7 @@
 - [✓] 2026-01-29 04:29 - No SwiftData schema migration errors
 - [✓] 2026-01-29 04:36 - App launches successfully
 - [✓] 2026-01-29 04:46 - Launch app fresh → built-in templates created automatically
+- [✓] 2026-01-29 18:43 - Add .lyra file import UI
+- [✓] 2026-01-29 18:48 - Create `/Lyra/Utilities/TemplateImporter.swift`
+- [✓] 2026-01-29 18:53 - Create `/Lyra/Views/TemplateImportView.swift`
+- [✓] 2026-01-29 18:58 - Create `/Lyra/Views/TemplateLibraryView.swift`

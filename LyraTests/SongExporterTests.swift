@@ -8,6 +8,7 @@
 import Testing
 import Foundation
 import SwiftData
+import UniformTypeIdentifiers
 @testable import Lyra
 
 @Suite("SongExporter Tests")
@@ -53,19 +54,19 @@ struct SongExporterTests {
         let song = Song(
             title: title,
             artist: artist,
-            album: album,
-            year: year,
-            copyright: copyright,
-            ccliNumber: ccliNumber,
-            originalKey: originalKey,
-            currentKey: originalKey,
-            tempo: tempo,
-            timeSignature: timeSignature,
-            capo: capo,
             content: content,
             contentFormat: contentFormat,
-            notes: notes
+            originalKey: originalKey
         )
+
+        song.album = album
+        song.year = year
+        song.copyright = copyright
+        song.ccliNumber = ccliNumber
+        song.tempo = tempo
+        song.timeSignature = timeSignature
+        song.capo = capo
+        song.notes = notes
 
         context.insert(song)
         return song

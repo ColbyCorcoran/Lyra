@@ -8,6 +8,7 @@
 import Testing
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 @testable import Lyra
 
 @Suite("SongDetailView Tests")

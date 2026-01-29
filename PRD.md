@@ -172,7 +172,7 @@ Add "Templates" section with NavigationLink to TemplateLibraryView
 
 ### Implementation Checklist - Phase 2A (PDF Import)
 
-- [ ] Create `/Lyra/Utilities/TemplateImporter.swift`
+- [x] Create `/Lyra/Utilities/TemplateImporter.swift`
   - [ ] Define `TemplateImporter` class with static import methods
   - [ ] Implement `importFromPDF(url:name:context:)` async method
   - [ ] Implement `analyzePDFLayout(_:)` to extract DocumentLayout
@@ -184,7 +184,7 @@ Add "Templates" section with NavigationLink to TemplateLibraryView
   - [ ] Define `DocumentLayout`, `TextElement`, `ColumnStructure`, `TypographyProfile` structs
   - [ ] Define `TemplateImportError` enum with localized descriptions
 
-- [ ] Create `/Lyra/Views/TemplateImportView.swift`
+- [x] Create `/Lyra/Views/TemplateImportView.swift`
   - [ ] Define `TemplateImportView` SwiftUI view
   - [ ] Add template name TextField with validation
   - [ ] Add import format picker (PDF, Word, Plain Text)
@@ -195,7 +195,7 @@ Add "Templates" section with NavigationLink to TemplateLibraryView
   - [ ] Add preview sheet to show imported template in TemplateEditorView
   - [ ] Add Cancel toolbar button
 
-- [ ] Create `/Lyra/Views/TemplateLibraryView.swift`
+- [x] Create `/Lyra/Views/TemplateLibraryView.swift`
   - [ ] Define `TemplateLibraryView` with @Query for templates
   - [ ] Add search bar with searchable modifier
   - [ ] Add "Built-in Templates" section
@@ -426,7 +426,7 @@ Add "Export Song" option to context menu
   - [ ] Insert song into context
   - [ ] Handle version compatibility
 
-- [ ] Add .lyra file import UI
+- [x] Add .lyra file import UI
   - [ ] Add .lyra to file picker supported types
   - [ ] Add "Import Lyra Bundle" option to library
   - [ ] Show preview before importing

@@ -9,9 +9,11 @@ import Testing
 import SwiftUI
 import SwiftData
 import PDFKit
+import UniformTypeIdentifiers
 @testable import Lyra
 
 @Suite("TemplateImportView Tests")
+@MainActor
 struct TemplateImportViewTests {
 
     // MARK: - Test Helpers

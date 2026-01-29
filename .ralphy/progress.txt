@@ -1,2 +1,18 @@
 # Ralphy Progress Log
 
+- [✓] 2026-01-28 16:14 - task
+- [✓] 2026-01-28 22:31 - Create `/Lyra/Models/Template.swift`
+- [✓] 2026-01-28 22:37 - Create `/Lyra/Utilities/TemplateManager.swift`
+- [✓] 2026-01-28 22:46 - Create `/Lyra/Utilities/ColumnLayoutEngine.swift`
+- [✓] 2026-01-28 22:56 - Create `/Lyra/Views/MultiColumnSongView.swift`
+- [✓] 2026-01-29 03:39 - Create `/Lyra/Views/TemplateEditorView.swift`
+- [✓] 2026-01-29 03:44 - Create `/Lyra/Views/TemplateSelectionSheet.swift`
+- [✓] 2026-01-29 03:49 - Modify `/Lyra/Models/Song.swift`
+- [✓] 2026-01-29 03:56 - Modify `/Lyra/Views/SongDisplayView.swift`
+- [✓] 2026-01-29 03:57 - Modify `/Lyra/LyraApp.swift`
+- [✓] 2026-01-29 03:57 - Modify `/Lyra/Models/DisplaySettings.swift`
+- [✓] 2026-01-29 04:03 - Project builds without errors
+- [✓] 2026-01-29 04:14 - All new files compile successfully
+- [✓] 2026-01-29 04:29 - No SwiftData schema migration errors
+- [✓] 2026-01-29 04:36 - App launches successfully
+- [✓] 2026-01-29 04:46 - Launch app fresh → built-in templates created automatically

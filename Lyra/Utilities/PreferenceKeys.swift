@@ -94,6 +94,26 @@ extension UserDefaults {
         }
     }
 
+    // MARK: - Template Preferences
+
+    private static let defaultTemplateIDKey = "defaultTemplateID"
+
+    var defaultTemplateID: UUID? {
+        get {
+            if let uuidString = string(forKey: Self.defaultTemplateIDKey) {
+                return UUID(uuidString: uuidString)
+            }
+            return nil
+        }
+        set {
+            if let uuid = newValue {
+                set(uuid.uuidString, forKey: Self.defaultTemplateIDKey)
+            } else {
+                removeObject(forKey: Self.defaultTemplateIDKey)
+            }
+        }
+    }
+
     // MARK: - Helper Methods
 
     /// Reset all book preferences to defaults

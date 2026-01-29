@@ -16,6 +16,7 @@ struct LyraApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Song.self,
+            Template.self,
             Book.self,
             PerformanceSet.self,
             SetEntry.self,

@@ -42,6 +42,10 @@ final class Song {
     @Relationship(deleteRule: .cascade, inverse: \Annotation.song)
     var annotations: [Annotation]?
 
+    // MARK: - Template
+    @Relationship(deleteRule: .nullify)
+    var template: Template?
+
     // MARK: - Performance Settings
     var autoscrollDuration: Int? // Seconds
     var autoscrollEnabled: Bool
@@ -126,6 +130,31 @@ final class Song {
     /// Clear custom display settings (revert to global defaults)
     func clearCustomDisplaySettings() {
         displaySettingsData = nil
+    }
+
+    // MARK: - Template Helpers
+
+    /// Get effective template (song-specific or global default or built-in fallback)
+    func effectiveTemplate(context: ModelContext) -> Template {
+        // 1. Use song-specific template if set
+        if let songTemplate = template {
+            return songTemplate
+        }
+
+        // 2. Use global default template if set
+        if let defaultTemplateID = UserDefaults.standard.defaultTemplateID {
+            let descriptor = FetchDescriptor<Template>(
+                predicate: #Predicate { template in
+                    template.id == defaultTemplateID
+                }
+            )
+            if let defaultTemplate = try? context.fetch(descriptor).first {
+                return defaultTemplate
+            }
+        }
+
+        // 3. Fallback to built-in single column template
+        return Template.builtInSingleColumn()
     }
 
 }

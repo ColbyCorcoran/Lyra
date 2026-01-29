@@ -18,12 +18,20 @@ class PreviewContainer {
     private init() {
         let schema = Schema([
             Song.self,
+            Template.self,
             Book.self,
             PerformanceSet.self,
             SetEntry.self,
             Annotation.self,
-            UserSettings.self
+            UserSettings.self,
+            RecurrenceRule.self
         ])
+
+        // Validate preview schema matches production schema
+        let missingModels = SchemaVersioning.validateSchema(schema)
+        if !missingModels.isEmpty {
+            fatalError("Preview schema validation failed. Missing models: \(missingModels.joined(separator: ", "))")
+        }
 
         let modelConfiguration = ModelConfiguration(
             schema: schema,

@@ -25,6 +25,17 @@ struct LyraApp: App {
             RecurrenceRule.self
         ])
 
+        // Validate schema integrity to prevent migration errors
+        let missingModels = SchemaVersioning.validateSchema(schema)
+        if !missingModels.isEmpty {
+            fatalError("Schema validation failed. Missing models: \(missingModels.joined(separator: ", "))")
+        }
+
+        // Validate entity count matches expected
+        if !SchemaVersioning.validateEntityCount(schema) {
+            fatalError("Schema entity count mismatch. Expected \(SchemaVersioning.expectedModelCount) but got \(schema.entities.count)")
+        }
+
         // Disable CloudKit integration - we're using local-only storage
         let modelConfiguration = ModelConfiguration(
             schema: schema,

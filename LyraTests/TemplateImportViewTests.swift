@@ -59,10 +59,11 @@ struct TemplateImportViewTests {
     func testImportFormatCases() {
         let formats = ImportFormat.allCases
 
-        #expect(formats.count == 3)
+        #expect(formats.count == 4)
         #expect(formats.contains(.pdf))
         #expect(formats.contains(.word))
         #expect(formats.contains(.plainText))
+        #expect(formats.contains(.lyraBundle))
     }
 
     @Test("ImportFormat PDF is supported")
@@ -70,14 +71,19 @@ struct TemplateImportViewTests {
         #expect(ImportFormat.pdf.isSupported == true)
     }
 
-    @Test("ImportFormat Word is not yet supported")
-    func testWordFormatNotSupported() {
-        #expect(ImportFormat.word.isSupported == false)
+    @Test("ImportFormat Word is supported")
+    func testWordFormatSupported() {
+        #expect(ImportFormat.word.isSupported == true)
     }
 
-    @Test("ImportFormat Plain Text is not yet supported")
-    func testPlainTextFormatNotSupported() {
-        #expect(ImportFormat.plainText.isSupported == false)
+    @Test("ImportFormat Plain Text is supported")
+    func testPlainTextFormatSupported() {
+        #expect(ImportFormat.plainText.isSupported == true)
+    }
+
+    @Test("ImportFormat Lyra Bundle is supported")
+    func testLyraBundleFormatSupported() {
+        #expect(ImportFormat.lyraBundle.isSupported == true)
     }
 
     // MARK: - ImportFormat Display Properties Tests
@@ -121,6 +127,26 @@ struct TemplateImportViewTests {
         #expect(ImportFormat.plainText.iconName == "doc.plaintext")
     }
 
+    @Test("Lyra Bundle format has correct display name")
+    func testLyraBundleDisplayName() {
+        #expect(ImportFormat.lyraBundle.displayName == "Lyra Bundle")
+    }
+
+    @Test("Lyra Bundle format has correct icon name")
+    func testLyraBundleIconName() {
+        #expect(ImportFormat.lyraBundle.iconName == "square.and.arrow.down.on.square")
+    }
+
+    @Test("Lyra Bundle format has descriptive description")
+    func testLyraBundleDescription() {
+        let description = ImportFormat.lyraBundle.description
+
+        #expect(!description.isEmpty)
+        #expect(description.contains("Lyra"))
+        #expect(description.contains("bundle"))
+        #expect(description.contains(".lyra"))
+    }
+
     // MARK: - ImportFormat Identifiable Tests
 
     @Test("ImportFormat id matches rawValue")
@@ -128,6 +154,7 @@ struct TemplateImportViewTests {
         #expect(ImportFormat.pdf.id == ImportFormat.pdf.rawValue)
         #expect(ImportFormat.word.id == ImportFormat.word.rawValue)
         #expect(ImportFormat.plainText.id == ImportFormat.plainText.rawValue)
+        #expect(ImportFormat.lyraBundle.id == ImportFormat.lyraBundle.rawValue)
     }
 
     @Test("ImportFormat ids are unique")

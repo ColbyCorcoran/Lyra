@@ -191,6 +191,8 @@ struct TemplateImportView: View {
             return [.rtf, UTType(filenameExtension: "docx") ?? .data]
         case .plainText:
             return [.plainText, .text]
+        case .lyraBundle:
+            return [UTType(filenameExtension: "lyra") ?? .data]
         }
     }
 
@@ -268,6 +270,14 @@ struct TemplateImportView: View {
                     name: trimmedName,
                     context: modelContext
                 )
+
+            case .lyraBundle:
+                importProgress = "Loading Lyra bundle..."
+                template = try await TemplateImporter.importFromLyraBundle(
+                    url: url,
+                    name: trimmedName,
+                    context: modelContext
+                )
             }
 
             importProgress = "Import complete"
@@ -305,6 +315,7 @@ enum ImportFormat: String, CaseIterable, Identifiable {
     case pdf = "PDF"
     case word = "Word Document"
     case plainText = "Plain Text"
+    case lyraBundle = "Lyra Bundle"
 
     var id: String { rawValue }
 
@@ -318,6 +329,8 @@ enum ImportFormat: String, CaseIterable, Identifiable {
             return "doc.richtext"
         case .plainText:
             return "doc.plaintext"
+        case .lyraBundle:
+            return "square.and.arrow.down.on.square"
         }
     }
 
@@ -329,12 +342,14 @@ enum ImportFormat: String, CaseIterable, Identifiable {
             return "Import from Word documents (.docx). Column structure, fonts, and chord positioning will be automatically detected."
         case .plainText:
             return "Import from plain text files (.txt). Basic formatting and structure will be inferred from content patterns."
+        case .lyraBundle:
+            return "Import from a Lyra bundle file (.lyra). All template settings will be loaded directly from the bundle."
         }
     }
 
     var isSupported: Bool {
         switch self {
-        case .pdf, .word, .plainText:
+        case .pdf, .word, .plainText, .lyraBundle:
             return true
         }
     }

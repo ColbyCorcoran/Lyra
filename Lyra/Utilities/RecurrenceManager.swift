@@ -269,13 +269,66 @@ struct RecurrenceManager {
 
     /// Delete recurring set with options
     static func deleteRecurringSet(
-        _ instance: PerformanceSet,
+        _ set: PerformanceSet,
         option: RecurrenceDeleteOption,
         context: ModelContext
     ) throws {
-        guard let templateId = instance.recurringTemplateId else {
-            // Not a recurring instance, just delete normally
-            context.delete(instance)
+        // Check if this is a template set
+        if set.isRecurringTemplate {
+            let templateId = set.id
+
+            switch option {
+            case .thisOnly:
+                // Delete template and make all instances independent
+                let allInstancesDescriptor = FetchDescriptor<PerformanceSet>(
+                    predicate: #Predicate { instance in
+                        instance.recurringTemplateId == templateId
+                    }
+                )
+
+                let instances = try context.fetch(allInstancesDescriptor)
+
+                // Make all instances independent
+                for instance in instances {
+                    instance.isRecurringInstance = false
+                    instance.recurringTemplateId = nil
+                    instance.instanceDate = nil
+                }
+
+                // Delete the template
+                context.delete(set)
+
+            case .allFuture:
+                // Delete template and ALL instances
+                let allInstancesDescriptor = FetchDescriptor<PerformanceSet>(
+                    predicate: #Predicate { instance in
+                        instance.recurringTemplateId == templateId
+                    }
+                )
+
+                let instances = try context.fetch(allInstancesDescriptor)
+
+                // Delete all instances
+                for instance in instances {
+                    context.delete(instance)
+                }
+
+                // Delete the template
+                context.delete(set)
+
+            case .stopRecurrence:
+                // Just stop the recurrence
+                set.recurrenceStopped = true
+            }
+
+            try context.save()
+            return
+        }
+
+        // Handle recurring instance deletion
+        guard let templateId = set.recurringTemplateId else {
+            // Not a recurring set, just delete normally
+            context.delete(set)
             try context.save()
             return
         }
@@ -283,40 +336,76 @@ struct RecurrenceManager {
         switch option {
         case .thisOnly:
             // Delete only this instance
-            context.delete(instance)
+            context.delete(set)
+            try context.save()
 
         case .allFuture:
             // Delete this instance and all future instances
-            let instanceDate = instance.instanceDate ?? instance.scheduledDate ?? Date()
+            let instanceDate = set.instanceDate ?? set.scheduledDate ?? Date()
 
+            print("🔍 Looking for future instances from templateId: \(templateId), starting from: \(instanceDate)")
+
+            // Fetch all instances with this template ID
             let futureDescriptor = FetchDescriptor<PerformanceSet>(
-                predicate: #Predicate { set in
-                    set.recurringTemplateId == templateId &&
-                    set.instanceDate != nil &&
-                    set.instanceDate! >= instanceDate
+                predicate: #Predicate { instance in
+                    instance.recurringTemplateId == templateId
                 }
             )
 
-            let futureInstances = try context.fetch(futureDescriptor)
+            do {
+                let allInstances = try context.fetch(futureDescriptor)
 
-            for futureInstance in futureInstances {
-                context.delete(futureInstance)
+                // Filter for future instances AFTER this one (not including this one)
+                let futureInstances = allInstances.filter { instance in
+                    guard let date = instance.instanceDate else { return false }
+                    return date > instanceDate
+                }
+
+                print("📊 Found \(futureInstances.count) future instances to delete")
+
+                guard !futureInstances.isEmpty else {
+                    print("⚠️ No future instances found")
+                    return
+                }
+
+                // First, explicitly delete all SetEntry objects to avoid cascade delete issues
+                for instance in futureInstances {
+                    if let entries = instance.songEntries {
+                        print("🗑️ Deleting \(entries.count) entries for: \(instance.name)")
+                        for entry in entries {
+                            context.delete(entry)
+                        }
+                    }
+                }
+
+                // Then delete all the PerformanceSet instances
+                for instance in futureInstances {
+                    print("🗑️ Deleting set: \(instance.name) on \(instance.instanceDate?.description ?? "no date")")
+                    context.delete(instance)
+                }
+
+                // Save once after all deletions
+                try context.save()
+                print("✅ Successfully deleted \(futureInstances.count) future sets")
+            } catch {
+                print("❌ Error during batch deletion: \(error)")
+                throw error
             }
 
         case .stopRecurrence:
             // Find and update the template to stop generating new instances
             let templateDescriptor = FetchDescriptor<PerformanceSet>(
-                predicate: #Predicate { set in
-                    set.id == templateId
+                predicate: #Predicate { template in
+                    template.id == templateId
                 }
             )
 
             if let template = try context.fetch(templateDescriptor).first {
                 template.recurrenceStopped = true
             }
-        }
 
-        try context.save()
+            try context.save()
+        }
     }
 
     /// Stop recurrence for a template set

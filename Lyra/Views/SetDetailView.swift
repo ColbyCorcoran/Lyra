@@ -30,6 +30,8 @@ struct SetDetailView: View {
     @State private var showDuplicateSheet: Bool = false
     @State private var showDeleteRecurringAlert: Bool = false
     @State private var showStopRecurrenceConfirmation: Bool = false
+    @State private var showStopRecurrenceSuccess: Bool = false
+    @State private var stopRecurrenceMessage: String = ""
 
     private var songCount: Int {
         cachedEntries.count
@@ -100,6 +102,11 @@ struct SetDetailView: View {
             }
         } message: {
             Text("No new instances will be created, but existing instances will remain.")
+        }
+        .alert("Recurrence Stopped", isPresented: $showStopRecurrenceSuccess) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(stopRecurrenceMessage)
         }
         .onAppear {
             refreshEntries()
@@ -327,7 +334,7 @@ struct SetDetailView: View {
                 }
 
                 Button(role: .destructive) {
-                    if performanceSet.isRecurringInstance {
+                    if performanceSet.isRecurringInstance || performanceSet.isRecurringTemplate {
                         showDeleteRecurringAlert = true
                     } else {
                         showDeleteConfirmation = true
@@ -399,8 +406,13 @@ struct SetDetailView: View {
             )
             HapticManager.shared.success()
 
-            // Dismiss only if we deleted this instance
-            if option == .thisOnly || option == .allFuture {
+            // Show success message for stopRecurrence option
+            if option == .stopRecurrence {
+                showStopRecurrenceSuccessMessage()
+            }
+
+            // Dismiss only if we deleted this specific instance
+            if option == .thisOnly {
                 dismiss()
             }
         } catch {
@@ -413,10 +425,43 @@ struct SetDetailView: View {
         do {
             try RecurrenceManager.stopRecurrence(for: performanceSet, context: modelContext)
             HapticManager.shared.success()
+            showStopRecurrenceSuccessMessage()
         } catch {
             print("❌ Error stopping recurrence: \(error.localizedDescription)")
             HapticManager.shared.operationFailed()
         }
+    }
+
+    private func showStopRecurrenceSuccessMessage() {
+        // Find the latest instance date to show in the message
+        let templateId = performanceSet.isRecurringTemplate ? performanceSet.id : performanceSet.recurringTemplateId
+
+        guard let templateId = templateId else {
+            stopRecurrenceMessage = "Recurrence stopped. All existing sets have been kept."
+            showStopRecurrenceSuccess = true
+            return
+        }
+
+        let descriptor = FetchDescriptor<PerformanceSet>(
+            predicate: #Predicate { set in
+                set.recurringTemplateId == templateId
+            },
+            sortBy: [SortDescriptor(\.instanceDate, order: .reverse)]
+        )
+
+        if let instances = try? modelContext.fetch(descriptor),
+           let latestInstance = instances.first,
+           let latestDate = latestInstance.instanceDate {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            let dateString = formatter.string(from: latestDate)
+
+            stopRecurrenceMessage = "Recurrence stopped successfully. All existing sets through \(dateString) have been kept. No new recurring sets will be created after this date."
+        } else {
+            stopRecurrenceMessage = "Recurrence stopped. All existing sets have been kept. No new recurring sets will be created."
+        }
+
+        showStopRecurrenceSuccess = true
     }
 
     private func moveEntries(from source: IndexSet, to destination: Int) {

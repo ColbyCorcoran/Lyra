@@ -26,6 +26,9 @@ enum BookSortOption: String, CaseIterable {
 
 struct BookListView: View {
     @Query private var allBooks: [Book]
+
+    @AppStorage("booksSortOption") private var storedSortOption: String = BookSortOption.nameAZ.rawValue
+
     @State private var showAddBookSheet: Bool = false
     @State private var selectedSort: BookSortOption = .nameAZ
 
@@ -75,6 +78,16 @@ struct BookListView: View {
                 }
                 .accessibilityLabel("Sort books")
             }
+        }
+        .onAppear {
+            // Load stored preference on first appear
+            if let stored = BookSortOption(rawValue: storedSortOption) {
+                selectedSort = stored
+            }
+        }
+        .onChange(of: selectedSort) { _, newSort in
+            // Save sort preference
+            storedSortOption = newSort.rawValue
         }
         .sheet(isPresented: $showAddBookSheet) {
             AddBookView()

@@ -28,6 +28,10 @@ struct EditPerformanceSetView: View {
     @State private var showRecurrenceBuilder: Bool = false
     @State private var showVenueSuggestions: Bool = false
     @State private var venueSuggestions: [String] = []
+    @State private var showFolderSuggestions: Bool = false
+    @State private var folderSuggestions: [String] = []
+    @State private var showVenueBrowser: Bool = false
+    @State private var showFolderBrowser: Bool = false
 
     init(performanceSet: PerformanceSet) {
         self.performanceSet = performanceSet
@@ -69,29 +73,47 @@ struct EditPerformanceSetView: View {
                 // MARK: - Event Details Section
 
                 Section {
+                    // Venue field with icon and browse button
                     VStack(alignment: .leading, spacing: 0) {
-                        TextField("Venue", text: $venue)
-                            .autocorrectionDisabled()
-                            .onChange(of: venue) { _, newValue in
-                                updateVenueSuggestions(for: newValue)
-                            }
+                        HStack(spacing: 12) {
+                            Image(systemName: "mappin.circle.fill")
+                                .foregroundStyle(.red)
+                                .font(.title3)
+                                .frame(width: 24)
 
-                        if !venueSuggestions.isEmpty && !venue.isEmpty {
+                            TextField("Venue (optional)", text: $venue)
+                                .autocorrectionDisabled()
+                                .onChange(of: venue) { _, newValue in
+                                    updateVenueSuggestions(for: newValue)
+                                }
+
+                            Button {
+                                showVenueBrowser = true
+                            } label: {
+                                Image(systemName: "list.bullet")
+                                    .foregroundStyle(.blue)
+                            }
+                            .accessibilityLabel("Browse venues")
+                        }
+
+                        if showVenueSuggestions && !venueSuggestions.isEmpty {
                             VStack(alignment: .leading, spacing: 0) {
                                 ForEach(venueSuggestions, id: \.self) { suggestion in
                                     Button {
                                         venue = suggestion
-                                        venueSuggestions = []
+                                        showVenueSuggestions = false
                                     } label: {
                                         HStack {
-                                            Image(systemName: "mappin.circle")
+                                            Image(systemName: "mappin.circle.fill")
                                                 .foregroundStyle(.secondary)
+                                                .font(.caption)
                                             Text(suggestion)
                                                 .foregroundStyle(.primary)
                                             Spacer()
                                         }
                                         .padding(.vertical, 8)
                                         .padding(.horizontal, 12)
+                                        .background(Color(.systemGray6))
                                     }
                                     .buttonStyle(.plain)
 
@@ -101,13 +123,67 @@ struct EditPerformanceSetView: View {
                                 }
                             }
                             .background(Color(.systemGray6))
-                            .cornerRadius(8)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                             .padding(.top, 4)
+                            .padding(.leading, 36)
                         }
                     }
 
-                    TextField("Folder/Category", text: $folder)
-                        .autocorrectionDisabled()
+                    // Folder field with icon and browse button
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "folder.fill")
+                                .foregroundStyle(.blue)
+                                .font(.title3)
+                                .frame(width: 24)
+
+                            TextField("Folder (optional)", text: $folder)
+                                .autocorrectionDisabled()
+                                .onChange(of: folder) { _, newValue in
+                                    updateFolderSuggestions(newValue)
+                                }
+
+                            Button {
+                                showFolderBrowser = true
+                            } label: {
+                                Image(systemName: "list.bullet")
+                                    .foregroundStyle(.blue)
+                            }
+                            .accessibilityLabel("Browse folders")
+                        }
+
+                        if showFolderSuggestions && !folderSuggestions.isEmpty {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ForEach(folderSuggestions, id: \.self) { suggestion in
+                                    Button {
+                                        folder = suggestion
+                                        showFolderSuggestions = false
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "folder.fill")
+                                                .foregroundStyle(.secondary)
+                                                .font(.caption)
+                                            Text(suggestion)
+                                                .foregroundStyle(.primary)
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 12)
+                                        .background(Color(.systemGray6))
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if suggestion != folderSuggestions.last {
+                                        Divider()
+                                    }
+                                }
+                            }
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .padding(.top, 4)
+                            .padding(.leading, 36)
+                        }
+                    }
 
                     // Date toggle and picker
                     Toggle("Schedule Date & Time", isOn: $hasScheduledDate)
@@ -156,6 +232,8 @@ struct EditPerformanceSetView: View {
                         } else {
                             Text("The set will be organized by this scheduled date")
                         }
+                    } else {
+                        Text("Tap the list icon to browse existing venues or folders")
                     }
                 }
 
@@ -215,6 +293,14 @@ struct EditPerformanceSetView: View {
             }
             .sheet(isPresented: $showRecurrenceBuilder) {
                 RecurrenceRuleBuilderView(recurrenceRule: $recurrenceRule)
+            }
+            .sheet(isPresented: $showVenueBrowser) {
+                VenueBrowserSheet(selectedVenue: $venue, isPresented: $showVenueBrowser)
+                    .environment(\.modelContext, modelContext)
+            }
+            .sheet(isPresented: $showFolderBrowser) {
+                FolderBrowserSheet(selectedFolder: $folder, isPresented: $showFolderBrowser)
+                    .environment(\.modelContext, modelContext)
             }
         }
     }
@@ -310,7 +396,47 @@ struct EditPerformanceSetView: View {
     }
 
     private func updateVenueSuggestions(for searchText: String) {
+        if searchText.isEmpty {
+            showVenueSuggestions = false
+            venueSuggestions = []
+            return
+        }
+
         venueSuggestions = RecurrenceManager.getVenueHistory(matching: searchText, context: modelContext)
+        showVenueSuggestions = !venueSuggestions.isEmpty
+    }
+
+    private func updateFolderSuggestions(_ searchText: String) {
+        if searchText.isEmpty {
+            showFolderSuggestions = false
+            folderSuggestions = []
+            return
+        }
+
+        folderSuggestions = getFolderHistory(matching: searchText)
+        showFolderSuggestions = !folderSuggestions.isEmpty
+    }
+
+    private func getFolderHistory(matching searchText: String) -> [String] {
+        let descriptor = FetchDescriptor<PerformanceSet>(
+            predicate: #Predicate { set in
+                set.folder != nil
+            },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+
+        guard let allSets = try? modelContext.fetch(descriptor) else { return [] }
+
+        // Get unique folders
+        let folders = Set(allSets.compactMap { $0.folder })
+
+        // Filter by search text
+        let filtered = searchText.isEmpty
+            ? Array(folders)
+            : folders.filter { $0.localizedCaseInsensitiveContains(searchText) }
+
+        // Return top 5 matches, sorted alphabetically
+        return Array(filtered.sorted().prefix(5))
     }
 }
 

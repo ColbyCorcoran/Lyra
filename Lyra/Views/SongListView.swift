@@ -12,6 +12,7 @@ enum SortOption: String, CaseIterable {
     case titleAZ = "Title (A-Z)"
     case titleZA = "Title (Z-A)"
     case artistAZ = "Artist (A-Z)"
+    case artistZA = "Artist (Z-A)"
     case recentlyAdded = "Recently Added"
     case recentlyViewed = "Recently Viewed"
 
@@ -20,6 +21,7 @@ enum SortOption: String, CaseIterable {
         case .titleAZ: return "textformat.abc"
         case .titleZA: return "textformat.abc"
         case .artistAZ: return "person.fill"
+        case .artistZA: return "person.fill"
         case .recentlyAdded: return "clock.fill"
         case .recentlyViewed: return "eye.fill"
         }
@@ -29,6 +31,8 @@ enum SortOption: String, CaseIterable {
 struct SongListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allSongs: [Song]
+
+    @AppStorage("songsSortOption") private var storedSortOption: String = SortOption.titleAZ.rawValue
 
     @State private var selectedSort: SortOption = .titleAZ
     @State private var showAddSongSheet: Bool = false
@@ -56,6 +60,16 @@ struct SongListView: View {
                     Label("Sort", systemImage: "arrow.up.arrow.down")
                 }
             }
+        }
+        .onAppear {
+            // Load stored preference on first appear
+            if let stored = SortOption(rawValue: storedSortOption) {
+                selectedSort = stored
+            }
+        }
+        .onChange(of: selectedSort) { _, newSort in
+            // Save sort preference
+            storedSortOption = newSort.rawValue
         }
         .sheet(isPresented: $showAddSongSheet) {
             AddSongView()
@@ -155,6 +169,8 @@ struct SongListView: View {
             songs.sort { $0.title.lowercased() > $1.title.lowercased() }
         case .artistAZ:
             songs.sort { ($0.artist ?? "").lowercased() < ($1.artist ?? "").lowercased() }
+        case .artistZA:
+            songs.sort { ($0.artist ?? "").lowercased() > ($1.artist ?? "").lowercased() }
         case .recentlyAdded:
             songs.sort { $0.createdAt > $1.createdAt }
         case .recentlyViewed:

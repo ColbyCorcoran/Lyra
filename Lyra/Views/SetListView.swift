@@ -9,15 +9,20 @@ import SwiftUI
 import SwiftData
 
 enum SetSortOption: String, CaseIterable {
-    case date = "Date"
-    case name = "Name"
-    case modified = "Recently Modified"
+    case dateOldest = "Date (Oldest First)"
+    case dateNewest = "Date (Newest First)"
+    case nameAZ = "Name (A-Z)"
+    case nameZA = "Name (Z-A)"
+    case modifiedNewest = "Recently Modified (Newest First)"
+    case modifiedOldest = "Recently Modified (Oldest First)"
+    case folder = "Folder"
 
     var icon: String {
         switch self {
-        case .date: return "calendar"
-        case .name: return "textformat.abc"
-        case .modified: return "clock"
+        case .dateOldest, .dateNewest: return "calendar"
+        case .nameAZ, .nameZA: return "textformat.abc"
+        case .modifiedNewest, .modifiedOldest: return "clock"
+        case .folder: return "folder"
         }
     }
 }
@@ -27,9 +32,11 @@ struct SetListView: View {
 
     @Query private var allSets: [PerformanceSet]
 
+    @AppStorage("setsSortOption") private var storedSortOption: String = SetSortOption.dateOldest.rawValue
+
     @State private var showAddSetSheet: Bool = false
     @State private var showArchived: Bool = false
-    @State private var selectedSort: SetSortOption = .date
+    @State private var selectedSort: SetSortOption = .dateOldest
 
     private var filteredSets: [PerformanceSet] {
         // Apply archived filter
@@ -40,19 +47,63 @@ struct SetListView: View {
         var sets = filteredSets
 
         switch selectedSort {
-        case .date:
+        case .dateOldest:
+            sets.sort { (set1, set2) in
+                guard let date1 = set1.scheduledDate else { return false }
+                guard let date2 = set2.scheduledDate else { return true }
+                return date1 < date2
+            }
+        case .dateNewest:
             sets.sort { (set1, set2) in
                 guard let date1 = set1.scheduledDate else { return false }
                 guard let date2 = set2.scheduledDate else { return true }
                 return date1 > date2
             }
-        case .name:
+        case .nameAZ:
             sets.sort { $0.name.lowercased() < $1.name.lowercased() }
-        case .modified:
+        case .nameZA:
+            sets.sort { $0.name.lowercased() > $1.name.lowercased() }
+        case .modifiedNewest:
             sets.sort { $0.modifiedAt > $1.modifiedAt }
+        case .modifiedOldest:
+            sets.sort { $0.modifiedAt < $1.modifiedAt }
+        case .folder:
+            // Sort by folder alphabetically, then by name within folder
+            sets.sort { (set1, set2) in
+                let folder1 = set1.folder?.lowercased() ?? ""
+                let folder2 = set2.folder?.lowercased() ?? ""
+
+                if folder1 == folder2 {
+                    return set1.name.lowercased() < set2.name.lowercased()
+                }
+
+                // Empty folders go to the end (will be in "Ungrouped" section)
+                if folder1.isEmpty { return false }
+                if folder2.isEmpty { return true }
+
+                return folder1 < folder2
+            }
         }
 
         return sets
+    }
+
+    private var groupedByFolder: [(String, [PerformanceSet])] {
+        let grouped = Dictionary(grouping: sortedSets) { set in
+            set.folder ?? ""
+        }
+
+        // Sort folder names alphabetically, put empty folder (ungrouped) at end
+        let sortedKeys = grouped.keys.sorted { key1, key2 in
+            if key1.isEmpty { return false }
+            if key2.isEmpty { return true }
+            return key1.lowercased() < key2.lowercased()
+        }
+
+        return sortedKeys.map { key in
+            let displayName = key.isEmpty ? "Ungrouped" : key
+            return (displayName, grouped[key] ?? [])
+        }
     }
 
     private var upcomingSets: [PerformanceSet] {
@@ -103,15 +154,31 @@ struct SetListView: View {
                                 .tag(option)
                         }
                     }
-
-                    Divider()
-
-                    Toggle("Show Archived", isOn: $showArchived)
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Label("Sort", systemImage: "arrow.up.arrow.down")
                 }
-                .accessibilityLabel("Sort and filter options")
+                .accessibilityLabel("Sort sets")
             }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showArchived.toggle()
+                    HapticManager.shared.selection()
+                } label: {
+                    Image(systemName: showArchived ? "archivebox.fill" : "archivebox")
+                }
+                .accessibilityLabel(showArchived ? "Hide archived" : "Show archived")
+            }
+        }
+        .onAppear {
+            // Load stored preference on first appear
+            if let stored = SetSortOption(rawValue: storedSortOption) {
+                selectedSort = stored
+            }
+        }
+        .onChange(of: selectedSort) { _, newSort in
+            // Save sort preference
+            storedSortOption = newSort.rawValue
         }
         .sheet(isPresented: $showAddSetSheet) {
             AddPerformanceSetView()
@@ -125,70 +192,107 @@ struct SetListView: View {
 
     @ViewBuilder
     private var setListContent: some View {
-        List {
-            // Upcoming sets section
-            if !upcomingSets.isEmpty {
-                Section {
-                    ForEach(upcomingSets) { performanceSet in
-                        NavigationLink(destination: SetDetailView(performanceSet: performanceSet)) {
-                            SetRowView(performanceSet: performanceSet)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            if !performanceSet.isArchived {
-                                Button {
-                                    HapticManager.shared.swipeAction()
-                                    archiveSet(performanceSet)
-                                } label: {
-                                    Label("Archive", systemImage: "archivebox")
+        if selectedSort == .folder {
+            // Folder-grouped view
+            List {
+                ForEach(groupedByFolder, id: \.0) { folderName, sets in
+                    Section {
+                        ForEach(sets) { performanceSet in
+                            NavigationLink(destination: SetDetailView(performanceSet: performanceSet)) {
+                                SetRowView(performanceSet: performanceSet)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if !performanceSet.isArchived {
+                                    Button {
+                                        HapticManager.shared.swipeAction()
+                                        archiveSet(performanceSet)
+                                    } label: {
+                                        Label("Archive", systemImage: "archivebox")
+                                    }
+                                    .tint(.orange)
                                 }
-                                .tint(.orange)
-                            }
 
-                            Button(role: .destructive) {
-                                HapticManager.shared.swipeAction()
-                                deleteSet(performanceSet)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                                Button(role: .destructive) {
+                                    HapticManager.shared.swipeAction()
+                                    deleteSet(performanceSet)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
+                    } header: {
+                        Text(folderName)
                     }
-                } header: {
-                    Text("Upcoming")
                 }
             }
-
-            // Past sets section
-            if !pastSets.isEmpty {
-                Section {
-                    ForEach(pastSets) { performanceSet in
-                        NavigationLink(destination: SetDetailView(performanceSet: performanceSet)) {
-                            SetRowView(performanceSet: performanceSet)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            if !performanceSet.isArchived {
-                                Button {
-                                    HapticManager.shared.swipeAction()
-                                    archiveSet(performanceSet)
-                                } label: {
-                                    Label("Archive", systemImage: "archivebox")
+            .listStyle(.plain)
+        } else {
+            // Time-based view (Upcoming/Past)
+            List {
+                // Upcoming sets section
+                if !upcomingSets.isEmpty {
+                    Section {
+                        ForEach(upcomingSets) { performanceSet in
+                            NavigationLink(destination: SetDetailView(performanceSet: performanceSet)) {
+                                SetRowView(performanceSet: performanceSet)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if !performanceSet.isArchived {
+                                    Button {
+                                        HapticManager.shared.swipeAction()
+                                        archiveSet(performanceSet)
+                                    } label: {
+                                        Label("Archive", systemImage: "archivebox")
+                                    }
+                                    .tint(.orange)
                                 }
-                                .tint(.orange)
-                            }
 
-                            Button(role: .destructive) {
-                                HapticManager.shared.swipeAction()
-                                deleteSet(performanceSet)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                                Button(role: .destructive) {
+                                    HapticManager.shared.swipeAction()
+                                    deleteSet(performanceSet)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
+                    } header: {
+                        Text("Upcoming")
                     }
-                } header: {
-                    Text(upcomingSets.isEmpty ? "Sets" : "Past")
+                }
+
+                // Past sets section
+                if !pastSets.isEmpty {
+                    Section {
+                        ForEach(pastSets) { performanceSet in
+                            NavigationLink(destination: SetDetailView(performanceSet: performanceSet)) {
+                                SetRowView(performanceSet: performanceSet)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if !performanceSet.isArchived {
+                                    Button {
+                                        HapticManager.shared.swipeAction()
+                                        archiveSet(performanceSet)
+                                    } label: {
+                                        Label("Archive", systemImage: "archivebox")
+                                    }
+                                    .tint(.orange)
+                                }
+
+                                Button(role: .destructive) {
+                                    HapticManager.shared.swipeAction()
+                                    deleteSet(performanceSet)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                    } header: {
+                        Text(upcomingSets.isEmpty ? "Sets" : "Past")
+                    }
                 }
             }
+            .listStyle(.plain)
         }
-        .listStyle(.plain)
     }
 
     // MARK: - Actions

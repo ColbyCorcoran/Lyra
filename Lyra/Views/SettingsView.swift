@@ -21,6 +21,8 @@ struct SettingsView: View {
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
     @State private var showError: Bool = false
+    @State private var showFolderManagement: Bool = false
+    @State private var showVenueManagement: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -185,6 +187,39 @@ struct SettingsView: View {
                 // Recurring Sets Section
                 RecurringSetPreferencesSection()
 
+                // Set Organization Section
+                Section {
+                    Button {
+                        showFolderManagement = true
+                    } label: {
+                        HStack {
+                            Label("Manage Folders", systemImage: "folder")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+
+                    Button {
+                        showVenueManagement = true
+                    } label: {
+                        HStack {
+                            Label("Manage Venues", systemImage: "mappin.circle")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                } header: {
+                    Label("Set Organization", systemImage: "list.bullet.rectangle")
+                } footer: {
+                    Text("Manage folder and venue names. Deleting a folder or venue will remove it from sets, but the sets themselves will remain.")
+                }
+
                 // App Information Section
                 Section {
                     HStack {
@@ -273,6 +308,12 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showWhatsNew) {
                 WhatsNewView()
+            }
+            .sheet(isPresented: $showFolderManagement) {
+                FolderManagementView()
+            }
+            .sheet(isPresented: $showVenueManagement) {
+                VenueManagementView()
             }
             .sheet(item: $shareItem) { (item: SettingsShareItem) in
                 SettingsShareSheet(activityItems: item.items)

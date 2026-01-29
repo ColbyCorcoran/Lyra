@@ -35,6 +35,7 @@ struct SongDisplayView: View {
     @State private var showQuickActionMenu: Bool = false
     @State private var quickActionMenuPosition: CGPoint = .zero
     @State private var scrollProxy: ScrollViewProxy? = nil
+    @State private var showTemplateSelection: Bool = false
 
     // Export & Share
     @State private var showExportOptions: Bool = false
@@ -171,7 +172,17 @@ struct SongDisplayView: View {
                 .accessibilityHint(temporaryTransposeSemitones != 0 ? "Currently transposed by \(temporaryTransposeSemitones) semitones" : "Transpose this song")
             }
 
-            // Capo button
+            // Template Selection button
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showTemplateSelection = true
+                } label: {
+                    Image(systemName: "square.grid.2x2")
+                }
+                .accessibilityLabel("Select template")
+                .accessibilityHint("Choose column layout and formatting template")
+            }
+
             // Display Settings button
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -341,6 +352,15 @@ struct SongDisplayView: View {
                     displaySettings = song.displaySettings
                 }
         }
+        .sheet(isPresented: $showTemplateSelection) {
+            TemplateSelectionSheet { selectedTemplate in
+                song.template = selectedTemplate
+                song.modifiedAt = Date()
+                try? modelContext.save()
+                parseSong() // Reparse to apply new template
+                HapticManager.shared.success()
+            }
+        }
         .sheet(isPresented: $showEditSongSheet) {
             EditSongView(song: song)
         }
@@ -459,12 +479,26 @@ struct SongDisplayView: View {
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .padding()
                                 } else if let parsed = parsedSong {
-                                    // Sections
-                                    ForEach(Array(parsed.sections.enumerated()), id: \.element.id) { index, section in
-                                        SongSectionView(section: section, settings: displaySettings)
-                                            .padding(.horizontal)
-                                            .padding(.bottom, index < parsed.sections.count - 1 ? 32 : 16)
-                                            .id("section-\(index)")
+                                    // Render with multi-column or single-column view
+                                    let effectiveTemplate = song.effectiveTemplate(context: modelContext)
+
+                                    if effectiveTemplate.columnCount > 1 {
+                                        // Multi-column rendering
+                                        MultiColumnSongView(
+                                            song: song,
+                                            template: effectiveTemplate,
+                                            parsedSong: parsed,
+                                            displaySettings: displaySettings
+                                        )
+                                        .id("scrollContent")
+                                    } else {
+                                        // Single-column rendering (existing layout)
+                                        ForEach(Array(parsed.sections.enumerated()), id: \.element.id) { index, section in
+                                            SongSectionView(section: section, settings: displaySettings)
+                                                .padding(.horizontal)
+                                                .padding(.bottom, index < parsed.sections.count - 1 ? 32 : 16)
+                                                .id("section-\(index)")
+                                        }
                                     }
                                 } else {
                                     // Empty state

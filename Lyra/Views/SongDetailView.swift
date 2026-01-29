@@ -6,9 +6,18 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct SongDetailView: View {
     let song: Song
+
+    // MARK: - State
+
+    @State private var showExportOptions: Bool = false
+    @State private var showShareSheet: Bool = false
+    @State private var exportedFileURL: URL?
 
     var body: some View {
         ScrollView {
@@ -69,6 +78,42 @@ struct SongDetailView: View {
             .padding(.vertical)
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        showExportOptions = true
+                    } label: {
+                        Label("Export Song", systemImage: "square.and.arrow.up")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .sheet(isPresented: $showExportOptions) {
+            ExportOptionsSheet(song: song) { format, content in
+                handleExport(content: content, format: format)
+            }
+        }
+        .sheet(item: $exportedFileURL) { url in
+            ShareSheet(items: [url])
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private func handleExport(content: String, format: SongExporter.ExportFormat) {
+        do {
+            let filename = SongExporter.suggestedFilename(for: song, format: format)
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+
+            try content.write(to: tempURL, atomically: true, encoding: .utf8)
+
+            exportedFileURL = tempURL
+        } catch {
+            print("❌ Failed to save exported file: \(error.localizedDescription)")
+        }
     }
 }
 
@@ -86,6 +131,28 @@ private struct SongDetailMetadataRow: View {
             Text(value)
                 .fontWeight(.medium)
         }
+    }
+}
+
+// MARK: - Share Sheet
+
+#if canImport(UIKit)
+private struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+#endif
+
+// MARK: - URL Extension
+
+extension URL: @retroactive Identifiable {
+    public var id: String {
+        return absoluteString
     }
 }
 

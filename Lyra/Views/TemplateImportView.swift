@@ -254,10 +254,20 @@ struct TemplateImportView: View {
                 )
 
             case .word:
-                throw TemplateImportError.unsupportedFormat
+                importProgress = "Extracting layout from DOCX..."
+                template = try await TemplateImporter.importFromDOCX(
+                    url: url,
+                    name: trimmedName,
+                    context: modelContext
+                )
 
             case .plainText:
-                throw TemplateImportError.unsupportedFormat
+                importProgress = "Analyzing text content..."
+                template = try await TemplateImporter.importFromPlainText(
+                    url: url,
+                    name: trimmedName,
+                    context: modelContext
+                )
             }
 
             importProgress = "Import complete"
@@ -316,18 +326,16 @@ enum ImportFormat: String, CaseIterable, Identifiable {
         case .pdf:
             return "Import template settings from a PDF document. Column structure, fonts, and chord positioning will be automatically detected."
         case .word:
-            return "Import from Word documents (.docx). Coming soon."
+            return "Import from Word documents (.docx). Column structure, fonts, and chord positioning will be automatically detected."
         case .plainText:
-            return "Import from plain text files. Coming soon."
+            return "Import from plain text files (.txt). Basic formatting and structure will be inferred from content patterns."
         }
     }
 
     var isSupported: Bool {
         switch self {
-        case .pdf:
+        case .pdf, .word, .plainText:
             return true
-        case .word, .plainText:
-            return false
         }
     }
 }

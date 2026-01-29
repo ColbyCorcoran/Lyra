@@ -829,4 +829,211 @@ struct TemplateImporterTests {
         #expect(error.errorDescription == "Unable to read DOCX document")
         #expect(error.recoverySuggestion != nil)
     }
+
+    // MARK: - Plain Text Import Tests
+
+    /// Create a mock plain text document for testing
+    func createMockPlainText(columnCount: Int = 1) throws -> URL {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".txt")
+
+        var textContent = "Amazing Grace\n\n"
+
+        if columnCount == 1 {
+            textContent += "G\nAmazing grace how sweet the sound\n"
+            textContent += "D\nThat saved a wretch like me\n"
+        } else if columnCount == 2 {
+            textContent += "G                              C\n"
+            textContent += "Amazing grace how sweet        That saved a wretch like me\n"
+        }
+
+        try textContent.write(to: tempURL, atomically: true, encoding: .utf8)
+        return tempURL
+    }
+
+    @Test("Extract text elements from plain text")
+    func testExtractTextElementsFromPlainText() throws {
+        let textContent = """
+        Amazing Grace
+
+        Verse 1
+        G
+        Amazing grace how sweet the sound
+        D
+        That saved a wretch like me
+        """
+
+        let elements = TemplateImporter.extractTextElementsFromPlainText(textContent)
+
+        #expect(!elements.isEmpty)
+        #expect(elements.contains { $0.text == "Amazing Grace" })
+        #expect(elements.contains { $0.text == "G" })
+        #expect(elements.contains { $0.text.contains("Amazing grace") })
+    }
+
+    @Test("Extract text elements from empty plain text returns empty")
+    func testExtractTextElementsFromEmptyPlainText() throws {
+        let textContent = ""
+
+        let elements = TemplateImporter.extractTextElementsFromPlainText(textContent)
+
+        #expect(elements.isEmpty)
+    }
+
+    @Test("Extract text elements preserves indentation")
+    func testPlainTextIndentationDetection() throws {
+        let textContent = """
+        Title
+        Line 1
+            Indented Line
+        """
+
+        let elements = TemplateImporter.extractTextElementsFromPlainText(textContent)
+
+        #expect(elements.count == 3)
+        let indentedElement = elements.first { $0.text == "Indented Line" }
+        #expect(indentedElement != nil)
+        #expect(indentedElement!.x > 50.0) // Should be indented
+    }
+
+    @Test("Estimate font size for title")
+    func testEstimateFontSizeTitle() throws {
+        let fontSize = TemplateImporter.estimateFontSize(for: "Song Title", lineIndex: 0, totalLines: 10)
+        #expect(fontSize == 24.0)
+    }
+
+    @Test("Estimate font size for heading")
+    func testEstimateFontSizeHeading() throws {
+        let fontSize = TemplateImporter.estimateFontSize(for: "Verse 1", lineIndex: 3, totalLines: 10)
+        #expect(fontSize == 18.0)
+    }
+
+    @Test("Estimate font size for chord")
+    func testEstimateFontSizeChord() throws {
+        let fontSize = TemplateImporter.estimateFontSize(for: "G", lineIndex: 5, totalLines: 10)
+        #expect(fontSize == 14.0)
+    }
+
+    @Test("Estimate font size for body text")
+    func testEstimateFontSizeBody() throws {
+        let fontSize = TemplateImporter.estimateFontSize(for: "Amazing grace how sweet the sound", lineIndex: 5, totalLines: 10)
+        #expect(fontSize == 16.0)
+    }
+
+    @Test("Estimate font size recognizes chorus heading")
+    func testEstimateFontSizeChorus() throws {
+        let fontSize = TemplateImporter.estimateFontSize(for: "Chorus", lineIndex: 5, totalLines: 10)
+        #expect(fontSize == 18.0)
+    }
+
+    @Test("Estimate font size recognizes bridge heading")
+    func testEstimateFontSizeBridge() throws {
+        let fontSize = TemplateImporter.estimateFontSize(for: "Bridge", lineIndex: 5, totalLines: 10)
+        #expect(fontSize == 18.0)
+    }
+
+    @Test("Import template from plain text creates valid template")
+    func testImportFromPlainText() async throws {
+        let textURL = try createMockPlainText(columnCount: 1)
+
+        defer {
+            try? FileManager.default.removeItem(at: textURL)
+        }
+
+        let template = try await TemplateImporter.importFromPlainText(
+            url: textURL,
+            name: "Plain Text Template",
+            context: context
+        )
+
+        #expect(template.name == "Plain Text Template")
+        #expect(template.isValid)
+        #expect(!template.isBuiltIn)
+
+        // Verify template was saved to context
+        let descriptor = FetchDescriptor<Template>()
+        let templates = try context.fetch(descriptor)
+        #expect(templates.contains { $0.name == "Plain Text Template" })
+    }
+
+    @Test("Import from empty plain text file throws error")
+    func testImportFromEmptyPlainText() async throws {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".txt")
+        try "".write(to: tempURL, atomically: true, encoding: .utf8)
+
+        defer {
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+
+        await #expect(throws: TemplateImportError.self) {
+            try await TemplateImporter.importFromPlainText(
+                url: tempURL,
+                name: "Test",
+                context: context
+            )
+        }
+    }
+
+    @Test("Import from invalid plain text URL throws error")
+    func testImportFromInvalidPlainTextURL() async throws {
+        let invalidURL = URL(fileURLWithPath: "/nonexistent/file.txt")
+
+        await #expect(throws: TemplateImportError.self) {
+            try await TemplateImporter.importFromPlainText(
+                url: invalidURL,
+                name: "Test",
+                context: context
+            )
+        }
+    }
+
+    @Test("Plain text import detects chords and lyrics")
+    func testPlainTextImportDetectsChords() throws {
+        let textContent = """
+        Amazing Grace
+
+        G
+        Amazing grace how sweet the sound
+        C
+        That saved a wretch like me
+        """
+
+        let elements = TemplateImporter.extractTextElementsFromPlainText(textContent)
+
+        let chordElements = elements.filter { TemplateImporter.isLikelyChord($0.text) }
+        let lyricElements = elements.filter { TemplateImporter.isLikelyLyric($0.text) }
+
+        #expect(!chordElements.isEmpty)
+        #expect(!lyricElements.isEmpty)
+    }
+
+    @Test("Plain text import with two columns")
+    func testPlainTextImportTwoColumns() async throws {
+        let textURL = try createMockPlainText(columnCount: 2)
+
+        defer {
+            try? FileManager.default.removeItem(at: textURL)
+        }
+
+        let template = try await TemplateImporter.importFromPlainText(
+            url: textURL,
+            name: "Two Column Plain Text",
+            context: context
+        )
+
+        #expect(template.isValid)
+        // Column count may vary based on detection algorithm
+        #expect(template.columnCount >= 1)
+        #expect(template.columnCount <= 4)
+    }
+
+    @Test("Plain text import handles various section headings")
+    func testPlainTextSectionHeadings() throws {
+        let sectionHeadings = ["Verse 1", "Chorus", "Bridge", "Intro", "Outro", "Refrain", "Pre-Chorus", "Coda"]
+
+        for heading in sectionHeadings {
+            let fontSize = TemplateImporter.estimateFontSize(for: heading, lineIndex: 5, totalLines: 10)
+            #expect(fontSize == 18.0, "Heading '\(heading)' should be detected as heading size")
+        }
+    }
 }
+

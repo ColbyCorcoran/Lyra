@@ -149,6 +149,136 @@ class TemplateImporter {
         return template
     }
 
+    // MARK: - Plain Text Import
+
+    /// Import a template from a plain text document
+    /// - Parameters:
+    ///   - url: URL of the plain text file
+    ///   - name: Name for the new template
+    ///   - context: SwiftData ModelContext
+    /// - Returns: The created template
+    static func importFromPlainText(
+        url: URL,
+        name: String,
+        context: ModelContext
+    ) async throws -> Template {
+        // Read text content
+        guard let textContent = try? String(contentsOf: url, encoding: .utf8) else {
+            throw TemplateImportError.noContentFound
+        }
+
+        guard !textContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw TemplateImportError.noContentFound
+        }
+
+        // Extract text elements from plain text
+        let textElements = extractTextElementsFromPlainText(textContent)
+
+        guard !textElements.isEmpty else {
+            throw TemplateImportError.noContentFound
+        }
+
+        // Analyze layout using the same methods as PDF
+        let pageWidth: CGFloat = 612.0 // Standard letter width in points
+        let columnStructure = detectColumnStructure(textElements, pageWidth: pageWidth)
+        let typography = extractTypography(textElements)
+        let chordStyle = detectChordStyle(textElements)
+
+        let layout = DocumentLayout(
+            columnStructure: columnStructure,
+            typography: typography,
+            chordStyle: chordStyle
+        )
+
+        // Map to Template model
+        let template = mapToTemplate(
+            layout: layout,
+            name: name,
+            context: context
+        )
+
+        // Validate the template
+        guard template.isValid else {
+            throw TemplateImportError.invalidLayout
+        }
+
+        // Save to context
+        context.insert(template)
+        try context.save()
+
+        return template
+    }
+
+    /// Extract text elements from plain text content
+    /// - Parameter textContent: The plain text content
+    /// - Returns: Array of text elements with estimated formatting
+    static func extractTextElementsFromPlainText(_ textContent: String) -> [TextElement] {
+        var elements: [TextElement] = []
+        var currentY: CGFloat = 50.0
+        let lineHeight: CGFloat = 20.0
+
+        let lines = textContent.components(separatedBy: .newlines)
+
+        for (lineIndex, line) in lines.enumerated() {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // Skip empty lines but still advance Y
+            if trimmed.isEmpty {
+                currentY += lineHeight / 2
+                continue
+            }
+
+            // Detect font size based on content heuristics
+            let fontSize = estimateFontSize(for: trimmed, lineIndex: lineIndex, totalLines: lines.count)
+
+            // Detect horizontal position (column detection)
+            let leadingSpaces = line.prefix(while: { $0 == " " || $0 == "\t" }).count
+            let currentX: CGFloat = 50.0 + CGFloat(leadingSpaces) * 8.0 // Approximate spacing
+
+            // Estimate bounds
+            let estimatedWidth = CGFloat(trimmed.count) * (fontSize * 0.5)
+            let bounds = CGRect(x: currentX, y: currentY, width: estimatedWidth, height: fontSize)
+
+            elements.append(TextElement(
+                text: trimmed,
+                bounds: bounds,
+                fontSize: fontSize
+            ))
+
+            currentY += lineHeight
+        }
+
+        return elements
+    }
+
+    /// Estimate font size for a line of text based on content
+    /// - Parameters:
+    ///   - text: The text content
+    ///   - lineIndex: Index of the line in the document
+    ///   - totalLines: Total number of lines
+    /// - Returns: Estimated font size
+    static func estimateFontSize(for text: String, lineIndex: Int, totalLines: Int) -> CGFloat {
+        // First non-empty line is likely the title
+        if lineIndex < 2 && text.count < 50 && !isLikelyChord(text) {
+            return 24.0 // Title size
+        }
+
+        // Check if it's a section heading (e.g., "Verse 1", "Chorus", etc.)
+        let headingPatterns = ["verse", "chorus", "bridge", "intro", "outro", "refrain", "pre-chorus", "coda"]
+        let lowercased = text.lowercased()
+        if headingPatterns.contains(where: { lowercased.starts(with: $0) }) {
+            return 18.0 // Heading size
+        }
+
+        // Check if it's likely a chord
+        if isLikelyChord(text) {
+            return 14.0 // Chord size
+        }
+
+        // Default body text size
+        return 16.0
+    }
+
     // MARK: - DOCX Import
 
     /// Import a template from a DOCX document

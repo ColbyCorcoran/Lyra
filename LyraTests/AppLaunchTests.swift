@@ -186,7 +186,6 @@ struct AppLaunchTests {
 
         // Create a performance set with recurrence rule
         let performanceSet = PerformanceSet(name: "Test Service")
-        performanceSet.isTemplate = true
         performanceSet.recurrenceStopped = false
 
         let recurrenceRule = RecurrenceRule(
@@ -215,6 +214,112 @@ struct AppLaunchTests {
         #expect(templates.first?.name == "Test Service")
     }
 
+    // MARK: - Built-in Template Initialization Tests
+
+    @Test("Built-in templates are created on fresh app launch")
+    func testBuiltInTemplatesCreatedOnFreshLaunch() async throws {
+        let schema = Schema([
+            Song.self,
+            Template.self,
+            Book.self,
+            PerformanceSet.self,
+            SetEntry.self,
+            Annotation.self,
+            UserSettings.self,
+            RecurrenceRule.self
+        ])
+
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: [config])
+        let context = container.mainContext
+
+        // Initialize built-in templates (simulating app launch)
+        try TemplateManager.initializeBuiltInTemplates(in: context)
+
+        // Verify all three built-in templates were created
+        let builtInTemplates = try TemplateManager.fetchBuiltInTemplates(from: context)
+        #expect(builtInTemplates.count == 3, "Should create all three built-in templates")
+
+        let names = builtInTemplates.map { $0.name }
+        #expect(names.contains("Single Column"), "Should create Single Column template")
+        #expect(names.contains("Two Column"), "Should create Two Column template")
+        #expect(names.contains("Three Column"), "Should create Three Column template")
+
+        // Verify Single Column is set as default
+        let defaultTemplate = try TemplateManager.fetchDefaultTemplate(from: context)
+        #expect(defaultTemplate?.name == "Single Column", "Single Column should be default")
+    }
+
+    @Test("Built-in templates are not duplicated on subsequent launches")
+    func testBuiltInTemplatesNotDuplicatedOnSubsequentLaunches() async throws {
+        let schema = Schema([
+            Song.self,
+            Template.self,
+            Book.self,
+            PerformanceSet.self,
+            SetEntry.self,
+            Annotation.self,
+            UserSettings.self,
+            RecurrenceRule.self
+        ])
+
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: [config])
+        let context = container.mainContext
+
+        // Initialize built-in templates first time
+        try TemplateManager.initializeBuiltInTemplates(in: context)
+
+        let templatesAfterFirstLaunch = try TemplateManager.fetchBuiltInTemplates(from: context)
+        #expect(templatesAfterFirstLaunch.count == 3)
+
+        // Initialize again (simulating second app launch)
+        try TemplateManager.initializeBuiltInTemplates(in: context)
+
+        // Verify no duplicates were created
+        let templatesAfterSecondLaunch = try TemplateManager.fetchBuiltInTemplates(from: context)
+        #expect(templatesAfterSecondLaunch.count == 3, "Should not create duplicate templates")
+
+        // Verify each template appears exactly once
+        let singleColumnCount = templatesAfterSecondLaunch.filter { $0.name == "Single Column" }.count
+        let twoColumnCount = templatesAfterSecondLaunch.filter { $0.name == "Two Column" }.count
+        let threeColumnCount = templatesAfterSecondLaunch.filter { $0.name == "Three Column" }.count
+
+        #expect(singleColumnCount == 1, "Single Column should appear exactly once")
+        #expect(twoColumnCount == 1, "Two Column should appear exactly once")
+        #expect(threeColumnCount == 1, "Three Column should appear exactly once")
+    }
+
+    @Test("Built-in template initialization is idempotent")
+    func testBuiltInTemplateInitializationIsIdempotent() async throws {
+        let schema = Schema([
+            Song.self,
+            Template.self,
+            Book.self,
+            PerformanceSet.self,
+            SetEntry.self,
+            Annotation.self,
+            UserSettings.self,
+            RecurrenceRule.self
+        ])
+
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: schema, configurations: [config])
+        let context = container.mainContext
+
+        // Call initialization multiple times
+        try TemplateManager.initializeBuiltInTemplates(in: context)
+        try TemplateManager.initializeBuiltInTemplates(in: context)
+        try TemplateManager.initializeBuiltInTemplates(in: context)
+
+        // Should still only have 3 templates
+        let allTemplates = try TemplateManager.fetchAllTemplates(from: context)
+        #expect(allTemplates.count == 3, "Multiple initializations should not create duplicates")
+
+        let builtInTemplates = try TemplateManager.fetchBuiltInTemplates(from: context)
+        #expect(builtInTemplates.count == 3, "Should have exactly 3 built-in templates")
+    }
+
     // MARK: - Schema Integrity Tests
 
     @Test("All models can be instantiated")
@@ -239,8 +344,8 @@ struct AppLaunchTests {
         let template = Template.builtInSingleColumn()
         let book = Book(name: "Test Book")
         let performanceSet = PerformanceSet(name: "Test Set")
-        let setEntry = SetEntry(song: song, order: 0)
-        let annotation = Annotation(content: "Test annotation")
+        let setEntry = SetEntry(song: song, orderIndex: 0)
+        let annotation = Annotation(song: song, type: .stickyNote, x: 0.5, y: 0.5)
         let userSettings = UserSettings()
         let recurrenceRule = RecurrenceRule(frequency: .weekly, interval: 1, daysOfWeek: [])
 

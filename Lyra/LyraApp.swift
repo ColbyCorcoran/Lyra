@@ -49,6 +49,15 @@ struct LyraApp: App {
             // Initialize DataManager with the container's main context
             DataManager.shared.initialize(with: container.mainContext)
 
+            // Initialize built-in templates on first launch
+            Task { @MainActor in
+                do {
+                    try TemplateManager.initializeBuiltInTemplates(in: container.mainContext)
+                } catch {
+                    print("Warning: Failed to initialize built-in templates: \(error)")
+                }
+            }
+
             return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")

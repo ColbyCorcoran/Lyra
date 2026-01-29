@@ -63,6 +63,8 @@ enum TemplateImportError: LocalizedError {
     case invalidLayout
     case noContentFound
     case unsupportedFormat
+    case invalidLyraBundle
+    case decodingFailed
 
     var errorDescription: String? {
         switch self {
@@ -78,6 +80,10 @@ enum TemplateImportError: LocalizedError {
             return "No content found in document"
         case .unsupportedFormat:
             return "Document format not supported"
+        case .invalidLyraBundle:
+            return "Invalid Lyra Bundle format"
+        case .decodingFailed:
+            return "Failed to decode bundle data"
         }
     }
 
@@ -94,8 +100,36 @@ enum TemplateImportError: LocalizedError {
         case .noContentFound:
             return "The document may be empty or contain only images."
         case .unsupportedFormat:
-            return "Only PDF and DOCX files are supported at this time."
+            return "Only PDF, DOCX, and Lyra Bundle files are supported at this time."
+        case .invalidLyraBundle:
+            return "The .lyra file may be corrupted or in an unsupported format."
+        case .decodingFailed:
+            return "The bundle data could not be decoded. Ensure it's a valid Lyra Bundle."
         }
+    }
+}
+
+// MARK: - Lyra Bundle Structure
+
+/// Codable representation of a Lyra Bundle for import/export
+struct LyraBundle: Codable {
+    let version: String
+    let template: TemplateData
+
+    struct TemplateData: Codable {
+        let name: String
+        let columnCount: Int
+        let columnGap: Double
+        let columnWidthMode: String
+        let columnBalancingStrategy: String
+        let chordPositioningStyle: String
+        let chordAlignment: String
+        let titleFontSize: Double
+        let headingFontSize: Double
+        let bodyFontSize: Double
+        let chordFontSize: Double
+        let sectionBreakBehavior: String
+        let customColumnWidths: [Double]?
     }
 }
 
@@ -103,6 +137,113 @@ enum TemplateImportError: LocalizedError {
 
 @MainActor
 class TemplateImporter {
+
+    // MARK: - Lyra Bundle Import
+
+    /// Import a template from a Lyra Bundle (.lyra) file
+    /// - Parameters:
+    ///   - url: URL of the .lyra file
+    ///   - name: Name for the new template
+    ///   - context: SwiftData ModelContext
+    /// - Returns: The created template
+    static func importFromLyraBundle(
+        url: URL,
+        name: String,
+        context: ModelContext
+    ) async throws -> Template {
+        // Read bundle data
+        guard let bundleData = try? Data(contentsOf: url) else {
+            throw TemplateImportError.invalidLyraBundle
+        }
+
+        // Decode bundle
+        let decoder = JSONDecoder()
+        let bundle: LyraBundle
+
+        do {
+            bundle = try decoder.decode(LyraBundle.self, from: bundleData)
+        } catch {
+            throw TemplateImportError.decodingFailed
+        }
+
+        // Create template from bundle data
+        let template = try mapLyraBundleToTemplate(
+            bundle: bundle,
+            name: name,
+            context: context
+        )
+
+        // Validate the template
+        guard template.isValid else {
+            throw TemplateImportError.invalidLayout
+        }
+
+        // Save to context
+        context.insert(template)
+        try context.save()
+
+        return template
+    }
+
+    /// Map Lyra Bundle data to Template model
+    /// - Parameters:
+    ///   - bundle: The decoded Lyra Bundle
+    ///   - name: Template name
+    ///   - context: SwiftData ModelContext
+    /// - Returns: Created template
+    static func mapLyraBundleToTemplate(
+        bundle: LyraBundle,
+        name: String,
+        context: ModelContext
+    ) throws -> Template {
+        let templateData = bundle.template
+
+        // Parse enums from strings
+        guard let columnWidthMode = ColumnWidthMode(rawValue: templateData.columnWidthMode) else {
+            throw TemplateImportError.invalidLyraBundle
+        }
+
+        guard let columnBalancingStrategy = ColumnBalancingStrategy(rawValue: templateData.columnBalancingStrategy) else {
+            throw TemplateImportError.invalidLyraBundle
+        }
+
+        guard let chordPositioningStyle = ChordPositioningStyle(rawValue: templateData.chordPositioningStyle) else {
+            throw TemplateImportError.invalidLyraBundle
+        }
+
+        guard let chordAlignment = ChordAlignment(rawValue: templateData.chordAlignment) else {
+            throw TemplateImportError.invalidLyraBundle
+        }
+
+        guard let sectionBreakBehavior = SectionBreakBehavior(rawValue: templateData.sectionBreakBehavior) else {
+            throw TemplateImportError.invalidLyraBundle
+        }
+
+        // Create template
+        let template = Template(
+            name: name,
+            isBuiltIn: false,
+            isDefault: false,
+            columnCount: templateData.columnCount,
+            columnGap: templateData.columnGap,
+            columnWidthMode: columnWidthMode,
+            columnBalancingStrategy: columnBalancingStrategy,
+            chordPositioningStyle: chordPositioningStyle,
+            chordAlignment: chordAlignment,
+            titleFontSize: templateData.titleFontSize,
+            headingFontSize: templateData.headingFontSize,
+            bodyFontSize: templateData.bodyFontSize,
+            chordFontSize: templateData.chordFontSize,
+            sectionBreakBehavior: sectionBreakBehavior
+        )
+
+        // Set custom column widths if present
+        if columnWidthMode == .custom {
+            template.customColumnWidths = templateData.customColumnWidths
+        }
+
+        return template
+    }
 
     // MARK: - PDF Import
 

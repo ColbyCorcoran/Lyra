@@ -1035,5 +1035,283 @@ struct TemplateImporterTests {
             #expect(fontSize == 18.0, "Heading '\(heading)' should be detected as heading size")
         }
     }
+
+    // MARK: - Lyra Bundle Import Tests
+
+    /// Create a mock Lyra Bundle file for testing
+    func createMockLyraBundle(
+        version: String = "1.0",
+        columnCount: Int = 2,
+        columnWidthMode: String = "equal"
+    ) throws -> URL {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".lyra")
+
+        let bundleData = LyraBundle(
+            version: version,
+            template: LyraBundle.TemplateData(
+                name: "Test Bundle Template",
+                columnCount: columnCount,
+                columnGap: 20.0,
+                columnWidthMode: columnWidthMode,
+                columnBalancingStrategy: "balanced",
+                chordPositioningStyle: "chordsOverLyrics",
+                chordAlignment: "leftAligned",
+                titleFontSize: 24.0,
+                headingFontSize: 18.0,
+                bodyFontSize: 16.0,
+                chordFontSize: 14.0,
+                sectionBreakBehavior: "spaceBefore",
+                customColumnWidths: columnWidthMode == "custom" ? [0.4, 0.6] : nil
+            )
+        )
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let jsonData = try encoder.encode(bundleData)
+        try jsonData.write(to: tempURL)
+
+        return tempURL
+    }
+
+    @Test("Import template from Lyra Bundle creates valid template")
+    func testImportFromLyraBundle() async throws {
+        let bundleURL = try createMockLyraBundle()
+
+        defer {
+            try? FileManager.default.removeItem(at: bundleURL)
+        }
+
+        let template = try await TemplateImporter.importFromLyraBundle(
+            url: bundleURL,
+            name: "Imported Bundle Template",
+            context: context
+        )
+
+        #expect(template.name == "Imported Bundle Template")
+        #expect(template.isValid)
+        #expect(!template.isBuiltIn)
+        #expect(template.columnCount == 2)
+        #expect(template.columnGap == 20.0)
+        #expect(template.columnWidthMode == .equal)
+        #expect(template.columnBalancingStrategy == .balanced)
+        #expect(template.chordPositioningStyle == .chordsOverLyrics)
+        #expect(template.chordAlignment == .leftAligned)
+        #expect(template.titleFontSize == 24.0)
+        #expect(template.headingFontSize == 18.0)
+        #expect(template.bodyFontSize == 16.0)
+        #expect(template.chordFontSize == 14.0)
+        #expect(template.sectionBreakBehavior == .spaceBefore)
+
+        // Verify template was saved to context
+        let descriptor = FetchDescriptor<Template>()
+        let templates = try context.fetch(descriptor)
+        #expect(templates.contains { $0.name == "Imported Bundle Template" })
+    }
+
+    @Test("Import Lyra Bundle with custom column widths")
+    func testImportLyraBundleCustomWidths() async throws {
+        let bundleURL = try createMockLyraBundle(columnWidthMode: "custom")
+
+        defer {
+            try? FileManager.default.removeItem(at: bundleURL)
+        }
+
+        let template = try await TemplateImporter.importFromLyraBundle(
+            url: bundleURL,
+            name: "Custom Width Bundle",
+            context: context
+        )
+
+        #expect(template.columnWidthMode == .custom)
+        #expect(template.customColumnWidths != nil)
+        #expect(template.customColumnWidths?.count == 2)
+        #expect(template.customColumnWidths?[0] == 0.4)
+        #expect(template.customColumnWidths?[1] == 0.6)
+    }
+
+    @Test("Import Lyra Bundle with single column")
+    func testImportLyraBundleSingleColumn() async throws {
+        let bundleURL = try createMockLyraBundle(columnCount: 1)
+
+        defer {
+            try? FileManager.default.removeItem(at: bundleURL)
+        }
+
+        let template = try await TemplateImporter.importFromLyraBundle(
+            url: bundleURL,
+            name: "Single Column Bundle",
+            context: context
+        )
+
+        #expect(template.columnCount == 1)
+        #expect(template.isValid)
+    }
+
+    @Test("Import from invalid Lyra Bundle URL throws error")
+    func testImportFromInvalidLyraBundleURL() async throws {
+        let invalidURL = URL(fileURLWithPath: "/nonexistent/file.lyra")
+
+        await #expect(throws: TemplateImportError.self) {
+            try await TemplateImporter.importFromLyraBundle(
+                url: invalidURL,
+                name: "Test",
+                context: context
+            )
+        }
+    }
+
+    @Test("Import from corrupted Lyra Bundle throws error")
+    func testImportFromCorruptedLyraBundle() async throws {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".lyra")
+        try "This is not valid JSON".write(to: tempURL, atomically: true, encoding: .utf8)
+
+        defer {
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+
+        await #expect(throws: TemplateImportError.self) {
+            try await TemplateImporter.importFromLyraBundle(
+                url: tempURL,
+                name: "Test",
+                context: context
+            )
+        }
+    }
+
+    @Test("Import Lyra Bundle with invalid enum values throws error")
+    func testImportLyraBundleInvalidEnums() async throws {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".lyra")
+
+        let invalidBundle = """
+        {
+            "version": "1.0",
+            "template": {
+                "name": "Invalid Template",
+                "columnCount": 2,
+                "columnGap": 20.0,
+                "columnWidthMode": "invalid_mode",
+                "columnBalancingStrategy": "balanced",
+                "chordPositioningStyle": "chordsOverLyrics",
+                "chordAlignment": "leftAligned",
+                "titleFontSize": 24.0,
+                "headingFontSize": 18.0,
+                "bodyFontSize": 16.0,
+                "chordFontSize": 14.0,
+                "sectionBreakBehavior": "spaceBefore"
+            }
+        }
+        """
+
+        try invalidBundle.write(to: tempURL, atomically: true, encoding: .utf8)
+
+        defer {
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+
+        await #expect(throws: TemplateImportError.self) {
+            try await TemplateImporter.importFromLyraBundle(
+                url: tempURL,
+                name: "Test",
+                context: context
+            )
+        }
+    }
+
+    @Test("Lyra Bundle error descriptions")
+    func testLyraBundleErrorDescriptions() {
+        let error1 = TemplateImportError.invalidLyraBundle
+        #expect(error1.errorDescription == "Invalid Lyra Bundle format")
+        #expect(error1.recoverySuggestion != nil)
+
+        let error2 = TemplateImportError.decodingFailed
+        #expect(error2.errorDescription == "Failed to decode bundle data")
+        #expect(error2.recoverySuggestion != nil)
+    }
+
+    @Test("Map Lyra Bundle to Template")
+    func testMapLyraBundleToTemplate() throws {
+        let bundle = LyraBundle(
+            version: "1.0",
+            template: LyraBundle.TemplateData(
+                name: "Bundle Template",
+                columnCount: 3,
+                columnGap: 24.0,
+                columnWidthMode: "equal",
+                columnBalancingStrategy: "fillFirst",
+                chordPositioningStyle: "inline",
+                chordAlignment: "centered",
+                titleFontSize: 26.0,
+                headingFontSize: 20.0,
+                bodyFontSize: 18.0,
+                chordFontSize: 16.0,
+                sectionBreakBehavior: "newColumn",
+                customColumnWidths: nil
+            )
+        )
+
+        let template = try TemplateImporter.mapLyraBundleToTemplate(
+            bundle: bundle,
+            name: "Mapped Template",
+            context: context
+        )
+
+        #expect(template.name == "Mapped Template")
+        #expect(template.columnCount == 3)
+        #expect(template.columnGap == 24.0)
+        #expect(template.columnWidthMode == .equal)
+        #expect(template.columnBalancingStrategy == .fillFirst)
+        #expect(template.chordPositioningStyle == .inline)
+        #expect(template.chordAlignment == .centered)
+        #expect(template.titleFontSize == 26.0)
+        #expect(template.headingFontSize == 20.0)
+        #expect(template.bodyFontSize == 18.0)
+        #expect(template.chordFontSize == 16.0)
+        #expect(template.sectionBreakBehavior == .newColumn)
+    }
+
+    @Test("Lyra Bundle decoding with all properties")
+    func testLyraBundleDecoding() throws {
+        let jsonString = """
+        {
+            "version": "1.0",
+            "template": {
+                "name": "Test Template",
+                "columnCount": 2,
+                "columnGap": 20.0,
+                "columnWidthMode": "custom",
+                "columnBalancingStrategy": "sectionBased",
+                "chordPositioningStyle": "separateLines",
+                "chordAlignment": "rightAligned",
+                "titleFontSize": 28.0,
+                "headingFontSize": 22.0,
+                "bodyFontSize": 17.0,
+                "chordFontSize": 15.0,
+                "sectionBreakBehavior": "continueInColumn",
+                "customColumnWidths": [0.3, 0.7]
+            }
+        }
+        """
+
+        let jsonData = jsonString.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        let bundle = try decoder.decode(LyraBundle.self, from: jsonData)
+
+        #expect(bundle.version == "1.0")
+        #expect(bundle.template.name == "Test Template")
+        #expect(bundle.template.columnCount == 2)
+        #expect(bundle.template.columnGap == 20.0)
+        #expect(bundle.template.columnWidthMode == "custom")
+        #expect(bundle.template.columnBalancingStrategy == "sectionBased")
+        #expect(bundle.template.chordPositioningStyle == "separateLines")
+        #expect(bundle.template.chordAlignment == "rightAligned")
+        #expect(bundle.template.titleFontSize == 28.0)
+        #expect(bundle.template.headingFontSize == 22.0)
+        #expect(bundle.template.bodyFontSize == 17.0)
+        #expect(bundle.template.chordFontSize == 15.0)
+        #expect(bundle.template.sectionBreakBehavior == "continueInColumn")
+        #expect(bundle.template.customColumnWidths?.count == 2)
+        #expect(bundle.template.customColumnWidths?[0] == 0.3)
+        #expect(bundle.template.customColumnWidths?[1] == 0.7)
+    }
 }
 

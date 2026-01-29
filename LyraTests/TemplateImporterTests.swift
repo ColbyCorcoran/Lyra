@@ -9,6 +9,7 @@ import Testing
 import SwiftData
 import Foundation
 import PDFKit
+import ZipArchive
 @testable import Lyra
 
 @Suite("TemplateImporter Tests")
@@ -28,6 +29,123 @@ struct TemplateImporterTests {
     }
 
     // MARK: - Helper Methods
+
+    /// Create a mock DOCX document for testing
+    func createMockDOCX(columnCount: Int = 1) throws -> URL {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".docx")
+
+        // Create basic DOCX structure
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        // Create word directory
+        let wordDir = tempDir.appendingPathComponent("word")
+        try FileManager.default.createDirectory(at: wordDir, withIntermediateDirectories: true)
+
+        // Create _rels directory
+        let relsDir = tempDir.appendingPathComponent("_rels")
+        try FileManager.default.createDirectory(at: relsDir, withIntermediateDirectories: true)
+
+        // Create word/_rels directory
+        let wordRelsDir = wordDir.appendingPathComponent("_rels")
+        try FileManager.default.createDirectory(at: wordRelsDir, withIntermediateDirectories: true)
+
+        // Create [Content_Types].xml
+        let contentTypesXML = """
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+            <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+            <Default Extension="xml" ContentType="application/xml"/>
+            <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+        </Types>
+        """
+        try contentTypesXML.write(to: tempDir.appendingPathComponent("[Content_Types].xml"), atomically: true, encoding: .utf8)
+
+        // Create .rels
+        let relsXML = """
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+            <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+        </Relationships>
+        """
+        try relsXML.write(to: relsDir.appendingPathComponent(".rels"), atomically: true, encoding: .utf8)
+
+        // Create document.xml based on column count
+        var documentXML = """
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <w:document xmlns:w="http://schemas.openxmlformats.org/2006/main">
+            <w:body>
+                <w:p>
+                    <w:r>
+                        <w:rPr><w:sz w:val="48"/></w:rPr>
+                        <w:t>Amazing Grace</w:t>
+                    </w:r>
+                </w:p>
+        """
+
+        if columnCount == 1 {
+            documentXML += """
+                <w:p>
+                    <w:r>
+                        <w:rPr><w:sz w:val="28"/></w:rPr>
+                        <w:t>G</w:t>
+                    </w:r>
+                </w:p>
+                <w:p>
+                    <w:r>
+                        <w:rPr><w:sz w:val="32"/></w:rPr>
+                        <w:t>Amazing grace how sweet the sound</w:t>
+                    </w:r>
+                </w:p>
+            """
+        } else if columnCount == 2 {
+            documentXML += """
+                <w:p>
+                    <w:r>
+                        <w:rPr><w:sz w:val="28"/></w:rPr>
+                        <w:t>G</w:t>
+                    </w:r>
+                </w:p>
+                <w:p>
+                    <w:r>
+                        <w:rPr><w:sz w:val="32"/></w:rPr>
+                        <w:t>Amazing grace how sweet the sound</w:t>
+                    </w:r>
+                </w:p>
+                <w:p>
+                    <w:r>
+                        <w:rPr><w:sz w:val="28"/></w:rPr>
+                        <w:t>D</w:t>
+                    </w:r>
+                </w:p>
+                <w:p>
+                    <w:r>
+                        <w:rPr><w:sz w:val="32"/></w:rPr>
+                        <w:t>That saved a wretch like me</w:t>
+                    </w:r>
+                </w:p>
+            """
+        }
+
+        documentXML += """
+            </w:body>
+        </w:document>
+        """
+
+        try documentXML.write(to: wordDir.appendingPathComponent("document.xml"), atomically: true, encoding: .utf8)
+
+        // Zip the directory to create DOCX using SSZipArchive
+        try SSZipArchive.createZipFile(
+            atPath: tempURL.path,
+            withContentsOfDirectory: tempDir.path,
+            keepParentDirectory: false
+        )
+
+        // Clean up temp directory
+        try FileManager.default.removeItem(at: tempDir)
+
+        return tempURL
+    }
 
     /// Create a mock PDF document for testing
     func createMockPDF(columnCount: Int = 1) -> PDFDocument? {
@@ -534,5 +652,181 @@ struct TemplateImporterTests {
 
         let error2 = TemplateImportError.analysisError
         #expect(error2.recoverySuggestion != nil)
+    }
+
+    // MARK: - DOCX Import Tests
+
+    @Test("Extract text elements from DOCX")
+    func testExtractTextElementsFromDOCX() throws {
+        let docxURL = try createMockDOCX(columnCount: 1)
+
+        defer {
+            try? FileManager.default.removeItem(at: docxURL)
+        }
+
+        let elements = try TemplateImporter.extractTextElementsFromDOCX(url: docxURL)
+
+        #expect(!elements.isEmpty)
+        #expect(elements.contains { $0.text.contains("Amazing Grace") })
+        #expect(elements.contains { $0.text == "G" })
+    }
+
+    @Test("Extract text elements from DOCX with multiple paragraphs")
+    func testExtractMultipleParagraphsFromDOCX() throws {
+        let docxURL = try createMockDOCX(columnCount: 2)
+
+        defer {
+            try? FileManager.default.removeItem(at: docxURL)
+        }
+
+        let elements = try TemplateImporter.extractTextElementsFromDOCX(url: docxURL)
+
+        #expect(elements.count >= 3)
+        #expect(elements.contains { $0.text == "G" })
+        #expect(elements.contains { $0.text == "D" })
+    }
+
+    @Test("DOCX extraction preserves font sizes")
+    func testDOCXFontSizeExtraction() throws {
+        let docxURL = try createMockDOCX(columnCount: 1)
+
+        defer {
+            try? FileManager.default.removeItem(at: docxURL)
+        }
+
+        let elements = try TemplateImporter.extractTextElementsFromDOCX(url: docxURL)
+
+        // Find the title element (should have largest font size)
+        let titleElement = elements.first { $0.text.contains("Amazing Grace") }
+        #expect(titleElement != nil)
+        #expect(titleElement!.fontSize >= 20.0) // 48 half-points = 24 points
+
+        // Find chord element (should have smaller font size)
+        let chordElement = elements.first { $0.text == "G" }
+        #expect(chordElement != nil)
+        #expect(chordElement!.fontSize >= 10.0 && chordElement!.fontSize <= 20.0)
+    }
+
+    @Test("Import template from DOCX creates valid template")
+    func testImportFromDOCX() async throws {
+        let docxURL = try createMockDOCX(columnCount: 1)
+
+        defer {
+            try? FileManager.default.removeItem(at: docxURL)
+        }
+
+        let template = try await TemplateImporter.importFromDOCX(
+            url: docxURL,
+            name: "DOCX Template",
+            context: context
+        )
+
+        #expect(template.name == "DOCX Template")
+        #expect(template.isValid)
+        #expect(!template.isBuiltIn)
+
+        // Verify template was saved to context
+        let descriptor = FetchDescriptor<Template>()
+        let templates = try context.fetch(descriptor)
+        #expect(templates.contains { $0.name == "DOCX Template" })
+    }
+
+    @Test("Import from invalid DOCX URL throws error")
+    func testImportFromInvalidDOCXURL() async throws {
+        let invalidURL = URL(fileURLWithPath: "/nonexistent/file.docx")
+
+        await #expect(throws: TemplateImportError.self) {
+            try await TemplateImporter.importFromDOCX(
+                url: invalidURL,
+                name: "Test",
+                context: context
+            )
+        }
+    }
+
+    @Test("Import from non-DOCX file throws error")
+    func testImportFromNonDOCXFile() async throws {
+        // Create a text file instead of DOCX
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("notadocx.docx")
+        try "This is not a DOCX file".write(to: tempURL, atomically: true, encoding: .utf8)
+
+        defer {
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+
+        await #expect(throws: TemplateImportError.self) {
+            try await TemplateImporter.importFromDOCX(
+                url: tempURL,
+                name: "Test",
+                context: context
+            )
+        }
+    }
+
+    @Test("Parse DOCX XML extracts text correctly")
+    func testParseDOCXXML() throws {
+        let xmlString = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <w:document xmlns:w="http://schemas.openxmlformats.org/2006/main">
+            <w:body>
+                <w:p>
+                    <w:r>
+                        <w:rPr><w:sz w:val="48"/></w:rPr>
+                        <w:t>Test Title</w:t>
+                    </w:r>
+                </w:p>
+                <w:p>
+                    <w:r>
+                        <w:rPr><w:sz w:val="32"/></w:rPr>
+                        <w:t>Test Body Text</w:t>
+                    </w:r>
+                </w:p>
+            </w:body>
+        </w:document>
+        """
+
+        let elements = try TemplateImporter.parseDOCXXML(xmlString)
+
+        #expect(elements.count == 2)
+        #expect(elements[0].text == "Test Title")
+        #expect(elements[0].fontSize == 24.0) // 48 half-points
+        #expect(elements[1].text == "Test Body Text")
+        #expect(elements[1].fontSize == 16.0) // 32 half-points
+    }
+
+    @Test("DOCX XML parser handles empty paragraphs")
+    func testDOCXXMLParserEmptyParagraphs() throws {
+        let xmlString = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <w:document xmlns:w="http://schemas.openxmlformats.org/2006/main">
+            <w:body>
+                <w:p>
+                    <w:r>
+                        <w:t>First Line</w:t>
+                    </w:r>
+                </w:p>
+                <w:p></w:p>
+                <w:p>
+                    <w:r>
+                        <w:t>Second Line</w:t>
+                    </w:r>
+                </w:p>
+            </w:body>
+        </w:document>
+        """
+
+        let elements = try TemplateImporter.parseDOCXXML(xmlString)
+
+        // Should only return non-empty paragraphs
+        #expect(elements.count == 2)
+        #expect(elements[0].text == "First Line")
+        #expect(elements[1].text == "Second Line")
+    }
+
+    @Test("DOCX error description for noDOCXDocument")
+    func testNoDOCXDocumentErrorDescription() {
+        let error = TemplateImportError.noDOCXDocument
+        #expect(error.errorDescription == "Unable to read DOCX document")
+        #expect(error.recoverySuggestion != nil)
     }
 }

@@ -9,6 +9,8 @@ import Foundation
 import SwiftData
 import PDFKit
 import UIKit
+import UniformTypeIdentifiers
+import ZipArchive
 
 // MARK: - Supporting Structures
 
@@ -56,6 +58,7 @@ struct DocumentLayout {
 
 enum TemplateImportError: LocalizedError {
     case noPDFDocument
+    case noDOCXDocument
     case analysisError
     case invalidLayout
     case noContentFound
@@ -65,6 +68,8 @@ enum TemplateImportError: LocalizedError {
         switch self {
         case .noPDFDocument:
             return "Unable to read PDF document"
+        case .noDOCXDocument:
+            return "Unable to read DOCX document"
         case .analysisError:
             return "Failed to analyze document layout"
         case .invalidLayout:
@@ -80,6 +85,8 @@ enum TemplateImportError: LocalizedError {
         switch self {
         case .noPDFDocument:
             return "The PDF file may be corrupted or password-protected."
+        case .noDOCXDocument:
+            return "The DOCX file may be corrupted or in an unsupported format."
         case .analysisError:
             return "Try a different document or create a template manually."
         case .invalidLayout:
@@ -87,7 +94,7 @@ enum TemplateImportError: LocalizedError {
         case .noContentFound:
             return "The document may be empty or contain only images."
         case .unsupportedFormat:
-            return "Only PDF files are supported at this time."
+            return "Only PDF and DOCX files are supported at this time."
         }
     }
 }
@@ -140,6 +147,118 @@ class TemplateImporter {
         try context.save()
 
         return template
+    }
+
+    // MARK: - DOCX Import
+
+    /// Import a template from a DOCX document
+    /// - Parameters:
+    ///   - url: URL of the DOCX file
+    ///   - name: Name for the new template
+    ///   - context: SwiftData ModelContext
+    /// - Returns: The created template
+    static func importFromDOCX(
+        url: URL,
+        name: String,
+        context: ModelContext
+    ) async throws -> Template {
+        // Extract text elements from DOCX
+        let textElements = try extractTextElementsFromDOCX(url: url)
+
+        guard !textElements.isEmpty else {
+            throw TemplateImportError.noContentFound
+        }
+
+        // Analyze layout using the same methods as PDF
+        let pageWidth: CGFloat = 612.0 // Standard letter width in points
+        let columnStructure = detectColumnStructure(textElements, pageWidth: pageWidth)
+        let typography = extractTypography(textElements)
+        let chordStyle = detectChordStyle(textElements)
+
+        let layout = DocumentLayout(
+            columnStructure: columnStructure,
+            typography: typography,
+            chordStyle: chordStyle
+        )
+
+        // Map to Template model
+        let template = mapToTemplate(
+            layout: layout,
+            name: name,
+            context: context
+        )
+
+        // Validate the template
+        guard template.isValid else {
+            throw TemplateImportError.invalidLayout
+        }
+
+        // Save to context
+        context.insert(template)
+        try context.save()
+
+        return template
+    }
+
+    /// Extract text elements from a DOCX file
+    /// - Parameter url: URL of the DOCX file
+    /// - Returns: Array of text elements with formatting
+    static func extractTextElementsFromDOCX(url: URL) throws -> [TextElement] {
+        var elements: [TextElement] = []
+
+        // DOCX is a ZIP archive containing XML files
+        // Create a temporary directory to extract the DOCX
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        defer {
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+
+        // Use SSZipArchive to extract the DOCX
+        do {
+            try SSZipArchive.unzipFile(
+                atPath: url.path,
+                toDestination: tempDir.path,
+                overwrite: true,
+                password: nil
+            )
+        } catch {
+            throw TemplateImportError.noDOCXDocument
+        }
+
+        // Read document.xml
+        let documentXMLPath = tempDir.appendingPathComponent("word/document.xml")
+        guard let xmlString = try? String(contentsOf: documentXMLPath, encoding: .utf8) else {
+            throw TemplateImportError.noDOCXDocument
+        }
+
+        // Parse XML to extract text and formatting
+        elements = try parseDOCXXML(xmlString)
+
+        return elements
+    }
+
+    /// Parse DOCX XML content to extract text elements
+    /// - Parameter xmlString: XML content from document.xml
+    /// - Returns: Array of text elements
+    static func parseDOCXXML(_ xmlString: String) throws -> [TextElement] {
+        var elements: [TextElement] = []
+        let parser = DOCXXMLParser()
+
+        guard let data = xmlString.data(using: .utf8) else {
+            throw TemplateImportError.analysisError
+        }
+
+        let xmlParser = XMLParser(data: data)
+        xmlParser.delegate = parser
+
+        guard xmlParser.parse() else {
+            throw TemplateImportError.analysisError
+        }
+
+        elements = parser.textElements
+        return elements
     }
 
     // MARK: - PDF Analysis
@@ -498,5 +617,94 @@ class TemplateImporter {
         }
 
         return template
+    }
+}
+
+// MARK: - DOCX XML Parser
+
+/// XML Parser delegate for extracting text from DOCX document.xml
+class DOCXXMLParser: NSObject, XMLParserDelegate {
+    var textElements: [TextElement] = []
+    private var currentText: String = ""
+    private var currentFontSize: CGFloat = 16.0
+    private var currentY: CGFloat = 50.0
+    private var currentX: CGFloat = 50.0
+    private let lineHeight: CGFloat = 20.0
+    private var isInParagraph = false
+    private var isInRun = false
+    private var isInText = false
+    private var paragraphStarted = false
+
+    func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
+        switch elementName {
+        case "w:p": // Paragraph
+            isInParagraph = true
+            paragraphStarted = true
+            currentText = ""
+
+        case "w:r": // Run (text with formatting)
+            isInRun = true
+
+        case "w:t": // Text
+            isInText = true
+
+        case "w:sz": // Font size
+            if let sizeStr = attributeDict["w:val"], let size = Double(sizeStr) {
+                // Word sizes are in half-points
+                currentFontSize = CGFloat(size / 2.0)
+            }
+
+        case "w:szCs": // Complex script font size
+            if let sizeStr = attributeDict["w:val"], let size = Double(sizeStr) {
+                currentFontSize = CGFloat(size / 2.0)
+            }
+
+        default:
+            break
+        }
+    }
+
+    func parser(_ parser: XMLParser, foundCharacters string: String) {
+        if isInText {
+            currentText += string
+        }
+    }
+
+    func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
+        switch elementName {
+        case "w:p": // End of paragraph
+            isInParagraph = false
+            let trimmed = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if !trimmed.isEmpty {
+                // Estimate bounds
+                let estimatedWidth = CGFloat(trimmed.count) * (currentFontSize * 0.5)
+                let bounds = CGRect(x: currentX, y: currentY, width: estimatedWidth, height: currentFontSize)
+
+                textElements.append(TextElement(
+                    text: trimmed,
+                    bounds: bounds,
+                    fontSize: currentFontSize
+                ))
+
+                currentY += lineHeight
+            } else if paragraphStarted {
+                // Empty paragraph, still advance Y
+                currentY += lineHeight / 2
+            }
+
+            currentText = ""
+            paragraphStarted = false
+            currentX = 50.0
+
+        case "w:r": // End of run
+            isInRun = false
+
+        case "w:t": // End of text
+            isInText = false
+
+        default:
+            break
+        }
     }
 }

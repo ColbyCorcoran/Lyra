@@ -11,6 +11,7 @@ import SwiftData
 @testable import Lyra
 
 @Suite("SongDisplayView Template Integration Tests")
+@MainActor
 struct SongDisplayViewTemplateTests {
     var container: ModelContainer
     var context: ModelContext

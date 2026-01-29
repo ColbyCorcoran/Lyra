@@ -11,6 +11,7 @@ import Foundation
 @testable import Lyra
 
 @Suite("Recurrence Tests")
+@MainActor
 struct RecurrenceTests {
     var container: ModelContainer
     var context: ModelContext
@@ -150,9 +151,10 @@ struct RecurrenceTests {
         )
 
         // Should generate 5 instances (as specified by endAfterOccurrences)
+        let templateId = template.id
         let descriptor = FetchDescriptor<PerformanceSet>(
             predicate: #Predicate { set in
-                set.recurringTemplateId == template.id
+                set.recurringTemplateId == templateId
             }
         )
 
@@ -238,9 +240,10 @@ struct RecurrenceTests {
             context: context
         )
 
+        let templateId = template.id
         let descriptor = FetchDescriptor<PerformanceSet>(
             predicate: #Predicate { set in
-                set.recurringTemplateId == template.id
+                set.recurringTemplateId == templateId
             }
         )
 
@@ -304,9 +307,10 @@ struct RecurrenceTests {
             context: context
         )
 
+        let templateId = template.id
         let descriptor = FetchDescriptor<PerformanceSet>(
             predicate: #Predicate { set in
-                set.recurringTemplateId == template.id
+                set.recurringTemplateId == templateId
             }
         )
 

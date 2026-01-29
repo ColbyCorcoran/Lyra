@@ -11,6 +11,7 @@ import Foundation
 @testable import Lyra
 
 @Suite("Song Template Tests")
+@MainActor
 struct SongTemplateTests {
     var container: ModelContainer
     var context: ModelContext

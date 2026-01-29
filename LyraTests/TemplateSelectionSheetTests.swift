@@ -11,6 +11,7 @@ import SwiftData
 @testable import Lyra
 
 @Suite("TemplateSelectionSheet Tests")
+@MainActor
 struct TemplateSelectionSheetTests {
 
     // MARK: - Test Helpers

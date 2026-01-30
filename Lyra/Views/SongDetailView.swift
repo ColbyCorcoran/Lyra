@@ -92,29 +92,13 @@ struct SongDetailView: View {
             }
         }
         .sheet(isPresented: $showExportOptions) {
-            ExportOptionsSheet(song: song) { format, content in
-                handleExport(content: content, format: format)
+            ExportOptionsSheet(song: song) { url in
+                exportedFileURL = url
             }
         }
         .sheet(item: $exportedFileURL) { url in
             ShareSheet(items: [url])
         }
-    }
-
-    // MARK: - Helper Methods
-
-    private func handleExport(content: String, format: SongExporter.ExportFormat) {
-        do {
-            let filename = SongExporter.suggestedFilename(for: song, format: format)
-            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-
-            try content.write(to: tempURL, atomically: true, encoding: .utf8)
-
-            exportedFileURL = tempURL
-        } catch {
-            print("❌ Failed to save exported file: \(error.localizedDescription)")
-        }
-    }
 }
 
 // MARK: - Metadata Row

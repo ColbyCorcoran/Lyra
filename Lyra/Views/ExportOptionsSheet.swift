@@ -13,6 +13,7 @@ struct ExportOptionsSheet: View {
     // MARK: - Environment
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     // MARK: - State
 
@@ -30,11 +31,11 @@ struct ExportOptionsSheet: View {
     // MARK: - Properties
 
     let song: Song
-    let onExport: (SongExporter.ExportFormat, String) -> Void
+    let onExport: (URL) -> Void
 
     // MARK: - Initializer
 
-    init(song: Song, onExport: @escaping (SongExporter.ExportFormat, String) -> Void) {
+    init(song: Song, onExport: @escaping (URL) -> Void) {
         self.song = song
         self.onExport = onExport
         _customFilename = State(initialValue: SongExporter.suggestedFilename(for: song, format: .chordPro))
@@ -98,7 +99,11 @@ struct ExportOptionsSheet: View {
             .onChange(of: selectedFormat) { _, newValue in
                 HapticManager.shared.selection()
                 updateFilenameForFormat(newValue)
-                updatePreview()
+                if newValue == .pdf {
+                    showPreview = false
+                } else {
+                    updatePreview()
+                }
             }
         } header: {
             Text("Export Format")
@@ -125,8 +130,10 @@ struct ExportOptionsSheet: View {
         } header: {
             Text("Export Options")
         } footer: {
-            if selectedFormat == .json {
-                Text("JSON format always includes all song data")
+            if selectedFormat == .json || selectedFormat == .lyraBundle {
+                Text("This format always includes all song data")
+            } else if selectedFormat == .pdf {
+                Text("PDF is rendered using the song's template layout")
             } else {
                 Text("Choose what to include in the exported file")
             }
@@ -166,27 +173,30 @@ struct ExportOptionsSheet: View {
         }
     }
 
+    @ViewBuilder
     private var previewSection: some View {
-        Section {
-            if showPreview {
-                ScrollView {
-                    Text(exportedContent)
-                        .font(.system(.caption, design: .monospaced))
-                        .padding(8)
+        if selectedFormat != .pdf {
+            Section {
+                if showPreview {
+                    ScrollView {
+                        Text(exportedContent)
+                            .font(.system(.caption, design: .monospaced))
+                            .padding(8)
+                    }
+                    .frame(maxHeight: 200)
+                } else {
+                    Button {
+                        generatePreview()
+                    } label: {
+                        Label("Show Preview", systemImage: "eye")
+                    }
                 }
-                .frame(maxHeight: 200)
-            } else {
-                Button {
-                    generatePreview()
-                } label: {
-                    Label("Show Preview", systemImage: "eye")
+            } header: {
+                Text("Preview")
+            } footer: {
+                if showPreview {
+                    Text("Preview of exported content")
                 }
-            }
-        } header: {
-            Text("Preview")
-        } footer: {
-            if showPreview {
-                Text("Preview of exported content")
             }
         }
     }
@@ -197,10 +207,14 @@ struct ExportOptionsSheet: View {
         switch selectedFormat {
         case .chordPro:
             return "ChordPro format is a standard format for chord charts with metadata directives."
-        case .json:
-            return "JSON format includes all song data in a structured, machine-readable format."
+        case .pdf:
+            return "PDF preserves the visual layout with template formatting applied, ready for printing."
         case .plainText:
             return "Plain text format with human-readable metadata and lyrics."
+        case .lyraBundle:
+            return "Lyra Bundle includes the song, template, and settings for complete round-trip import/export."
+        case .json:
+            return "JSON format includes all song data in a structured, machine-readable format."
         }
     }
 
@@ -230,8 +244,8 @@ struct ExportOptionsSheet: View {
         HapticManager.shared.buttonTap()
 
         do {
-            let content = try generateExportContent()
-            onExport(selectedFormat, content)
+            let url = try exportToTemporaryFile()
+            onExport(url)
             HapticManager.shared.success()
             dismiss()
         } catch {
@@ -241,14 +255,33 @@ struct ExportOptionsSheet: View {
         isExporting = false
     }
 
-    private func generateExportContent() throws -> String {
-        // Create a modified copy of the song if needed
-        var modifiedSong = song
+    private func exportToTemporaryFile() throws -> URL {
+        let filename = finalFilename
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
 
-        // For non-JSON formats, we need to handle metadata and notes options
-        if selectedFormat != .json {
+        let template = song.effectiveTemplate(context: modelContext)
+
+        switch selectedFormat {
+        case .pdf:
+            let pdfData = try SongExporter.exportToPDF(song, template: template)
+            try pdfData.write(to: tempURL)
+
+        case .lyraBundle:
+            let content = try SongExporter.exportToLyraBundle(song, template: template)
+            try content.write(to: tempURL, atomically: true, encoding: .utf8)
+
+        default:
+            let content = try generateExportContent()
+            try content.write(to: tempURL, atomically: true, encoding: .utf8)
+        }
+
+        return tempURL
+    }
+
+    private func generateExportContent() throws -> String {
+        // For non-JSON/non-binary formats, handle metadata and notes options
+        if selectedFormat != .json && selectedFormat != .lyraBundle && selectedFormat != .pdf {
             if !includeNotes {
-                // We can't modify the song directly, so we'll need to modify the output
                 let content = try exportForFormat(selectedFormat, song: song)
                 return removeNotesFromContent(content, format: selectedFormat)
             }
@@ -270,6 +303,12 @@ struct ExportOptionsSheet: View {
             return try SongExporter.exportToJSON(song)
         case .plainText:
             return try SongExporter.exportToPlainText(song)
+        case .lyraBundle:
+            let template = song.effectiveTemplate(context: modelContext)
+            return try SongExporter.exportToLyraBundle(song, template: template)
+        case .pdf:
+            // PDF is binary, not text - should use exportToTemporaryFile instead
+            throw SongExporter.SongExportError.unsupportedFormat
         }
     }
 
@@ -290,8 +329,8 @@ struct ExportOptionsSheet: View {
                 return withoutLastSeparator
             }
             return content
-        case .json:
-            return content // JSON always includes everything
+        case .json, .pdf, .lyraBundle:
+            return content // These formats handle content inclusion internally
         }
     }
 
@@ -338,8 +377,8 @@ struct ExportOptionsSheet: View {
                 }
             }
             return result.joined(separator: "\n")
-        case .json:
-            return content // JSON always includes everything
+        case .json, .pdf, .lyraBundle:
+            return content // These formats handle content inclusion internally
         }
     }
 
@@ -392,9 +431,8 @@ struct ExportOptionsSheet: View {
             content: "[G]Amazing grace, how [C]sweet the [G]sound\nThat saved a wretch like [D]me\n[G]I once was lost, but [C]now I'm [G]found\nWas [D]blind but now I [G]see",
             originalKey: "G"
         ),
-        onExport: { format, content in
-            print("Exported as \(format.displayName)")
-            print("Content length: \(content.count)")
+        onExport: { url in
+            print("Exported to: \(url.lastPathComponent)")
         }
     )
     .modelContainer(PreviewContainer.shared.container)

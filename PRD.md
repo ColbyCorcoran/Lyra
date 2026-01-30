@@ -211,10 +211,10 @@ Add "Templates" section with NavigationLink to TemplateLibraryView
   - [x] Add `importedAt: Date?` property
   - [x] Define `ImportSource` enum (pdf, word, plainText, inAppDesigner)
 
-- [ ] Modify `/Lyra/Views/SettingsView.swift`
-  - [ ] Add "Templates" section
-  - [ ] Add NavigationLink to TemplateLibraryView
-  - [ ] Add descriptive footer text
+- [x] Modify `/Lyra/Views/SettingsView.swift`
+  - [x] Add "Templates" section
+  - [x] Add NavigationLink to TemplateLibraryView
+  - [x] Add descriptive footer text
 
 ### Testing - Phase 2A
 
@@ -290,7 +290,7 @@ Add "Templates" section with NavigationLink to TemplateLibraryView
 
 ---
 
-# Phase 3: Export System - ✅ MOSTLY COMPLETE
+# Phase 3: Export System - ✅ COMPLETE
 
 ## Overview
 
@@ -298,17 +298,15 @@ Enable users to export songs in multiple formats while preserving template forma
 
 ## Export Formats
 
-1. **ChordPro (.txt)** - Pure ChordPro format (strips template, universal compatibility) ✅
-2. **JSON (.json)** - Structured song data export ✅
-3. **Plain Text** - Lyrics only, no chords ✅
-4. **PDF** - Rendered with template applied (preserves visual formatting) — _not yet implemented_
-5. **Lyra Bundle (.lyra)** - JSON bundle with content + template + settings — _export not yet implemented; import is complete_
-
-> **Implementation Note:** The actual implementation uses JSON export (structured song data) rather than the originally planned PDF and Lyra Bundle export formats. PDF rendering and Lyra Bundle export remain as future enhancements.
+1. **ChordPro (.cho)** - Pure ChordPro format (strips template, universal compatibility) ✅
+2. **PDF (.pdf)** - Rendered with template applied, multi-column support, ChordPro parsing ✅
+3. **Plain Text (.txt)** - Lyrics only, no chords ✅
+4. **Lyra Bundle (.lyra)** - JSON bundle with song + template + settings for round-trip import/export ✅
+5. **JSON (.json)** - Structured song data export ✅
 
 ---
 
-## Phase 3A: Export Infrastructure - ✅ MOSTLY COMPLETE
+## Phase 3A: Export Infrastructure - ✅ COMPLETE
 
 ### New Files to Create
 
@@ -317,24 +315,24 @@ Enable users to export songs in multiple formats while preserving template forma
 **Export Engine with Format Support**
 
 Features:
-- `exportToChordPro(_:)` - Write song.content to .txt file ✅
-- `exportToJSON(_:)` / `exportToJSONData(_:)` - Structured JSON export ✅
+- `exportToChordPro(_:)` - Write song.content to .cho file ✅
+- `exportToPDF(_:template:)` - Render to PDF with template layout, multi-column, ChordPro parsing ✅
 - `exportToPlainText(_:)` - Extract lyrics only from ParsedSong ✅
-- `exportToFile(_:format:)` - Write to temp directory ✅
-- `exportMultipleSongs(_:format:)` - Batch export ✅
-- `exportPDF(_:template:displaySettings:)` - Render to PDF with template applied — _not yet implemented_
-- `exportLyraBundle(_:template:displaySettings:)` - JSON bundle export — _not yet implemented_
+- `exportToLyraBundle(_:template:)` - JSON bundle with song + template data ✅
+- `exportToJSON(_:)` / `exportToJSONData(_:)` - Structured JSON export ✅
+- `exportToFile(_:format:url:template:)` - Write to directory (all formats) ✅
+- `exportMultipleSongs(_:format:to:)` - Batch export ✅
 
 #### 2. `/Lyra/Views/ExportOptionsSheet.swift` (Priority: High)
 
 **Export UI with Format Selection**
 
 Features:
-- Export format picker (ChordPro, JSON, Plain Text) ✅
+- Export format picker (ChordPro, PDF, Plain Text, Lyra Bundle, JSON) ✅
 - Include metadata toggle ✅
 - Include notes toggle ✅
 - Custom filename support ✅
-- Preview section ✅
+- Preview section (text formats) ✅
 - Cancel/Export buttons ✅
 
 ### Files to Modify
@@ -366,10 +364,10 @@ Add "Export Song" option to context menu
   - [x] Define `SongExportError` enum with localized descriptions and recovery suggestions
   - [x] Handle file writing to temporary directory
   - [x] Add `suggestedFilename` and `sanitizeFilename` helpers
-  - [ ] Implement `exportPDF(_:template:displaySettings:)` with ImageRenderer
-  - [ ] Implement `renderToPDF(song:template:displaySettings:)` for PDF page generation
-  - [ ] Implement `exportLyraBundle(_:template:displaySettings:)` with JSON encoding
-  - [ ] Define `LyraBundle` Codable struct in SongExporter (currently only defined in TemplateImporter for import)
+  - [x] Implement `exportToPDF(_:template:)` with UIGraphicsPDFRenderer
+  - [x] Implement PDF rendering with multi-column support, ChordPro parsing, and pagination
+  - [x] Implement `exportToLyraBundle(_:template:)` with JSON encoding
+  - [x] Define `LyraBundleExport` Codable struct (backward-compatible with LyraBundle import struct)
 
 - [x] Create `/Lyra/Views/ExportOptionsSheet.swift`
   - [x] Define `ExportOptionsSheet` SwiftUI view
@@ -430,14 +428,7 @@ Add "Export Song" option to context menu
 
 ## Remaining Work
 
-The following items are not yet implemented:
-
-### High Priority
-- [ ] **SettingsView Templates section** — Add a "Templates" section to SettingsView with NavigationLink to TemplateLibraryView. Without this, users cannot access the template library from Settings.
-
-### Future Enhancements
-- [ ] **PDF Export** — Render songs to PDF using ImageRenderer with template formatting applied. Includes page sizing (US Letter: 612pt x 792pt) and pagination for long songs.
-- [ ] **Lyra Bundle Export** — Export songs as .lyra bundles (JSON with content + template + display settings) to enable round-trip import/export.
+All planned phases (1-3) are now complete. The following items are future enhancements:
 
 ### Phase 4: Polish & Advanced Features (Future)
 - Template marketplace
@@ -467,20 +458,19 @@ The following items are not yet implemented:
   - TemplateImportView UI
   - TemplateLibraryView for management
   - Import metadata tracking (importSource, importedFromURL, importedAt on Template model)
+  - SettingsView → TemplateLibraryView navigation
 - **2B (Word Import)** ✅: Parse .docx XML for styles via DOCXXMLParser
 - **2C (Plain Text Import)** ✅: Pattern detection in text files
 
-> **Note:** SettingsView → TemplateLibraryView navigation link is still missing.
-
-### Phase 3: Export System ✅ MOSTLY COMPLETE
+### Phase 3: Export System ✅ COMPLETE
 - **3A (Export Infrastructure)** ✅:
   - ChordPro export (universal compatibility) ✅
-  - JSON export (structured song data) ✅
+  - PDF export with template rendering (multi-column, ChordPro parsing, pagination) ✅
   - Plain text export (lyrics only) ✅
-  - ExportOptionsSheet UI ✅
+  - Lyra Bundle export (song + template round-trip) ✅
+  - JSON export (structured song data) ✅
+  - ExportOptionsSheet UI (5 format picker) ✅
   - Share sheet integration ✅
-  - _PDF export — not yet implemented_
-  - _Lyra Bundle export — not yet implemented_
 - **3B (Lyra Bundle Import)** ✅: Import from .lyra bundles fully working
 
 ### Phase 4: Polish & Advanced Features (Future)
@@ -504,7 +494,7 @@ The following items are not yet implemented:
 
 **Modified Files (4):**
 1. `/Lyra/Models/Template.swift` - Import metadata ✅
-2. `/Lyra/Views/SettingsView.swift` - Template library link ❌ NOT DONE
+2. `/Lyra/Views/SettingsView.swift` - Template library link ✅
 3. `/Lyra/Views/SongDisplayView.swift` - Export button ✅
 4. `/Lyra/Views/SongDetailView.swift` - Export menu ✅
 

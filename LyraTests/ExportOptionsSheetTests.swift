@@ -50,7 +50,7 @@ struct ExportOptionsSheetTests {
         let song = createTestSong()
         var exportCalled = false
 
-        let view = ExportOptionsSheet(song: song) { _, _ in
+        let view = ExportOptionsSheet(song: song) { _ in
             exportCalled = true
         }
 
@@ -64,10 +64,12 @@ struct ExportOptionsSheetTests {
     func testAllFormatsAvailable() {
         let formats = SongExporter.ExportFormat.allCases
 
-        #expect(formats.count == 3)
+        #expect(formats.count == 5)
         #expect(formats.contains(.chordPro))
-        #expect(formats.contains(.json))
+        #expect(formats.contains(.pdf))
         #expect(formats.contains(.plainText))
+        #expect(formats.contains(.lyraBundle))
+        #expect(formats.contains(.json))
     }
 
     @Test("Song can have notes")
@@ -125,5 +127,45 @@ struct ExportOptionsSheetTests {
         #expect(filename.contains("Test Song"))
         #expect(filename.contains("Test Artist"))
         #expect(filename.hasSuffix(".cho"))
+    }
+
+    @Test("SongExporter exports PDF data")
+    func testSongExporterPDF() throws {
+        let song = createTestSong()
+
+        let pdfData = try SongExporter.exportToPDF(song, template: nil)
+
+        #expect(!pdfData.isEmpty)
+        // PDF files start with %PDF
+        let prefix = String(data: pdfData.prefix(4), encoding: .ascii)
+        #expect(prefix == "%PDF")
+    }
+
+    @Test("SongExporter exports Lyra Bundle correctly")
+    func testSongExporterLyraBundle() throws {
+        let song = createTestSong()
+        let template = Template.builtInTwoColumn()
+
+        let content = try SongExporter.exportToLyraBundle(song, template: template)
+
+        #expect(content.contains("\"version\""))
+        #expect(content.contains("\"template\""))
+        #expect(content.contains("\"song\""))
+        #expect(content.contains("Amazing Grace"))
+        #expect(content.contains("\"columnCount\" : 2"))
+    }
+
+    @Test("SongExporter PDF filename has correct extension")
+    func testPDFFilenameExtension() {
+        let song = createTestSong()
+        let filename = SongExporter.suggestedFilename(for: song, format: .pdf)
+        #expect(filename.hasSuffix(".pdf"))
+    }
+
+    @Test("SongExporter Lyra Bundle filename has correct extension")
+    func testLyraBundleFilenameExtension() {
+        let song = createTestSong()
+        let filename = SongExporter.suggestedFilename(for: song, format: .lyraBundle)
+        #expect(filename.hasSuffix(".lyra"))
     }
 }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SettingsView: View {
     @AppStorage("globalFontSize") private var globalFontSize: Double = 16
@@ -23,6 +24,7 @@ struct SettingsView: View {
     @State private var showError: Bool = false
     @State private var showFolderManagement: Bool = false
     @State private var showVenueManagement: Bool = false
+    @State private var showTemplateLibrary: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -184,6 +186,26 @@ struct SettingsView: View {
                     Text("These settings apply to all new songs. Individual songs can override these defaults.")
                 }
 
+                // Templates Section
+                Section {
+                    Button {
+                        showTemplateLibrary = true
+                    } label: {
+                        HStack {
+                            Label("Template Library", systemImage: "rectangle.3.group")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                } header: {
+                    Label("Templates", systemImage: "doc.richtext")
+                } footer: {
+                    Text("Manage column layouts, typography, and chord positioning templates for your songs.")
+                }
+
                 // Recurring Sets Section
                 RecurringSetPreferencesSection()
 
@@ -314,6 +336,11 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showVenueManagement) {
                 VenueManagementView()
+            }
+            .sheet(isPresented: $showTemplateLibrary) {
+                NavigationStack {
+                    TemplateLibraryView()
+                }
             }
             .sheet(item: $shareItem) { (item: SettingsShareItem) in
                 SettingsShareSheet(activityItems: item.items)

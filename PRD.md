@@ -77,7 +77,7 @@ Phase 1 has been successfully implemented with all core template system function
 
 ---
 
-# Phase 2: Template Import System
+# Phase 2: Template Import System - ✅ COMPLETE
 
 ## Overview
 
@@ -91,7 +91,7 @@ Enable users to import templates from existing documents (PDF, Word, Plain Text)
 
 ---
 
-## Phase 2A: PDF Template Import
+## Phase 2A: PDF Template Import - ✅ COMPLETE
 
 ### New Files to Create
 
@@ -173,43 +173,43 @@ Add "Templates" section with NavigationLink to TemplateLibraryView
 ### Implementation Checklist - Phase 2A (PDF Import)
 
 - [x] Create `/Lyra/Utilities/TemplateImporter.swift`
-  - [ ] Define `TemplateImporter` class with static import methods
-  - [ ] Implement `importFromPDF(url:name:context:)` async method
-  - [ ] Implement `analyzePDFLayout(_:)` to extract DocumentLayout
-  - [ ] Implement `extractTextElements(from:)` using PDFPage API
-  - [ ] Implement `detectColumnStructure(_:pageWidth:)` clustering algorithm
-  - [ ] Implement `extractTypography(_:)` font size analysis
-  - [ ] Implement `detectChordStyle(_:)` heuristic detection
-  - [ ] Implement `mapToTemplate(layout:name:context:)` conversion
-  - [ ] Define `DocumentLayout`, `TextElement`, `ColumnStructure`, `TypographyProfile` structs
-  - [ ] Define `TemplateImportError` enum with localized descriptions
+  - [x] Define `TemplateImporter` class with static import methods
+  - [x] Implement `importFromPDF(url:name:context:)` async method
+  - [x] Implement `analyzePDFLayout(_:)` to extract DocumentLayout
+  - [x] Implement `extractTextElements(from:)` using PDFPage API
+  - [x] Implement `detectColumnStructure(_:pageWidth:)` clustering algorithm
+  - [x] Implement `extractTypography(_:)` font size analysis
+  - [x] Implement `detectChordStyle(_:)` heuristic detection
+  - [x] Implement `mapToTemplate(layout:name:context:)` conversion
+  - [x] Define `DocumentLayout`, `TextElement`, `ColumnStructure`, `TypographyProfile` structs
+  - [x] Define `TemplateImportError` enum with localized descriptions
 
 - [x] Create `/Lyra/Views/TemplateImportView.swift`
-  - [ ] Define `TemplateImportView` SwiftUI view
-  - [ ] Add template name TextField with validation
-  - [ ] Add import format picker (PDF, Word, Plain Text)
-  - [ ] Add document file picker button with fileImporter modifier
-  - [ ] Implement `importTemplate()` async method
-  - [ ] Add progress indicator during import
-  - [ ] Add error alert for import failures
-  - [ ] Add preview sheet to show imported template in TemplateEditorView
-  - [ ] Add Cancel toolbar button
+  - [x] Define `TemplateImportView` SwiftUI view
+  - [x] Add template name TextField with validation
+  - [x] Add import format picker (PDF, Word, Plain Text, Lyra Bundle)
+  - [x] Add document file picker button with fileImporter modifier
+  - [x] Implement `importTemplate()` async method
+  - [x] Add progress indicator during import
+  - [x] Add error alert for import failures
+  - [x] Add preview sheet to show imported template in TemplateEditorView
+  - [x] Add Cancel toolbar button
 
 - [x] Create `/Lyra/Views/TemplateLibraryView.swift`
-  - [ ] Define `TemplateLibraryView` with @Query for templates
-  - [ ] Add search bar with searchable modifier
-  - [ ] Add "Built-in Templates" section
-  - [ ] Add "Custom Templates" section
-  - [ ] Create `TemplateRowView` with template details
-  - [ ] Add toolbar menu with "Create New" and "Import from Document" options
-  - [ ] Add sheet presentations for import and editor views
-  - [ ] Implement template selection and editing flow
+  - [x] Define `TemplateLibraryView` with @Query for templates
+  - [x] Add search bar with searchable modifier
+  - [x] Add "Built-in Templates" section
+  - [x] Add "Custom Templates" section
+  - [x] Create `TemplateRowView` with template details
+  - [x] Add toolbar menu with "Create New" and "Import from Document" options
+  - [x] Add sheet presentations for import and editor views
+  - [x] Implement template selection and editing flow
 
-- [ ] Modify `/Lyra/Models/Template.swift`
-  - [ ] Add `importSource: ImportSource?` property
-  - [ ] Add `importedFromURL: String?` property
-  - [ ] Add `importedAt: Date?` property
-  - [ ] Define `ImportSource` enum (pdf, word, plainText, inAppDesigner)
+- [x] Modify `/Lyra/Models/Template.swift`
+  - [x] Add `importSource: ImportSource?` property
+  - [x] Add `importedFromURL: String?` property
+  - [x] Add `importedAt: Date?` property
+  - [x] Define `ImportSource` enum (pdf, word, plainText, inAppDesigner)
 
 - [ ] Modify `/Lyra/Views/SettingsView.swift`
   - [ ] Add "Templates" section
@@ -233,7 +233,7 @@ Add "Templates" section with NavigationLink to TemplateLibraryView
 
 ---
 
-## Phase 2B: Word Import (Future Enhancement)
+## Phase 2B: Word Import - ✅ COMPLETE
 
 ### Implementation Strategy
 
@@ -252,19 +252,21 @@ Add "Templates" section with NavigationLink to TemplateLibraryView
 
 **Implementation Checklist:**
 
-- [ ] Add `.docx` parsing to TemplateImporter
-  - [ ] Implement `importFromWord(url:name:context:)` async method
-  - [ ] Extract .docx ZIP archive
-  - [ ] Parse `word/document.xml` with XMLParser
-  - [ ] Parse `word/styles.xml` for font definitions
-  - [ ] Extract column count from `<w:cols>` element
-  - [ ] Extract font sizes from paragraph styles
-  - [ ] Map Word styles to Template properties
-  - [ ] Handle invalid/missing styles gracefully
+- [x] Add `.docx` parsing to TemplateImporter
+  - [x] Implement `importFromWord(url:name:context:)` async method
+  - [x] Extract .docx ZIP archive
+  - [x] Parse `word/document.xml` with XMLParser
+  - [x] Parse `word/styles.xml` for font definitions
+  - [x] Extract column count from `<w:cols>` element
+  - [x] Extract font sizes from paragraph styles
+  - [x] Map Word styles to Template properties
+  - [x] Handle invalid/missing styles gracefully
+
+> **Implementation Note:** DOCX import is fully implemented in `TemplateImporter.swift` using a custom `DOCXXMLParser` class (NSObject/XMLParserDelegate) for XML parsing.
 
 ---
 
-## Phase 2C: Plain Text Import
+## Phase 2C: Plain Text Import - ✅ COMPLETE
 
 ### Implementation Strategy
 
@@ -277,16 +279,18 @@ Add "Templates" section with NavigationLink to TemplateLibraryView
 
 **Implementation Checklist:**
 
-- [ ] Implement plain text import
-  - [ ] Read file contents as String
-  - [ ] Analyze whitespace patterns for column detection
-  - [ ] Detect ChordPro format markers
-  - [ ] Create sensible default template (likely single column)
-  - [ ] Preserve detected format characteristics
+- [x] Implement plain text import
+  - [x] Read file contents as String
+  - [x] Analyze whitespace patterns for column detection
+  - [x] Detect ChordPro format markers
+  - [x] Create sensible default template (likely single column)
+  - [x] Preserve detected format characteristics
+
+> **Implementation Note:** Plain text import is implemented in `TemplateImporter.swift` via the `importFromPlainText(url:name:context:)` method.
 
 ---
 
-# Phase 3: Export System
+# Phase 3: Export System - ✅ MOSTLY COMPLETE
 
 ## Overview
 
@@ -294,14 +298,17 @@ Enable users to export songs in multiple formats while preserving template forma
 
 ## Export Formats
 
-1. **ChordPro (.txt)** - Pure ChordPro format (strips template, universal compatibility)
-2. **PDF** - Rendered with template applied (preserves visual formatting)
-3. **Plain Text** - Lyrics only, no chords
-4. **Lyra Bundle (.lyra)** - JSON bundle with content + template + settings
+1. **ChordPro (.txt)** - Pure ChordPro format (strips template, universal compatibility) ✅
+2. **JSON (.json)** - Structured song data export ✅
+3. **Plain Text** - Lyrics only, no chords ✅
+4. **PDF** - Rendered with template applied (preserves visual formatting) — _not yet implemented_
+5. **Lyra Bundle (.lyra)** - JSON bundle with content + template + settings — _export not yet implemented; import is complete_
+
+> **Implementation Note:** The actual implementation uses JSON export (structured song data) rather than the originally planned PDF and Lyra Bundle export formats. PDF rendering and Lyra Bundle export remain as future enhancements.
 
 ---
 
-## Phase 3A: Export Infrastructure
+## Phase 3A: Export Infrastructure - ✅ MOSTLY COMPLETE
 
 ### New Files to Create
 
@@ -310,40 +317,25 @@ Enable users to export songs in multiple formats while preserving template forma
 **Export Engine with Format Support**
 
 Features:
-- `export(song:format:template:displaySettings:)` async method
-- `exportChordPro(_:)` - Write song.content to .txt file
-- `exportPDF(_:template:displaySettings:)` - Render to PDF with template applied
-- `exportPlainText(_:)` - Extract lyrics only from ParsedSong
-- `exportLyraBundle(_:template:displaySettings:)` - JSON bundle export
-- `renderToPDF(song:template:displaySettings:)` - Use ImageRenderer for PDF generation
-
-**PDF Generation Strategy:**
-1. Use `ImageRenderer` to render MultiColumnSongView/SongDisplayView to image
-2. Create PDF context with appropriate page size (US Letter: 612pt x 792pt)
-3. Draw rendered image into PDF pages
-4. Handle pagination for long songs
-
-**Lyra Bundle Format:**
-- JSON structure containing:
-  - Song metadata (title, artist, key, tempo)
-  - Song content (ChordPro text)
-  - Template settings (if custom)
-  - Display settings (if custom)
-  - Version number for compatibility
-  - Export timestamp
+- `exportToChordPro(_:)` - Write song.content to .txt file ✅
+- `exportToJSON(_:)` / `exportToJSONData(_:)` - Structured JSON export ✅
+- `exportToPlainText(_:)` - Extract lyrics only from ParsedSong ✅
+- `exportToFile(_:format:)` - Write to temp directory ✅
+- `exportMultipleSongs(_:format:)` - Batch export ✅
+- `exportPDF(_:template:displaySettings:)` - Render to PDF with template applied — _not yet implemented_
+- `exportLyraBundle(_:template:displaySettings:)` - JSON bundle export — _not yet implemented_
 
 #### 2. `/Lyra/Views/ExportOptionsSheet.swift` (Priority: High)
 
 **Export UI with Format Selection**
 
 Features:
-- Export format picker (PDF, ChordPro, Plain Text, Lyra Bundle)
-- "Include Template Formatting" toggle (for PDF/Lyra Bundle)
-- Format description footer text
-- Progress indicator during export
-- Error alerts for failures
-- Share sheet to share exported file
-- Cancel/Export buttons
+- Export format picker (ChordPro, JSON, Plain Text) ✅
+- Include metadata toggle ✅
+- Include notes toggle ✅
+- Custom filename support ✅
+- Preview section ✅
+- Cancel/Export buttons ✅
 
 ### Files to Modify
 
@@ -362,49 +354,49 @@ Add "Export Song" option to context menu
 
 ### Implementation Checklist - Phase 3A (Export)
 
-- [ ] Create `/Lyra/Utilities/SongExporter.swift`
-  - [ ] Define `SongExporter` class with static export method
-  - [ ] Define `ExportFormat` enum (chordPro, pdf, plainText, lyraBundle)
-  - [ ] Implement `export(song:format:template:displaySettings:)` async method
-  - [ ] Implement `exportChordPro(_:)` - write song.content to file
-  - [ ] Implement `exportPDF(_:template:displaySettings:)` with rendering
-  - [ ] Implement `exportPlainText(_:)` - extract lyrics only from ParsedSong
+- [x] Create `/Lyra/Utilities/SongExporter.swift`
+  - [x] Define `SongExporter` class with static export method
+  - [x] Define `ExportFormat` enum (chordPro, json, plainText)
+  - [x] Implement `exportToChordPro(_:)` - write song.content to file
+  - [x] Implement `exportToJSON(_:)` / `exportToJSONData(_:)` - structured JSON export
+  - [x] Implement `exportToPlainText(_:)` - extract lyrics only from ParsedSong
+  - [x] Implement `exportToFile(_:format:)` - write to temporary directory
+  - [x] Implement `exportMultipleSongs(_:format:)` - batch export support
+  - [x] Define `SongExportData` Codable struct for JSON serialization
+  - [x] Define `SongExportError` enum with localized descriptions and recovery suggestions
+  - [x] Handle file writing to temporary directory
+  - [x] Add `suggestedFilename` and `sanitizeFilename` helpers
+  - [ ] Implement `exportPDF(_:template:displaySettings:)` with ImageRenderer
+  - [ ] Implement `renderToPDF(song:template:displaySettings:)` for PDF page generation
   - [ ] Implement `exportLyraBundle(_:template:displaySettings:)` with JSON encoding
-  - [ ] Implement `renderToPDF(song:template:displaySettings:)` using ImageRenderer
-  - [ ] Define `LyraBundle` Codable struct
-  - [ ] Define `TemplateCodable` struct with Template initializer
-  - [ ] Define `ExportError` enum with localized descriptions
-  - [ ] Handle file writing to temporary directory
-  - [ ] Add proper cleanup of temporary files
+  - [ ] Define `LyraBundle` Codable struct in SongExporter (currently only defined in TemplateImporter for import)
 
-- [ ] Create `/Lyra/Views/ExportOptionsSheet.swift`
-  - [ ] Define `ExportOptionsSheet` SwiftUI view
-  - [ ] Add format picker with 4 options
-  - [ ] Add "Include Template Formatting" toggle for PDF/Lyra exports
-  - [ ] Add format description footer text
-  - [ ] Implement `performExport()` async method
-  - [ ] Add progress indicator during export
-  - [ ] Add error alert for export failures
-  - [ ] Add share sheet to share exported file
-  - [ ] Add Cancel toolbar button
+- [x] Create `/Lyra/Views/ExportOptionsSheet.swift`
+  - [x] Define `ExportOptionsSheet` SwiftUI view
+  - [x] Add format picker (ChordPro, JSON, Plain Text)
+  - [x] Add "Include Metadata" toggle
+  - [x] Add "Include Notes" toggle
+  - [x] Add custom filename support
+  - [x] Add preview section
+  - [x] Implement export handling with content filtering
+  - [x] Add Cancel toolbar button
 
-- [ ] Modify `/Lyra/Views/SongDisplayView.swift`
-  - [ ] Add export button to toolbar (square.and.arrow.up icon)
-  - [ ] Add `@State private var showExportOptions: Bool` state
-  - [ ] Add `.sheet(isPresented: $showExportOptions)` with ExportOptionsSheet
+- [x] Modify `/Lyra/Views/SongDisplayView.swift`
+  - [x] Add export button to toolbar (square.and.arrow.up icon)
+  - [x] Add `@State private var showExportOptions: Bool` state
+  - [x] Add `.sheet(isPresented: $showExportOptions)` with ExportOptionsSheet
 
-- [ ] Modify `/Lyra/Views/SongDetailView.swift` (if exists)
-  - [ ] Add "Export Song" option to context menu
-  - [ ] Add sheet presentation for ExportOptionsSheet
+- [x] Modify `/Lyra/Views/SongDetailView.swift`
+  - [x] Add "Export Song" option to context menu
+  - [x] Add sheet presentation for ExportOptionsSheet
+  - [x] Add share sheet for exported files
+  - [x] Implement `handleExport` method
 
 ### Testing - Phase 3A
 
 - Export song as ChordPro → produces valid .txt file
-- Export song as PDF with template → PDF has correct column layout
-- Export song as PDF with 2 columns → columns are balanced
+- Export song as JSON → produces valid .json file with song data
 - Export song as Plain Text → only lyrics, no chords
-- Export song as Lyra Bundle → produces valid .lyra JSON file
-- Exported Lyra Bundle can be re-imported (Phase 3B)
 - Export handles songs with no content gracefully
 - Export handles invalid templates gracefully
 - Share sheet appears after successful export
@@ -412,31 +404,52 @@ Add "Export Song" option to context menu
 
 ---
 
-## Phase 3B: Import Lyra Bundles
+## Phase 3B: Import Lyra Bundles - ✅ COMPLETE
 
 ### Implementation Checklist
 
-- [ ] Add Lyra Bundle import to TemplateImporter
-  - [ ] Implement `importLyraBundle(url:context:)` method
-  - [ ] Parse JSON using JSONDecoder
-  - [ ] Extract LyraBundle struct
-  - [ ] Create Song from bundle content
-  - [ ] Create/reuse Template from bundle template
-  - [ ] Apply DisplaySettings from bundle
-  - [ ] Insert song into context
-  - [ ] Handle version compatibility
+- [x] Add Lyra Bundle import to TemplateImporter
+  - [x] Implement `importLyraBundle(url:context:)` method
+  - [x] Parse JSON using JSONDecoder
+  - [x] Extract LyraBundle struct
+  - [x] Create Song from bundle content
+  - [x] Create/reuse Template from bundle template
+  - [x] Apply DisplaySettings from bundle
+  - [x] Insert song into context
+  - [x] Handle version compatibility
 
 - [x] Add .lyra file import UI
-  - [ ] Add .lyra to file picker supported types
-  - [ ] Add "Import Lyra Bundle" option to library
-  - [ ] Show preview before importing
-  - [ ] Handle template name conflicts
+  - [x] Add .lyra to file picker supported types
+  - [x] Add "Import Lyra Bundle" option to library
+  - [x] Show preview before importing
+  - [x] Handle template name conflicts
+
+> **Implementation Note:** Lyra Bundle import is fully implemented in `TemplateImporter.swift` with the `LyraBundle` and `TemplateData` structs for deserialization. The import UI in `TemplateImportView.swift` supports .lyra files as a selectable import format.
+
+---
+
+## Remaining Work
+
+The following items are not yet implemented:
+
+### High Priority
+- [ ] **SettingsView Templates section** — Add a "Templates" section to SettingsView with NavigationLink to TemplateLibraryView. Without this, users cannot access the template library from Settings.
+
+### Future Enhancements
+- [ ] **PDF Export** — Render songs to PDF using ImageRenderer with template formatting applied. Includes page sizing (US Letter: 612pt x 792pt) and pagination for long songs.
+- [ ] **Lyra Bundle Export** — Export songs as .lyra bundles (JSON with content + template + display settings) to enable round-trip import/export.
+
+### Phase 4: Polish & Advanced Features (Future)
+- Template marketplace
+- Advanced column balancing algorithms
+- Custom page breaks
+- Template versioning
 
 ---
 
 ## Summary - All Phases
 
-### Phase 1: Multi-Column Rendering + In-App Designer ✅
+### Phase 1: Multi-Column Rendering + In-App Designer ✅ COMPLETE
 - Template SwiftData model with column/typography/chord positioning settings
 - TemplateManager for CRUD operations
 - ColumnLayoutEngine for content distribution
@@ -446,26 +459,29 @@ Add "Export Song" option to context menu
 - Song-template relationship with global default fallback
 - Built-in templates (1, 2, 3 columns)
 
-### Phase 2: Template Import
-- **2A (PDF Import)**: Extract layout from PDF documents
+### Phase 2: Template Import ✅ COMPLETE
+- **2A (PDF Import)** ✅: Extract layout from PDF documents
   - Column detection algorithm
   - Typography extraction (font sizes)
   - Chord style detection (over/inline/separate)
   - TemplateImportView UI
   - TemplateLibraryView for management
-  - Import metadata tracking
-- **2B (Word Import)**: Parse .docx XML for styles
-- **2C (Plain Text Import)**: Pattern detection in text files
+  - Import metadata tracking (importSource, importedFromURL, importedAt on Template model)
+- **2B (Word Import)** ✅: Parse .docx XML for styles via DOCXXMLParser
+- **2C (Plain Text Import)** ✅: Pattern detection in text files
 
-### Phase 3: Export System
-- **3A (Export Infrastructure)**:
-  - ChordPro export (universal compatibility)
-  - PDF export with template rendering
-  - Plain text export (lyrics only)
-  - Lyra Bundle export (complete preservation)
-  - ExportOptionsSheet UI
-  - Share sheet integration
-- **3B (Lyra Bundle Import)**: Round-trip import/export
+> **Note:** SettingsView → TemplateLibraryView navigation link is still missing.
+
+### Phase 3: Export System ✅ MOSTLY COMPLETE
+- **3A (Export Infrastructure)** ✅:
+  - ChordPro export (universal compatibility) ✅
+  - JSON export (structured song data) ✅
+  - Plain text export (lyrics only) ✅
+  - ExportOptionsSheet UI ✅
+  - Share sheet integration ✅
+  - _PDF export — not yet implemented_
+  - _Lyra Bundle export — not yet implemented_
+- **3B (Lyra Bundle Import)** ✅: Import from .lyra bundles fully working
 
 ### Phase 4: Polish & Advanced Features (Future)
 - Template marketplace
@@ -477,20 +493,35 @@ Add "Export Song" option to context menu
 
 ## Files Summary
 
-**Phase 2 New Files (5):**
-1. `/Lyra/Utilities/TemplateImporter.swift`
-2. `/Lyra/Views/TemplateImportView.swift`
-3. `/Lyra/Views/TemplateLibraryView.swift`
+**Phase 2 New Files (3):**
+1. `/Lyra/Utilities/TemplateImporter.swift` ✅
+2. `/Lyra/Views/TemplateImportView.swift` ✅
+3. `/Lyra/Views/TemplateLibraryView.swift` ✅
 
 **Phase 3 New Files (2):**
-4. `/Lyra/Utilities/SongExporter.swift`
-5. `/Lyra/Views/ExportOptionsSheet.swift`
+4. `/Lyra/Utilities/SongExporter.swift` ✅
+5. `/Lyra/Views/ExportOptionsSheet.swift` ✅
 
 **Modified Files (4):**
-1. `/Lyra/Models/Template.swift` - Import metadata
-2. `/Lyra/Views/SettingsView.swift` - Template library link
-3. `/Lyra/Views/SongDisplayView.swift` - Export button
-4. `/Lyra/Views/SongDetailView.swift` - Export menu
+1. `/Lyra/Models/Template.swift` - Import metadata ✅
+2. `/Lyra/Views/SettingsView.swift` - Template library link ❌ NOT DONE
+3. `/Lyra/Views/SongDisplayView.swift` - Export button ✅
+4. `/Lyra/Views/SongDetailView.swift` - Export menu ✅
+
+**Test Files (14 template/export related):**
+1. `LyraTests/TemplateTests.swift` ✅
+2. `LyraTests/TemplateManagerTests.swift` ✅
+3. `LyraTests/TemplateEditorViewTests.swift` ✅
+4. `LyraTests/TemplateSelectionSheetTests.swift` ✅
+5. `LyraTests/TemplateImporterTests.swift` ✅
+6. `LyraTests/TemplateImportViewTests.swift` ✅
+7. `LyraTests/TemplateLibraryViewTests.swift` ✅
+8. `LyraTests/SongTemplateTests.swift` ✅
+9. `LyraTests/SongDisplayViewTemplateTests.swift` ✅
+10. `LyraTests/MultiColumnSongViewTests.swift` ✅
+11. `LyraTests/ColumnLayoutEngineTests.swift` ✅
+12. `LyraTests/SongExporterTests.swift` ✅
+13. `LyraTests/ExportOptionsSheetTests.swift` ✅
 
 ---
 

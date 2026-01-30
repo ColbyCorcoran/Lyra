@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 import AVFoundation
+import PDFKit
 
 enum LibrarySection: String, CaseIterable {
     case allSongs = "All Songs"
@@ -47,6 +48,11 @@ struct LibraryView: View {
 
     // Search state
     @State private var showSearch: Bool = false
+
+    // PDF extraction state
+    @State private var showPDFExtractor: Bool = false
+    @State private var pdfDocumentToExtract: PDFDocument?
+    @State private var pdfImportSong: Song?
 
     // Scanner state
     @State private var showScanner: Bool = false
@@ -170,9 +176,17 @@ struct LibraryView: View {
             .sheet(isPresented: $showCameraPermission) {
                 CameraPermissionView()
             }
+            .sheet(isPresented: $showPDFExtractor) {
+                if let pdfDoc = pdfDocumentToExtract, let song = pdfImportSong {
+                    ExtractTextFromPDFView(pdfDocument: pdfDoc, song: song)
+                        .onDisappear {
+                            handlePDFExtractionComplete()
+                        }
+                }
+            }
             .fileImporter(
                 isPresented: $showFileImporter,
-                allowedContentTypes: [.text, .plainText, .data],
+                allowedContentTypes: [.text, .plainText, .data, .pdf],
                 allowsMultipleSelection: false
             ) { result in
                 handleFileImport(result: result)
@@ -188,9 +202,15 @@ struct LibraryView: View {
                 }
             }
             .alert("Import Failed", isPresented: $showImportError) {
-                if failedImportURL != nil {
-                    Button("Import as Plain Text") {
-                        importAsPlainText()
+                if let url = failedImportURL {
+                    if url.pathExtension.lowercased() == "pdf" {
+                        Button("Try PDF Extraction") {
+                            importAsPlainText()
+                        }
+                    } else {
+                        Button("Import as Plain Text") {
+                            importAsPlainText()
+                        }
                     }
                 }
                 Button("OK", role: .cancel) {
@@ -298,6 +318,14 @@ struct LibraryView: View {
         isImporting = true
         importProgress = 0.0
 
+        let fileExtension = url.pathExtension.lowercased()
+
+        // Route PDF files through the PDF extraction flow
+        if fileExtension == "pdf" {
+            importPDFFile(from: url)
+            return
+        }
+
         do {
             // Start accessing security scoped resource
             guard url.startAccessingSecurityScopedResource() else {
@@ -339,6 +367,89 @@ struct LibraryView: View {
                 recovery: error.localizedDescription
             )
         }
+    }
+
+    private func importPDFFile(from url: URL) {
+        do {
+            guard url.startAccessingSecurityScopedResource() else {
+                throw NSError(domain: "Lyra", code: 1, userInfo: [NSLocalizedDescriptionKey: "Cannot access file"])
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            // Validate PDF using FileValidationUtility
+            let validation = FileValidationUtility.shared.validateFile(at: url)
+            if !validation.isValid, let error = validation.error {
+                throw error
+            }
+
+            // Load PDF data fully into memory before security-scoped access ends
+            let pdfData = try Data(contentsOf: url)
+            guard let pdfDocument = PDFDocument(data: pdfData) else {
+                throw PDFExtractionError.noPDFDocument
+            }
+
+            let filename = url.deletingPathExtension().lastPathComponent
+
+            // Create a song placeholder that ExtractTextFromPDFView will populate
+            let song = Song(
+                title: filename,
+                content: "",
+                contentFormat: .chordPro
+            )
+            song.importSource = "PDF Import"
+            song.importedAt = Date()
+
+            modelContext.insert(song)
+            try modelContext.save()
+
+            // Store references for the extraction view
+            pdfDocumentToExtract = pdfDocument
+            pdfImportSong = song
+            isImporting = false
+
+            // Present the PDF extraction view
+            showPDFExtractor = true
+
+        } catch {
+            isImporting = false
+            failedImportURL = url
+            HapticManager.shared.operationFailed()
+
+            let message: String
+            let recovery: String
+
+            if let pdfError = error as? PDFExtractionError {
+                message = pdfError.errorDescription ?? "PDF import failed"
+                recovery = pdfError.recoverySuggestion ?? ""
+            } else if let validationError = error as? FileValidationError {
+                message = validationError.errorDescription ?? "PDF validation failed"
+                recovery = validationError.recoverySuggestion ?? ""
+            } else {
+                message = "PDF import failed"
+                recovery = error.localizedDescription
+            }
+
+            showError(message: message, recovery: recovery)
+        }
+    }
+
+    private func handlePDFExtractionComplete() {
+        if let song = pdfImportSong {
+            // Check if extraction actually populated the song content
+            if !song.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                importedSong = song
+                HapticManager.shared.success()
+                showImportSuccess = true
+            } else {
+                // User cancelled or extraction failed - remove the empty placeholder
+                modelContext.delete(song)
+                try? modelContext.save()
+            }
+        }
+
+        // Clean up state
+        pdfDocumentToExtract = nil
+        pdfImportSong = nil
     }
 
     private func parseChordProMetadata(from content: String, into song: Song) {
@@ -384,18 +495,40 @@ struct LibraryView: View {
     private func importAsPlainText() {
         guard let url = failedImportURL else { return }
 
+        let fileExtension = url.pathExtension.lowercased()
+
+        // For PDFs, route through the PDF extraction flow instead
+        if fileExtension == "pdf" {
+            failedImportURL = nil
+            importPDFFile(from: url)
+            return
+        }
+
         do {
             guard url.startAccessingSecurityScopedResource() else {
                 throw NSError(domain: "Lyra", code: 1, userInfo: [NSLocalizedDescriptionKey: "Cannot access file"])
             }
             defer { url.stopAccessingSecurityScopedResource() }
 
-            let content = try String(contentsOf: url, encoding: .utf8)
+            // Try multiple encodings for text files
+            var content: String?
+            let encodings: [String.Encoding] = [.utf8, .ascii, .isoLatin1, .windowsCP1252]
+            for encoding in encodings {
+                if let text = try? String(contentsOf: url, encoding: encoding) {
+                    content = text
+                    break
+                }
+            }
+
+            guard let fileContent = content else {
+                throw NSError(domain: "Lyra", code: 2, userInfo: [NSLocalizedDescriptionKey: "Unable to read file with any supported encoding"])
+            }
+
             let filename = url.deletingPathExtension().lastPathComponent
 
             let song = Song(
                 title: filename,
-                content: content,
+                content: fileContent,
                 contentFormat: .plainText
             )
             song.importSource = "Plain Text Import"
@@ -406,9 +539,11 @@ struct LibraryView: View {
 
             importedSong = song
             failedImportURL = nil
+            HapticManager.shared.success()
             showImportSuccess = true
 
         } catch {
+            HapticManager.shared.operationFailed()
             showError(
                 message: "Plain text import failed",
                 recovery: error.localizedDescription

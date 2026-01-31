@@ -547,14 +547,13 @@ struct SongDisplayView: View {
                 }
             }
 
-            // Autoscroll controls overlay
-            if song.autoscrollEnabled {
-                AutoscrollControlsView(
-                    autoscrollManager: autoscrollManager,
-                    onJumpToTop: {
-                        scrollToTop()
-                    }
-                )
+            // Autoscroll progress bar at top (when enabled and scrolling)
+            if song.autoscrollEnabled && autoscrollManager.isScrolling {
+                VStack {
+                    AutoscrollProgressBar(autoscrollManager: autoscrollManager)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    Spacer()
+                }
             }
 
             // Autoscroll indicator
@@ -601,19 +600,33 @@ struct SongDisplayView: View {
                 )
             }
 
-            // Metronome indicator (bottom right)
+            // Combined floating controls (bottom right) - Autoscroll above Metronome
             VStack {
                 Spacer()
 
                 HStack {
                     Spacer()
 
-                    MetronomeIndicatorView(
-                        metronome: metronomeManager,
-                        onTap: {
-                            showMetronomeControls = true
+                    VStack(spacing: 16) {
+                        // Autoscroll controls (positioned above metronome)
+                        if song.autoscrollEnabled {
+                            AutoscrollFloatingControls(
+                                autoscrollManager: autoscrollManager,
+                                onJumpToTop: {
+                                    scrollToTop()
+                                }
+                            )
                         }
-                    )
+
+                        // Metronome indicator (at bottom)
+                        MetronomeIndicatorView(
+                            metronome: metronomeManager,
+                            onTap: {
+                                showMetronomeControls = true
+                            }
+                        )
+                    }
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: autoscrollManager.isScrolling)
                     .padding(.trailing, 16)
                     .padding(.bottom, 16)
                 }

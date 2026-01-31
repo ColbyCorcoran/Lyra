@@ -7,56 +7,12 @@
 
 import SwiftUI
 
-struct AutoscrollControlsView: View {
+// MARK: - Progress Bar (Top of Screen)
+
+struct AutoscrollProgressBar: View {
     @ObservedObject var autoscrollManager: AutoscrollManager
 
-    let onJumpToTop: () -> Void
-
-    @State private var showSpeedPicker: Bool = false
-
     var body: some View {
-        VStack(spacing: 0) {
-            // Progress bar at top
-            if autoscrollManager.isScrolling {
-                progressBar
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-
-            Spacer()
-
-            // Main controls at bottom
-            HStack(spacing: 0) {
-                Spacer()
-
-                VStack(spacing: 12) {
-                    // Floating action button (main play/pause)
-                    floatingActionButton
-
-                    // Speed control
-                    if autoscrollManager.isScrolling {
-                        speedControl
-                            .transition(.scale.combined(with: .opacity))
-                    }
-
-                    // Additional controls
-                    if autoscrollManager.isScrolling {
-                        additionalControls
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                }
-                .padding(.trailing, 20)
-                .padding(.bottom, 20)
-            }
-        }
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: autoscrollManager.isScrolling)
-        .sheet(isPresented: $showSpeedPicker) {
-            speedPickerSheet
-        }
-    }
-
-    // MARK: - Progress Bar
-
-    private var progressBar: some View {
         VStack(spacing: 0) {
             // Progress indicator
             GeometryReader { geometry in
@@ -107,6 +63,43 @@ struct AutoscrollControlsView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(.regularMaterial)
+        }
+    }
+
+    private func formatPercentage(_ value: Double) -> String {
+        String(format: "%.0f%%", value * 100)
+    }
+}
+
+// MARK: - Floating Controls (Bottom Right, Above Metronome)
+
+struct AutoscrollFloatingControls: View {
+    @ObservedObject var autoscrollManager: AutoscrollManager
+
+    let onJumpToTop: () -> Void
+
+    @State private var showSpeedPicker: Bool = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            // Additional controls (expand upward when scrolling)
+            if autoscrollManager.isScrolling {
+                additionalControls
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            // Speed control (expand upward when scrolling)
+            if autoscrollManager.isScrolling {
+                speedControl
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            // Floating action button (always visible, at bottom of control stack)
+            floatingActionButton
+        }
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: autoscrollManager.isScrolling)
+        .sheet(isPresented: $showSpeedPicker) {
+            speedPickerSheet
         }
     }
 
@@ -314,12 +307,6 @@ struct AutoscrollControlsView: View {
         }
         .presentationDetents([.medium])
     }
-
-    // MARK: - Helper Methods
-
-    private func formatPercentage(_ value: Double) -> String {
-        String(format: "%.0f%%", value * 100)
-    }
 }
 
 // MARK: - Autoscroll Indicator
@@ -361,20 +348,42 @@ struct AutoscrollIndicatorView: View {
 
 // MARK: - Preview
 
-#Preview("Controls") {
-    ZStack {
-        Color(.systemBackground).ignoresSafeArea()
-
-        AutoscrollControlsView(
+#Preview("Progress Bar") {
+    VStack {
+        AutoscrollProgressBar(
             autoscrollManager: {
                 let manager = AutoscrollManager()
                 manager.isScrolling = true
                 manager.currentProgress = 0.35
                 manager.speedMultiplier = 1.0
                 return manager
-            }(),
-            onJumpToTop: {}
+            }()
         )
+        Spacer()
+    }
+}
+
+#Preview("Floating Controls") {
+    ZStack {
+        Color(.systemBackground).ignoresSafeArea()
+
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                AutoscrollFloatingControls(
+                    autoscrollManager: {
+                        let manager = AutoscrollManager()
+                        manager.isScrolling = true
+                        manager.currentProgress = 0.35
+                        manager.speedMultiplier = 1.0
+                        return manager
+                    }(),
+                    onJumpToTop: {}
+                )
+                .padding()
+            }
+        }
     }
 }
 

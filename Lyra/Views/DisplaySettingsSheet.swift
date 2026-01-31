@@ -90,8 +90,6 @@ struct DisplaySettingsSheet: View {
             colorsSection
         case .layout:
             layoutSection
-        case .darkMode:
-            darkModeSection
         case .accessibility:
             accessibilitySection
         case .presets:
@@ -313,6 +311,20 @@ struct DisplaySettingsSheet: View {
                 Text("Layout Mode")
             } footer: {
                 Text("Display lyrics in two columns on wide screens")
+            }
+
+            // Dark Mode
+            Section {
+                Picker("Dark Mode", selection: $settings.darkModePreference) {
+                    ForEach(DarkModePreference.allCases) { option in
+                        Text(option.rawValue).tag(option)
+                    }
+                }
+                .onChange(of: settings.darkModePreference) { _, _ in hasChanges = true }
+            } header: {
+                Text("Appearance")
+            } footer: {
+                Text("Control when dark mode is used. 'Always Light' is recommended for stage performance.")
             }
         }
     }
@@ -590,8 +602,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     case fonts = "Fonts"
     case colors = "Colors"
     case layout = "Layout"
-    case darkMode = "Dark"
-    case accessibility = "A11y"
+    case accessibility = "Access"
     case presets = "Presets"
 
     var id: String { rawValue }
@@ -601,7 +612,6 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .fonts: return "textformat"
         case .colors: return "paintpalette"
         case .layout: return "rectangle.split.3x1"
-        case .darkMode: return "moon"
         case .accessibility: return "accessibility"
         case .presets: return "star"
         }

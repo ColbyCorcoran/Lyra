@@ -278,29 +278,6 @@ struct SongDisplayView: View {
             // More menu
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    // Font size controls
-                    Section("Font Size") {
-                        Button {
-                            fontSize = max(12, fontSize - 2)
-                        } label: {
-                            Label("Decrease", systemImage: "textformat.size.smaller")
-                        }
-
-                        Button {
-                            fontSize = min(24, fontSize + 2)
-                        } label: {
-                            Label("Increase", systemImage: "textformat.size.larger")
-                        }
-
-                        Button {
-                            fontSize = 16
-                        } label: {
-                            Label("Reset to Default", systemImage: "arrow.counterclockwise")
-                        }
-                    }
-
-                    Divider()
-
                     // Autoscroll
                     Section("Autoscroll") {
                         Toggle(isOn: Binding(

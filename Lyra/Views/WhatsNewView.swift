@@ -15,13 +15,6 @@ struct WhatsNewView: View {
     private let currentVersion = "1.0.0"
     private let features: [WhatsNewFeature] = [
         WhatsNewFeature(
-            title: "Performance Mode",
-            description: "Full-screen, distraction-free view optimized for live performance with gesture controls",
-            icon: "play.circle.fill",
-            color: .blue,
-            isNew: true
-        ),
-        WhatsNewFeature(
             title: "Autoscroll",
             description: "Hands-free scrolling with adjustable speed and foot pedal support",
             icon: "play.fill",
@@ -307,10 +300,10 @@ class WhatsNewManager {
 #Preview("Feature Card") {
     FeatureCard(
         feature: WhatsNewFeature(
-            title: "Performance Mode",
-            description: "Full-screen, distraction-free view optimized for live performance",
-            icon: "play.circle.fill",
-            color: .blue,
+            title: "Autoscroll",
+            description: "Hands-free scrolling with adjustable speed and foot pedal support",
+            icon: "play.fill",
+            color: .green,
             isNew: true
         )
     )

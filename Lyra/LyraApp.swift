@@ -49,6 +49,14 @@ struct LyraApp: App {
             // Initialize DataManager with the container's main context
             DataManager.shared.initialize(with: container.mainContext)
 
+            // Initialize BackupManager with the container's main context
+            Task { @MainActor in
+                BackupManager.shared.initialize(with: container.mainContext)
+
+                // Check if auto-backup is needed
+                await BackupManager.shared.checkAutoBackup()
+            }
+
             // Initialize built-in templates on first launch
             Task { @MainActor in
                 do {

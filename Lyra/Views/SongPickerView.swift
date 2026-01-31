@@ -17,6 +17,8 @@ struct SongPickerView: View {
 
     @State private var selectedSongs: Set<Song> = []
     @State private var searchText: String = ""
+    @State private var showError: Bool = false
+    @State private var errorMessage: String = ""
 
     // Songs not yet in this book
     private var availableSongs: [Song] {
@@ -118,6 +120,11 @@ struct SongPickerView: View {
                     .disabled(selectedSongs.isEmpty)
                 }
             }
+            .alert("Error", isPresented: $showError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
 
@@ -148,7 +155,8 @@ struct SongPickerView: View {
         } catch {
             print("❌ Error adding songs to book: \(error.localizedDescription)")
             HapticManager.shared.operationFailed()
-            // TODO: Show error alert
+            errorMessage = "Failed to add songs to book: \(error.localizedDescription)"
+            showError = true
         }
     }
 }

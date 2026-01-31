@@ -28,12 +28,6 @@ struct OnboardingView: View {
             color: .green
         ),
         OnboardingPage(
-            title: "Performance Mode",
-            description: "Full-screen view with gesture controls, perfect for live performances",
-            icon: "play.circle.fill",
-            color: .orange
-        ),
-        OnboardingPage(
             title: "Smart Features",
             description: "Autoscroll, transpose, metronome, annotations, and more",
             icon: "sparkles",

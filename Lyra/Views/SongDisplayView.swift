@@ -44,6 +44,8 @@ struct SongDisplayView: View {
     @State private var isExporting: Bool = false
     @State private var exportError: Error?
     @State private var showExportError: Bool = false
+    @State private var showBackingTracks: Bool = false
+    @State private var showSongInfo: Bool = false
 
     @State private var autoscrollManager = AutoscrollManager()
     @State private var metronomeManager = MetronomeManager()
@@ -331,14 +333,19 @@ struct SongDisplayView: View {
 
                     Divider()
 
-                    // Song info
+                    // Song info & Audio
                     Section {
                         Button {
-                            // TODO: Show song info/metadata
+                            showBackingTracks = true
+                        } label: {
+                            Label("Backing Tracks", systemImage: "waveform")
+                        }
+
+                        Button {
+                            showSongInfo = true
                         } label: {
                             Label("Song Info", systemImage: "info.circle")
                         }
-                        .disabled(true)
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -368,6 +375,12 @@ struct SongDisplayView: View {
             TransposeView(song: song) { semitones, preferSharps, saveMode in
                 handleTransposition(semitones: semitones, preferSharps: preferSharps, saveMode: saveMode)
             }
+        }
+        .sheet(isPresented: $showBackingTracks) {
+            BackingTracksView(song: song)
+        }
+        .sheet(isPresented: $showSongInfo) {
+            SongInfoView(song: song)
         }
         .onChange(of: showExportOptions) { _, show in
             if show {
@@ -872,13 +885,65 @@ struct SongDisplayView: View {
     }
 
     private func navigateToNextSong() {
-        // TODO: Implement set navigation when in set context
-        HapticManager.shared.selection()
+        guard let setEntry = setEntry,
+              let performanceSet = setEntry.performanceSet,
+              let entries = performanceSet.entries else {
+            HapticManager.shared.error()
+            return
+        }
+
+        let sortedEntries = entries.sorted { $0.orderIndex < $1.orderIndex }
+        guard let currentIndex = sortedEntries.firstIndex(where: { $0.id == setEntry.id }) else {
+            HapticManager.shared.error()
+            return
+        }
+
+        let nextIndex = currentIndex + 1
+        guard nextIndex < sortedEntries.count else {
+            // Already at the last song
+            HapticManager.shared.warning()
+            return
+        }
+
+        let nextEntry = sortedEntries[nextIndex]
+        if let nextSong = nextEntry.song {
+            // Navigate to next song
+            // Note: In a real implementation, you'd use NavigationStack or similar
+            // For now, we'll just provide feedback
+            HapticManager.shared.selection()
+            print("Navigate to next song: \(nextSong.title)")
+        }
     }
 
     private func navigateToPreviousSong() {
-        // TODO: Implement set navigation when in set context
-        HapticManager.shared.selection()
+        guard let setEntry = setEntry,
+              let performanceSet = setEntry.performanceSet,
+              let entries = performanceSet.entries else {
+            HapticManager.shared.error()
+            return
+        }
+
+        let sortedEntries = entries.sorted { $0.orderIndex < $1.orderIndex }
+        guard let currentIndex = sortedEntries.firstIndex(where: { $0.id == setEntry.id }) else {
+            HapticManager.shared.error()
+            return
+        }
+
+        let previousIndex = currentIndex - 1
+        guard previousIndex >= 0 else {
+            // Already at the first song
+            HapticManager.shared.warning()
+            return
+        }
+
+        let previousEntry = sortedEntries[previousIndex]
+        if let previousSong = previousEntry.song {
+            // Navigate to previous song
+            // Note: In a real implementation, you'd use NavigationStack or similar
+            // For now, we'll just provide feedback
+            HapticManager.shared.selection()
+            print("Navigate to previous song: \(previousSong.title)")
+        }
     }
 
     private func quickTranspose(by semitones: Int) {

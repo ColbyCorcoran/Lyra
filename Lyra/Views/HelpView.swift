@@ -27,7 +27,6 @@ struct HelpView: View {
 
                     **Key Features:**
                     • Organize songs into books and sets
-                    • Performance mode for distraction-free viewing
                     • Autoscroll with adjustable speed
                     • Transpose chords to any key
                     • Offline-first design
@@ -80,30 +79,6 @@ struct HelpView: View {
             color: .green,
             articles: [
                 HelpArticle(
-                    title: "Performance Mode",
-                    content: """
-                    Performance Mode provides a distraction-free, full-screen view optimized for live performance.
-
-                    **To enter Performance Mode:**
-                    Tap the ▶️ button at the top of any song
-
-                    **Features:**
-                    • Full-screen display with large, readable text
-                    • Swipe gestures to navigate between songs
-                    • Quick transpose buttons
-                    • Autoscroll control
-                    • Low-light mode for dark venues
-                    • Hide system UI for maximum screen space
-
-                    **Gestures:**
-                    • Swipe left/right: Next/previous song
-                    • Swipe down: Exit performance mode
-                    • Two-finger tap: Toggle controls
-                    • Pinch: Adjust font size
-                    """,
-                    tags: ["performance", "gestures"]
-                ),
-                HelpArticle(
                     title: "Autoscroll",
                     content: """
                     Autoscroll automatically scrolls your chord chart at a configurable speed, perfect for hands-free performance.
@@ -129,7 +104,6 @@ struct HelpView: View {
                     • Next/previous song
                     • Start/stop autoscroll
                     • Transpose up/down
-                    • Toggle performance mode
 
                     **Setup:**
                     1. Go to Settings → Performance → Foot Pedals
@@ -165,7 +139,6 @@ struct HelpView: View {
                     **Tips:**
                     • Transpose is non-destructive (original key is preserved)
                     • Each song remembers its transpose setting
-                    • Quick transpose buttons in Performance Mode
                     """,
                     tags: ["transpose", "chords"]
                 ),
@@ -266,7 +239,6 @@ struct HelpView: View {
 
                     **Offline Features:**
                     ✅ View and edit songs
-                    ✅ Performance mode
                     ✅ Transpose and annotate
                     ✅ Create books and sets
                     ✅ All local operations
@@ -404,15 +376,8 @@ struct HelpView: View {
                     **Song View:**
                     • Space: Start/stop autoscroll
                     • ← / →: Transpose down/up
-                    • ⌘ + P: Performance mode
                     • ⌘ + E: Edit song
                     • ⌘ + T: Transpose view
-
-                    **Performance Mode:**
-                    • Space: Play/pause autoscroll
-                    • ↑ / ↓: Adjust scroll speed
-                    • ← / →: Previous/next song
-                    • Esc: Exit performance mode
                     """,
                     tags: ["keyboard", "shortcuts", "ipad"]
                 ),
@@ -425,13 +390,6 @@ struct HelpView: View {
                     • Swipe left: Next song
                     • Swipe right: Previous song
                     • Pinch: Zoom in/out
-
-                    **Performance Mode:**
-                    • Swipe left/right: Navigate songs
-                    • Swipe down: Exit
-                    • Two-finger tap: Toggle controls
-                    • Pinch: Font size
-                    • Three-finger swipe up: Quick transpose
 
                     **Library:**
                     • Swipe left on song: Quick actions
@@ -466,12 +424,6 @@ struct HelpView: View {
                     • Use square brackets: [G] [C] [D]
                     • Avoid spaces inside brackets
                     • Check chord names are standard (G, Am, C#m7, etc.)
-
-                    **Performance Mode Issues:**
-                    • Restart app
-                    • Check display settings
-                    • Disable low power mode
-                    • Update to latest version
                     """,
                     tags: ["troubleshooting", "issues"]
                 ),

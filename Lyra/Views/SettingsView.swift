@@ -25,6 +25,9 @@ struct SettingsView: View {
     @State private var showFolderManagement: Bool = false
     @State private var showVenueManagement: Bool = false
     @State private var showTemplateLibrary: Bool = false
+    @State private var showBackupManagement: Bool = false
+    @State private var showOnSongImport: Bool = false
+    @State private var showBulkExport: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -206,6 +209,57 @@ struct SettingsView: View {
                     Text("Manage column layouts, typography, and chord positioning templates for your songs.")
                 }
 
+                // Data Management Section
+                Section {
+                    Button {
+                        showBackupManagement = true
+                    } label: {
+                        HStack {
+                            Label("Backup & Restore", systemImage: "externaldrive")
+                            Spacer()
+                            if let lastBackup = BackupManager.shared.lastBackupDate {
+                                Text(lastBackup, style: .relative)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+
+                    Button {
+                        showOnSongImport = true
+                    } label: {
+                        HStack {
+                            Label("Import from OnSong", systemImage: "arrow.down.doc")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+
+                    Button {
+                        showBulkExport = true
+                    } label: {
+                        HStack {
+                            Label("Export Library", systemImage: "square.and.arrow.up")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                } header: {
+                    Label("Data Management", systemImage: "server.rack")
+                } footer: {
+                    Text("Backup your library, import OnSong files, or export your entire song collection.")
+                }
+
                 // Recurring Sets Section
                 RecurringSetPreferencesSection()
 
@@ -341,6 +395,15 @@ struct SettingsView: View {
                 NavigationStack {
                     TemplateLibraryView()
                 }
+            }
+            .sheet(isPresented: $showBackupManagement) {
+                BackupManagementView()
+            }
+            .sheet(isPresented: $showOnSongImport) {
+                OnSongImportView()
+            }
+            .sheet(isPresented: $showBulkExport) {
+                BulkExportView()
             }
             .sheet(item: $shareItem) { (item: SettingsShareItem) in
                 SettingsShareSheet(activityItems: item.items)

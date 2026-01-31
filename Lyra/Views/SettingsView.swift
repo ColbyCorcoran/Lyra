@@ -375,35 +375,45 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showAutoscrollSettings) {
                 AutoscrollSettingsView()
+                    .iPadSheetPresentation()
             }
             .sheet(isPresented: $showAccessibilitySettings) {
                 AccessibilitySettingsView()
+                    .iPadSheetPresentation()
             }
             .sheet(isPresented: $showHelp) {
                 HelpView()
+                    .iPadSheetPresentation(detents: [.large])
             }
             .sheet(isPresented: $showWhatsNew) {
                 WhatsNewView()
+                    .iPadSheetPresentation(detents: [.large])
             }
             .sheet(isPresented: $showFolderManagement) {
                 FolderManagementView()
+                    .iPadSheetPresentation()
             }
             .sheet(isPresented: $showVenueManagement) {
                 VenueManagementView()
+                    .iPadSheetPresentation()
             }
             .sheet(isPresented: $showTemplateLibrary) {
                 NavigationStack {
                     TemplateLibraryView()
                 }
+                .iPadSheetPresentation(detents: [.large])
             }
             .sheet(isPresented: $showBackupManagement) {
                 BackupManagementView()
+                    .iPadSheetPresentation(detents: [.large])
             }
             .sheet(isPresented: $showOnSongImport) {
                 OnSongImportView()
+                    .iPadSheetPresentation(detents: [.large])
             }
             .sheet(isPresented: $showBulkExport) {
                 BulkExportView()
+                    .iPadSheetPresentation(detents: [.large])
             }
             .sheet(item: $shareItem) { (item: SettingsShareItem) in
                 SettingsShareSheet(activityItems: item.items)

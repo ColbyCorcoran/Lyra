@@ -18,7 +18,12 @@ class MetronomeManager {
     var currentBPM: Double = 120
     var timeSignature: MetronomeTimeSignature = .fourFour
     var volume: Float = 0.7
-    var soundType: MetronomeSoundType = .click
+    var soundType: MetronomeSoundType = .click {
+        didSet {
+            // Reload sound buffers when sound type changes
+            loadSoundBuffers()
+        }
+    }
     var visualOnly: Bool = false
     var subdivisions: SubdivisionOption = .none
 
@@ -169,10 +174,25 @@ class MetronomeManager {
     }
 
     private func loadSoundBuffers() {
-        // Generate simple click sounds
-        accentBuffer = generateClickBuffer(frequency: 1200, duration: 0.05)
-        normalBuffer = generateClickBuffer(frequency: 800, duration: 0.05)
-        subdivisionBuffer = generateClickBuffer(frequency: 600, duration: 0.03)
+        // Generate sounds based on selected sound type
+        switch soundType {
+        case .click:
+            accentBuffer = generateClickBuffer(frequency: 1200, duration: 0.05)
+            normalBuffer = generateClickBuffer(frequency: 800, duration: 0.05)
+            subdivisionBuffer = generateClickBuffer(frequency: 600, duration: 0.03)
+        case .beep:
+            accentBuffer = generateBeepBuffer(frequency: 1000, duration: 0.1)
+            normalBuffer = generateBeepBuffer(frequency: 800, duration: 0.1)
+            subdivisionBuffer = generateBeepBuffer(frequency: 600, duration: 0.08)
+        case .drum:
+            accentBuffer = generateDrumBuffer(pitch: 1.2, duration: 0.15)
+            normalBuffer = generateDrumBuffer(pitch: 1.0, duration: 0.15)
+            subdivisionBuffer = generateDrumBuffer(pitch: 0.8, duration: 0.1)
+        case .woodblock:
+            accentBuffer = generateWoodblockBuffer(pitch: 1.3, duration: 0.08)
+            normalBuffer = generateWoodblockBuffer(pitch: 1.0, duration: 0.08)
+            subdivisionBuffer = generateWoodblockBuffer(pitch: 0.9, duration: 0.06)
+        }
     }
 
     private func generateClickBuffer(frequency: Double, duration: Double) -> AVAudioPCMBuffer? {
@@ -198,6 +218,126 @@ class MetronomeManager {
 
             // Apply envelope (quick attack, exponential decay)
             let envelope = Float(exp(-time * 50))
+            let sample = amplitude * envelope
+
+            for channel in 0..<channelCount {
+                channelData[channel][frame] = sample
+            }
+        }
+
+        return buffer
+    }
+
+    private func generateBeepBuffer(frequency: Double, duration: Double) -> AVAudioPCMBuffer? {
+        guard let engine = audioEngine else { return nil }
+
+        let format = engine.mainMixerNode.outputFormat(forBus: 0)
+        let sampleRate = format.sampleRate
+        let frameCount = AVAudioFrameCount(sampleRate * duration)
+
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
+            return nil
+        }
+
+        buffer.frameLength = frameCount
+
+        guard let channelData = buffer.floatChannelData else { return nil }
+
+        let channelCount = Int(format.channelCount)
+
+        for frame in 0..<Int(frameCount) {
+            let time = Double(frame) / sampleRate
+            // Pure sine wave for clean beep
+            let amplitude = Float(sin(2.0 * .pi * frequency * time)) * 0.4
+
+            // Smoother envelope for beep
+            let attack = min(time * 20, 1.0)
+            let decay = max(1.0 - (time - duration * 0.7) / (duration * 0.3), 0.0)
+            let envelope = Float(attack * decay)
+            let sample = amplitude * envelope
+
+            for channel in 0..<channelCount {
+                channelData[channel][frame] = sample
+            }
+        }
+
+        return buffer
+    }
+
+    private func generateDrumBuffer(pitch: Double, duration: Double) -> AVAudioPCMBuffer? {
+        guard let engine = audioEngine else { return nil }
+
+        let format = engine.mainMixerNode.outputFormat(forBus: 0)
+        let sampleRate = format.sampleRate
+        let frameCount = AVAudioFrameCount(sampleRate * duration)
+
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
+            return nil
+        }
+
+        buffer.frameLength = frameCount
+
+        guard let channelData = buffer.floatChannelData else { return nil }
+
+        let channelCount = Int(format.channelCount)
+
+        for frame in 0..<Int(frameCount) {
+            let time = Double(frame) / sampleRate
+
+            // Start with low frequency that sweeps down (kick drum-like)
+            let freqStart = 150.0 * pitch
+            let freqEnd = 60.0 * pitch
+            let frequency = freqStart - (freqStart - freqEnd) * time / duration
+
+            // Mix sine and noise for more realistic drum sound
+            let sine = sin(2.0 * .pi * frequency * time)
+            let noise = Float.random(in: -0.15...0.15)
+            let amplitude = Float(sine * 0.6 + Double(noise) * 0.4) * 0.5
+
+            // Sharp attack, fast decay
+            let envelope = Float(exp(-time * 20))
+            let sample = amplitude * envelope
+
+            for channel in 0..<channelCount {
+                channelData[channel][frame] = sample
+            }
+        }
+
+        return buffer
+    }
+
+    private func generateWoodblockBuffer(pitch: Double, duration: Double) -> AVAudioPCMBuffer? {
+        guard let engine = audioEngine else { return nil }
+
+        let format = engine.mainMixerNode.outputFormat(forBus: 0)
+        let sampleRate = format.sampleRate
+        let frameCount = AVAudioFrameCount(sampleRate * duration)
+
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
+            return nil
+        }
+
+        buffer.frameLength = frameCount
+
+        guard let channelData = buffer.floatChannelData else { return nil }
+
+        let channelCount = Int(format.channelCount)
+
+        for frame in 0..<Int(frameCount) {
+            let time = Double(frame) / sampleRate
+
+            // Multiple harmonics for woodblock timbre
+            let fundamental = 1200.0 * pitch
+            let harmonic1 = sin(2.0 * .pi * fundamental * time)
+            let harmonic2 = sin(2.0 * .pi * fundamental * 1.5 * time) * 0.5
+            let harmonic3 = sin(2.0 * .pi * fundamental * 2.0 * time) * 0.3
+
+            // Add a bit of noise for woody character
+            let noise = Float.random(in: -0.1...0.1)
+            let amplitude = Float(harmonic1 + harmonic2 + harmonic3 + Double(noise)) * 0.3
+
+            // Very sharp attack and decay for percussive sound
+            let envelope = Float(exp(-time * 40))
             let sample = amplitude * envelope
 
             for channel in 0..<channelCount {

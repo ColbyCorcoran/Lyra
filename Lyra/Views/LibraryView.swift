@@ -154,15 +154,19 @@ struct LibraryView: View {
             }
             .sheet(isPresented: $showAddSongSheet) {
                 AddSongView()
+                    .iPadSheetPresentation(detents: [.large])
             }
             .sheet(isPresented: $showAddBookSheet) {
                 AddBookView()
+                    .iPadSheetPresentation()
             }
             .sheet(isPresented: $showAddSetSheet) {
                 AddPerformanceSetView()
+                    .iPadSheetPresentation(detents: [.large])
             }
             .sheet(isPresented: $showSearch) {
                 LibrarySearchView()
+                    .iPadSheetPresentation(detents: [.large])
             }
             .sheet(isPresented: $showScanner) {
                 DocumentScannerView { images in

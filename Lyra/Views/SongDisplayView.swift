@@ -354,6 +354,7 @@ struct SongDisplayView: View {
         }
         .sheet(isPresented: $showDisplaySettings) {
             DisplaySettingsSheet(song: song)
+                .iPadSheetPresentation()
                 .onDisappear {
                     // Refresh display settings when sheet closes
                     displaySettings = song.displaySettings
@@ -367,20 +368,25 @@ struct SongDisplayView: View {
                 parseSong() // Reparse to apply new template
                 HapticManager.shared.success()
             }
+            .iPadSheetPresentation(detents: [.medium, .large])
         }
         .sheet(isPresented: $showEditSongSheet) {
             EditSongView(song: song)
+                .iPadSheetPresentation(detents: [.large])
         }
         .sheet(isPresented: $showTranspose) {
             TransposeView(song: song) { semitones, preferSharps, saveMode in
                 handleTransposition(semitones: semitones, preferSharps: preferSharps, saveMode: saveMode)
             }
+            .iPadSheetPresentation()
         }
         .sheet(isPresented: $showBackingTracks) {
             BackingTracksView(song: song)
+                .iPadSheetPresentation(detents: [.large])
         }
         .sheet(isPresented: $showSongInfo) {
             SongInfoView(song: song)
+                .iPadSheetPresentation(detents: [.medium, .large])
         }
         .onChange(of: showExportOptions) { _, show in
             if show {

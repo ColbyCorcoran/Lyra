@@ -23,27 +23,27 @@ struct OnboardingView: View {
         ),
         OnboardingPage(
             title: "Organize Your Library",
-            description: "Import songs, create books and sets, and keep everything organized",
+            description: "Create books and sets, import from OnSong, and keep everything organized",
             icon: "book.fill",
             color: .green
         ),
         OnboardingPage(
-            title: "Smart Features",
-            description: "Autoscroll, transpose, metronome, annotations, and more",
-            icon: "sparkles",
+            title: "Performance Features",
+            description: "Autoscroll, transpose, metronome, backing tracks, and low light mode",
+            icon: "play.circle.fill",
             color: .purple
         ),
         OnboardingPage(
-            title: "Track Your Progress",
-            description: "Analytics and insights help you understand your performance patterns",
-            icon: "chart.bar.fill",
-            color: .pink
+            title: "Customize Everything",
+            description: "Fonts, colors, layouts, templates, and per-song display settings",
+            icon: "paintbrush.fill",
+            color: .orange
         ),
         OnboardingPage(
-            title: "Works Offline",
-            description: "All features work without internet. Perfect for venues with poor connectivity",
-            icon: "wifi.slash",
-            color: .red
+            title: "Annotations & Drawing",
+            description: "Add notes and draw on your charts for performance cues and reminders",
+            icon: "pencil.tip.crop.circle",
+            color: .pink
         )
     ]
 

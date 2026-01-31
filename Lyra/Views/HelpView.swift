@@ -29,8 +29,9 @@ struct HelpView: View {
                     • Organize songs into books and sets
                     • Autoscroll with adjustable speed
                     • Transpose chords to any key
-                    • Offline-first design
-                    • iCloud sync across devices
+                    • Built-in metronome and backing tracks
+                    • Annotations and drawing tools
+                    • Local backups for data protection
                     """,
                     tags: ["basics", "introduction"]
                 ),
@@ -39,11 +40,12 @@ struct HelpView: View {
                     content: """
                     **To add a new song:**
 
-                    1. Tap the + button in the Library
-                    2. Enter the song title and artist
-                    3. Paste or type your chord chart
-                    4. Add optional metadata (key, tempo, time signature)
-                    5. Tap Save
+                    1. Go to the Songs tab
+                    2. Tap the + button
+                    3. Enter the song title and artist
+                    4. Paste or type your chord chart
+                    5. Add optional metadata (key, tempo, time signature)
+                    6. Tap Save
 
                     **Chord Chart Format:**
                     Lyra automatically detects chords in square brackets:
@@ -66,7 +68,7 @@ struct HelpView: View {
                     • Concert program
                     • Therapy session plan
 
-                    Create books and sets from the Library tab, then add songs by tapping the + button.
+                    Go to the Books or Sets tab to create new collections, then add songs by tapping the + button.
                     """,
                     tags: ["organization", "books", "sets"]
                 )
@@ -81,42 +83,91 @@ struct HelpView: View {
                 HelpArticle(
                     title: "Autoscroll",
                     content: """
-                    Autoscroll automatically scrolls your chord chart at a configurable speed, perfect for hands-free performance.
+                    Autoscroll automatically scrolls your chord chart at a configurable speed, perfect for hands-free performance. Autoscroll is enabled by default for all songs.
 
                     **Controls:**
                     • Play/Pause button: Start/stop scrolling
-                    • Speed slider: Adjust scroll speed
-                    • Reset button: Jump back to top
+                    • Speed controls: Adjust scroll speed with +/- buttons
+                    • Jump to top: Reset to beginning
+                    • Stop button: End autoscroll session
 
                     **Tips:**
-                    • Adjust speed before performance
-                    • Use foot pedals for hands-free control
-                    • Autoscroll syncs with tempo if set
+                    • Tap the song to pause autoscroll temporarily
+                    • Adjust speed during performance with speed controls
+                    • Manual scrolling pauses autoscroll
+                    • Enable/disable per song in the more menu (•••)
                     """,
                     tags: ["autoscroll", "performance"]
                 ),
                 HelpArticle(
-                    title: "Foot Pedals",
+                    title: "Metronome",
                     content: """
-                    Connect Bluetooth foot pedals for hands-free control during performance.
+                    Built-in metronome keeps you on tempo during practice and performance.
 
-                    **Supported Actions:**
-                    • Next/previous song
-                    • Start/stop autoscroll
-                    • Transpose up/down
+                    **Features:**
+                    • Visual and audio feedback
+                    • Accent patterns for different time signatures
+                    • Multiple sound presets (click, beep, drum, woodblock)
+                    • Adjustable BPM and subdivisions
+                    • Tap tempo for quick setup
 
-                    **Setup:**
-                    1. Go to Settings → Performance → Foot Pedals
-                    2. Tap "Scan for Devices"
-                    3. Select your foot pedal from the list
-                    4. Map pedal actions to functions
+                    **Using the Metronome:**
+                    1. Tap the metronome button (bottom right of song view)
+                    2. Set your tempo and time signature
+                    3. Choose sound type and accent pattern
+                    4. Tap Play to start
 
-                    **Compatible Devices:**
-                    • AirTurn pedals
-                    • PageFlip pedals
-                    • Most Bluetooth page turners
+                    **Tips:**
+                    • Use tap tempo to match the song's speed
+                    • Metronome runs in background with other features
+                    • Save tempo in song metadata for quick access
                     """,
-                    tags: ["foot-pedals", "bluetooth", "performance"]
+                    tags: ["metronome", "performance", "tempo"]
+                ),
+                HelpArticle(
+                    title: "Backing Tracks",
+                    content: """
+                    Add audio backing tracks to your songs for practice or performance.
+
+                    **Adding Tracks:**
+                    1. Open a song
+                    2. Tap more menu (•••) → Backing Tracks
+                    3. Add audio files from your device
+                    4. Use mixer controls to adjust volume, pan, mute, and solo
+
+                    **Mixer Controls:**
+                    • Volume slider for each track
+                    • Pan control (L/R balance)
+                    • Mute/Solo buttons
+                    • Master volume control
+
+                    **Supported Formats:**
+                    Most common audio formats including MP3, M4A, WAV, and AIFF.
+                    """,
+                    tags: ["backing-tracks", "audio", "performance"]
+                ),
+                HelpArticle(
+                    title: "Low Light Mode",
+                    content: """
+                    Optimized display for dark venues and stage performances.
+
+                    **Features:**
+                    • Black background with customizable text color
+                    • Reduced eye strain in dark environments
+                    • Auto-enable based on time or brightness
+                    • Quick toggle from song view
+
+                    **Activation:**
+                    • Tap the moon icon in the toolbar
+                    • Long press for Low Light Settings
+                    • Configure auto-enable preferences
+
+                    **Tips:**
+                    • Perfect for stage performances
+                    • Use red text color to preserve night vision
+                    • Auto-enable can trigger at sunset
+                    """,
+                    tags: ["low-light", "performance", "display"]
                 )
             ]
         ),
@@ -164,52 +215,34 @@ struct HelpView: View {
                 HelpArticle(
                     title: "Display Settings",
                     content: """
-                    Customize the appearance of your chord charts.
+                    Customize the appearance of your chord charts with comprehensive display settings.
 
-                    **Settings → Display Defaults:**
-                    • Font size: 12-28pt
-                    • Chord color: Blue, red, green, or custom
-                    • Lyrics color: Black, white, or custom
-                    • Spacing: Adjust line height
+                    **Accessing Display Settings:**
+                    Tap the Aa button (textformat.size icon) in the song view toolbar.
 
-                    **Per-Song Overrides:**
-                    Each song can override global settings for specific needs.
+                    **Five Settings Tabs:**
+                    • **Fonts**: Size, weight, and font families for title, lyrics, chords, and metadata
+                    • **Colors**: Chord colors, lyrics colors, backgrounds with presets and color-blind friendly options
+                    • **Layout**: Line spacing, margins, two-column mode, and dark mode preference
+                    • **Access**: High contrast, bold text, minimum font size, and accessibility features
+                    • **Presets**: Quick apply built-in presets (Default, Stage Performance, Practice, Large Print)
 
-                    **Dark Mode:**
-                    Lyra automatically adapts to your system dark mode preference.
+                    **Per-Song Customization:**
+                    Each song can have unique display settings, or use global defaults. Remove custom settings anytime.
+
+                    **Templates:**
+                    Use the template selector to choose multi-column layouts with different typography options.
                     """,
-                    tags: ["display", "customization"]
+                    tags: ["display", "customization", "accessibility"]
                 )
             ]
         ),
         HelpCategory(
-            id: "sync",
-            title: "Sync & Backup",
-            icon: "icloud.fill",
+            id: "backup",
+            title: "Backup & Data",
+            icon: "externaldrive.fill",
             color: .blue,
             articles: [
-                HelpArticle(
-                    title: "iCloud Sync",
-                    content: """
-                    Keep your library in sync across all your devices.
-
-                    **Setup:**
-                    1. Settings → Data Management → Sync & Backup
-                    2. Enable "iCloud Sync"
-                    3. Choose sync scope (all data, sets only, etc.)
-                    4. Optionally enable cellular sync
-
-                    **Sync Status:**
-                    • ✅ Synced: All changes uploaded
-                    • 🔄 Syncing: Upload in progress
-                    • ⚠️ Conflict: Needs your attention
-                    • ❌ Error: Check network connection
-
-                    **Conflict Resolution:**
-                    If the same song is edited on two devices, Lyra will ask you to choose which version to keep.
-                    """,
-                    tags: ["icloud", "sync"]
-                ),
                 HelpArticle(
                     title: "Local Backups",
                     content: """
@@ -219,41 +252,49 @@ struct HelpView: View {
                     • Daily or weekly automatic backups
                     • Keeps last 5 backups
                     • Stored locally on device
+                    • Configure frequency in settings
 
                     **Manual Backup:**
-                    1. Settings → Data Management → Sync & Backup
+                    1. Settings → Data Management → Backup & Restore
                     2. Tap "Create Backup Now"
-                    3. Optionally export to Files app
+                    3. Export to Files app for safekeeping
 
-                    **Restore:**
-                    1. Tap "Restore from Backup"
-                    2. Select backup file
-                    3. Confirm restoration (this replaces all current data)
+                    **Restore from Backup:**
+                    1. Settings → Data Management → Backup & Restore
+                    2. Tap "Restore from Backup"
+                    3. Select backup file (or import from Files)
+                    4. Confirm restoration
+
+                    **Import/Export:**
+                    • Export backups to iCloud Drive, Dropbox, or other cloud storage
+                    • Import backups from any location
+                    • JSON format for data portability
                     """,
-                    tags: ["backup", "restore"]
+                    tags: ["backup", "restore", "data"]
                 ),
                 HelpArticle(
-                    title: "Offline Mode",
+                    title: "Song Info & Metadata",
                     content: """
-                    Lyra is designed to work perfectly offline - all features are available without internet.
+                    View comprehensive information about each song.
 
-                    **Offline Features:**
-                    ✅ View and edit songs
-                    ✅ Transpose and annotate
-                    ✅ Create books and sets
-                    ✅ All local operations
+                    **Viewing Song Info:**
+                    1. Open a song
+                    2. Tap more menu (•••) → Song Info
 
-                    **When Back Online:**
-                    • Changes sync automatically
-                    • Queued cloud operations are processed
-                    • Conflict resolution if needed
+                    **Information Displayed:**
+                    • Title, artist, album, year
+                    • Musical details (key, tempo, time signature, capo)
+                    • Dates (created, modified)
+                    • Content statistics (characters, lines, chords)
+                    • Tags and notes
+                    • Import source and cloud sync info
 
-                    **Perfect for:**
-                    • Venues with poor Wi-Fi
-                    • Airplane mode during performance
-                    • Areas with no cellular service
+                    **Tips:**
+                    • Use tags to organize songs by theme or category
+                    • Add notes for performance reminders
+                    • Track when songs were last modified
                     """,
-                    tags: ["offline", "sync"]
+                    tags: ["metadata", "song-info", "organization"]
                 )
             ]
         ),
@@ -269,91 +310,64 @@ struct HelpView: View {
                     Import your existing chord charts from various sources.
 
                     **From OnSong:**
-                    1. Settings → Library → Import from OnSong
-                    2. Connect to Dropbox or Google Drive
-                    3. Select songs to import
-                    4. Lyra converts automatically
+                    1. Settings → Data Management → OnSong Import
+                    2. Choose "Import from Files"
+                    3. Navigate to your OnSong files in Files app (Dropbox, Google Drive, iCloud Drive, etc.)
+                    4. Select individual files or entire folders
+                    5. Lyra converts automatically
 
                     **From Files:**
-                    • Tap + in Library
-                    • Select "Import File"
+                    • Go to Songs tab
+                    • Tap + button → Import File
                     • Choose .txt, .onsong, .pro, or .chopro files
+                    • Supported from any cloud storage
 
                     **From Clipboard:**
                     • Copy chord chart from any source
-                    • Tap + in Library
-                    • Paste content
+                    • Go to Songs tab
+                    • Tap + → Paste from Clipboard
                     • Chords are detected automatically
+
+                    **Scan Chord Chart:**
+                    • Tap + → Scan Chord Chart
+                    • Use camera to capture printed charts
+                    • OCR converts to editable text
                     """,
-                    tags: ["import", "onsong"]
+                    tags: ["import", "onsong", "files"]
                 ),
                 HelpArticle(
                     title: "Exporting Your Library",
                     content: """
                     Export your songs in various formats for backup or sharing.
 
-                    **Export Formats:**
-                    • PDF: Printable chord charts
-                    • Plain Text: Universal format
-                    • OnSong: Compatible with OnSong app
-                    • ChordPro: Standard chord format
+                    **Individual Song Export:**
+                    1. Open a song
+                    2. Tap more menu (•••) → Export
+                    3. Share as text file
+                    4. Choose destination (Files, AirDrop, Email)
 
-                    **To Export:**
-                    1. Select song, book, or set
-                    2. Tap share button
-                    3. Choose export format
-                    4. Select destination (Files, AirDrop, Email)
+                    **Bulk Library Export:**
+                    1. Settings → Data Management → Export Library
+                    2. Choose format:
+                       • ChordPro (.pro files)
+                       • Plain Text (.txt files)
+                       • PDF (printable charts)
+                       • JSON (structured data)
+                    3. Export creates a ZIP archive
+                    4. Save to Files app or share
 
-                    **Bulk Export:**
-                    Settings → Library → Export Library to export everything at once.
+                    **What's Included:**
+                    • All songs with metadata
+                    • README with export details
+                    • Organized folder structure
+                    • Easy to re-import or share
+
+                    **Tips:**
+                    • Export regularly as an additional backup
+                    • PDF format is perfect for printed binders
+                    • ChordPro format works with other apps
                     """,
-                    tags: ["export", "pdf", "backup"]
-                )
-            ]
-        ),
-        HelpCategory(
-            id: "analytics",
-            title: "Analytics & Insights",
-            icon: "chart.bar.fill",
-            color: .pink,
-            articles: [
-                HelpArticle(
-                    title: "Performance Tracking",
-                    content: """
-                    Track which songs you perform and gain insights into your patterns.
-
-                    **What's Tracked:**
-                    • Songs performed and when
-                    • Set completion
-                    • Performance duration
-                    • Key preferences
-                    • Most performed songs
-
-                    **Analytics Dashboard:**
-                    View trends, charts, and insights in the Analytics tab.
-
-                    **Privacy:**
-                    All analytics data is stored locally on your device and synced via iCloud (if enabled). Nothing is sent to external servers.
-                    """,
-                    tags: ["analytics", "tracking"]
-                ),
-                HelpArticle(
-                    title: "Understanding Insights",
-                    content: """
-                    The Insights engine analyzes your performance data to provide actionable recommendations.
-
-                    **Insight Types:**
-                    • 🔥 Trending: Songs gaining popularity
-                    • 📊 Patterns: Repertoire distribution
-                    • 🎯 Recommendations: Songs to revisit
-                    • ⚠️ Alerts: Unused songs or imbalances
-
-                    **Use Cases:**
-                    • Music therapy: Track which songs resonate with clients
-                    • Worship: Monitor song rotation
-                    • Performance: Identify your "go-to" songs
-                    """,
-                    tags: ["insights", "analytics"]
+                    tags: ["export", "backup", "sharing"]
                 )
             ]
         ),
@@ -382,21 +396,29 @@ struct HelpView: View {
                     tags: ["keyboard", "shortcuts", "ipad"]
                 ),
                 HelpArticle(
-                    title: "Gesture Controls",
+                    title: "Drawing & Annotations",
                     content: """
-                    Master gesture controls for intuitive navigation.
+                    Mark up your chord charts with notes and drawings during practice or performance.
 
-                    **Song View:**
-                    • Swipe left: Next song
-                    • Swipe right: Previous song
-                    • Pinch: Zoom in/out
+                    **Annotations:**
+                    1. Tap the note icon in song view toolbar
+                    2. Tap anywhere on the chart to add a sticky note
+                    3. Type your annotation
+                    4. Color-code for organization
 
-                    **Library:**
-                    • Swipe left on song: Quick actions
-                    • Long press: Context menu
-                    • Drag and drop: Reorder
+                    **Drawing Mode:**
+                    1. Tap the pencil icon in toolbar
+                    2. Draw directly on the chart
+                    3. Use for circles, arrows, highlighting
+                    4. Drawings are saved with the song
+
+                    **Tips:**
+                    • Use annotations for performance cues
+                    • Draw circles around chord changes
+                    • Add arrows for dynamic changes
+                    • Both modes disable scrolling for precision
                     """,
-                    tags: ["gestures", "navigation"]
+                    tags: ["annotations", "drawing", "markup"]
                 )
             ]
         ),

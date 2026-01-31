@@ -16,79 +16,86 @@ struct WhatsNewView: View {
     private let features: [WhatsNewFeature] = [
         WhatsNewFeature(
             title: "Autoscroll",
-            description: "Hands-free scrolling with adjustable speed and foot pedal support",
+            description: "Hands-free scrolling with adjustable speed. Now enabled by default for all songs!",
             icon: "play.fill",
             color: .green,
             isNew: true
         ),
         WhatsNewFeature(
-            title: "iCloud Sync",
-            description: "Keep your library in sync across all your devices with automatic conflict resolution",
-            icon: "icloud.fill",
-            color: .blue,
-            isNew: true
-        ),
-        WhatsNewFeature(
-            title: "Offline Mode",
-            description: "All features work perfectly without internet connection. Perfect for venues with poor connectivity",
-            icon: "wifi.slash",
-            color: .orange,
-            isNew: true
-        ),
-        WhatsNewFeature(
-            title: "Analytics Dashboard",
-            description: "Track your performance patterns and get insights into your repertoire",
-            icon: "chart.bar.fill",
-            color: .pink,
-            isNew: true
-        ),
-        WhatsNewFeature(
-            title: "Bluetooth Foot Pedals",
-            description: "Connect foot pedals for hands-free control during performance",
-            icon: "chevron.left.forwardslash.chevron.right",
-            color: .purple,
-            isNew: true
-        ),
-        WhatsNewFeature(
-            title: "Keyboard Shortcuts",
-            description: "Navigate faster with comprehensive keyboard shortcuts for iPad",
-            icon: "keyboard",
-            color: .indigo,
-            isNew: true
-        ),
-        WhatsNewFeature(
-            title: "Gesture Controls",
-            description: "Swipe, pinch, and tap your way through your library",
-            icon: "hand.tap.fill",
-            color: .cyan,
-            isNew: true
-        ),
-        WhatsNewFeature(
-            title: "Local Backups",
-            description: "Automatic daily backups with one-tap restore for peace of mind",
-            icon: "externaldrive.fill",
-            color: .green,
-            isNew: true
-        ),
-        WhatsNewFeature(
             title: "Metronome",
-            description: "Built-in metronome with visual feedback and accent patterns",
+            description: "Built-in metronome with visual feedback, multiple sound presets, and tap tempo",
             icon: "metronome.fill",
             color: .red,
             isNew: true
         ),
         WhatsNewFeature(
+            title: "Backing Tracks",
+            description: "Add audio files to songs with full mixer controls for volume, pan, mute, and solo",
+            icon: "waveform",
+            color: .purple,
+            isNew: true
+        ),
+        WhatsNewFeature(
+            title: "Display Settings",
+            description: "Comprehensive customization with fonts, colors, layouts, accessibility features, and presets",
+            icon: "textformat.size",
+            color: .blue,
+            isNew: true
+        ),
+        WhatsNewFeature(
+            title: "Templates",
+            description: "Multi-column layouts with customizable typography for optimal chart display",
+            icon: "square.grid.2x2",
+            color: .orange,
+            isNew: true
+        ),
+        WhatsNewFeature(
+            title: "Annotations & Drawing",
+            description: "Add sticky notes and draw directly on charts for performance cues and reminders",
+            icon: "pencil.tip.crop.circle",
+            color: .pink,
+            isNew: true
+        ),
+        WhatsNewFeature(
+            title: "Local Backups",
+            description: "Automatic daily/weekly backups with export to Files app. Keeps last 5 backups safe",
+            icon: "externaldrive.fill",
+            color: .green,
+            isNew: true
+        ),
+        WhatsNewFeature(
+            title: "OnSong Import",
+            description: "Import your existing OnSong library from Files app, Dropbox, Google Drive, or iCloud",
+            icon: "arrow.down.doc.fill",
+            color: .blue,
+            isNew: true
+        ),
+        WhatsNewFeature(
+            title: "Bulk Export",
+            description: "Export entire library as ZIP in ChordPro, PDF, plain text, or JSON format",
+            icon: "arrow.up.doc.fill",
+            color: .indigo,
+            isNew: true
+        ),
+        WhatsNewFeature(
             title: "Low Light Mode",
-            description: "Performance-optimized display for dark venues and stages",
+            description: "Performance-optimized display with customizable colors for dark venues and stages",
             icon: "moon.fill",
             color: .purple,
             isNew: true
         ),
         WhatsNewFeature(
-            title: "OnSong Import",
-            description: "Import your existing OnSong library via Dropbox or Google Drive",
-            icon: "arrow.down.doc.fill",
-            color: .blue,
+            title: "Transpose & Capo",
+            description: "Transpose to any key with automatic capo suggestions. Temporary or permanent transpositions",
+            icon: "arrow.up.arrow.down",
+            color: .cyan,
+            isNew: true
+        ),
+        WhatsNewFeature(
+            title: "Song Info",
+            description: "View comprehensive metadata, statistics, and performance details for each song",
+            icon: "info.circle.fill",
+            color: .teal,
             isNew: true
         )
     ]

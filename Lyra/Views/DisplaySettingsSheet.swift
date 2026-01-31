@@ -42,12 +42,8 @@ struct DisplaySettingsSheet: View {
                 // Tab Content
                 TabView(selection: $selectedTab) {
                     ForEach(SettingsTab.allCases) { tab in
-                        ScrollView {
-                            VStack(spacing: 0) {
-                                tabContent(for: tab)
-                            }
-                        }
-                        .tag(tab)
+                        tabContent(for: tab)
+                            .tag(tab)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))

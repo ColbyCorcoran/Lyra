@@ -24,6 +24,7 @@ struct TemplateEditorView: View {
     @State private var showErrorAlert: Bool = false
     @State private var errorMessage: String = ""
     @State private var hasChanges: Bool = false
+    @State private var showPreview: Bool = true
 
     private var isBuiltIn: Bool {
         template.isBuiltIn
@@ -66,6 +67,8 @@ struct TemplateEditorView: View {
                 }
 
                 basicInfoSection
+
+                livePreviewSection
 
                 columnConfigurationSection
 
@@ -122,6 +125,53 @@ struct TemplateEditorView: View {
             Text("Basic Info")
         } footer: {
             Text("Give your template a descriptive name.")
+        }
+    }
+
+    private var livePreviewSection: some View {
+        Section {
+            DisclosureGroup("Live Preview", isExpanded: $showPreview) {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Preview info
+                    Text("This is how your template will display a song")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 8)
+
+                    // Preview container with border
+                    VStack(spacing: 0) {
+                        // Sample song rendered with current template settings
+                        TemplatePreviewRenderer(
+                            columnCount: columnCount,
+                            columnGap: columnGap,
+                            columnWidthMode: columnWidthMode,
+                            customColumnWidths: customColumnWidths,
+                            columnBalancingStrategy: columnBalancingStrategy,
+                            chordPositioningStyle: chordPositioningStyle,
+                            chordAlignment: chordAlignment,
+                            titleFontSize: titleFontSize,
+                            headingFontSize: headingFontSize,
+                            bodyFontSize: bodyFontSize,
+                            chordFontSize: chordFontSize,
+                            sectionBreakBehavior: sectionBreakBehavior
+                        )
+                    }
+                    .padding(12)
+                    .background(Color(.systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(.systemGray4), lineWidth: 1)
+                    )
+                }
+            }
+        } header: {
+            HStack {
+                Image(systemName: "eye")
+                Text("Preview")
+            }
+        } footer: {
+            Text("See how your template settings will look with sample song content. Changes update in real-time.")
         }
     }
 
@@ -475,6 +525,160 @@ struct TemplateEditorView: View {
             // Remove excess widths
             customColumnWidths = Array(customColumnWidths.prefix(count))
         }
+    }
+}
+
+// MARK: - Template Preview Renderer
+
+struct TemplatePreviewRenderer: View {
+    let columnCount: Int
+    let columnGap: Double
+    let columnWidthMode: ColumnWidthMode
+    let customColumnWidths: [Double]
+    let columnBalancingStrategy: ColumnBalancingStrategy
+    let chordPositioningStyle: ChordPositioningStyle
+    let chordAlignment: ChordAlignment
+    let titleFontSize: Double
+    let headingFontSize: Double
+    let bodyFontSize: Double
+    let chordFontSize: Double
+    let sectionBreakBehavior: SectionBreakBehavior
+
+    // Sample song content for preview
+    private let sampleContent = """
+        [Verse 1]
+        [G]Amazing [C]grace how [G]sweet the [D]sound
+        That [G]saved a [C]wretch like [G]me[D]
+        [G]I once was [C]lost but [G]now I'm [D]found
+        Was [G]blind but [C]now I [G]see
+
+        [Chorus]
+        [C]Grace [G]grace [D]God's [G]grace
+        [C]Grace that will [G]pardon and [D]cleanse with[G]in
+        """
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Title
+            Text("Sample Song")
+                .font(.system(size: titleFontSize, weight: .bold))
+
+            // Section heading
+            HStack {
+                Text("Verse 1")
+                    .font(.system(size: headingFontSize, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+
+            // Content preview with column layout
+            GeometryReader { geometry in
+                let availableWidth = geometry.size.width
+                let totalGap = columnGap * Double(columnCount - 1)
+                let columnWidth = (availableWidth - totalGap) / Double(columnCount)
+
+                HStack(alignment: .top, spacing: columnGap) {
+                    ForEach(0..<columnCount, id: \.self) { columnIndex in
+                        VStack(alignment: .leading, spacing: 4) {
+                            // Sample content for this column
+                            ForEach(sampleLines(for: columnIndex), id: \.self) { line in
+                                lineView(for: line)
+                            }
+                        }
+                        .frame(width: columnWidth, alignment: .leading)
+                    }
+                }
+            }
+            .frame(height: 150)
+        }
+        .padding(8)
+    }
+
+    private func sampleLines(for columnIndex: Int) -> [String] {
+        let allLines = sampleContent.split(separator: "\n").map { String($0) }
+        let linesPerColumn = max(1, allLines.count / columnCount)
+        let startIndex = columnIndex * linesPerColumn
+        let endIndex = min(startIndex + linesPerColumn, allLines.count)
+
+        guard startIndex < allLines.count else { return [] }
+        return Array(allLines[startIndex..<endIndex])
+    }
+
+    private func lineView(for line: String) -> some View {
+        Group {
+            if line.isEmpty {
+                Text("")
+                    .frame(height: bodyFontSize / 2)
+            } else if line.hasPrefix("[") && line.hasSuffix("]") {
+                // Section header
+                Text(line.trimmingCharacters(in: CharacterSet(charactersIn: "[]")))
+                    .font(.system(size: headingFontSize, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            } else {
+                // Lyrics with chords
+                renderLyricsLine(line)
+            }
+        }
+    }
+
+    private func renderLyricsLine(_ line: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            switch chordPositioningStyle {
+            case .chordsOverLyrics:
+                // Chords on top, lyrics below
+                let (chords, lyrics) = extractChordsAndLyrics(from: line)
+                if !chords.isEmpty {
+                    Text(chords)
+                        .font(.system(size: chordFontSize, weight: .semibold))
+                        .foregroundStyle(.blue)
+                }
+                Text(lyrics)
+                    .font(.system(size: bodyFontSize))
+
+            case .inline:
+                // Chords inline with lyrics
+                Text(line.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: ""))
+                    .font(.system(size: bodyFontSize))
+
+            case .separateLines:
+                // Chords on their own line
+                let (chords, lyrics) = extractChordsAndLyrics(from: line)
+                if !chords.isEmpty {
+                    Text(chords)
+                        .font(.system(size: chordFontSize, weight: .semibold))
+                        .foregroundStyle(.blue)
+                }
+                Text(lyrics)
+                    .font(.system(size: bodyFontSize))
+            }
+        }
+    }
+
+    private func extractChordsAndLyrics(from line: String) -> (chords: String, lyrics: String) {
+        var chords = ""
+        var lyrics = ""
+        var currentIndex = 0
+        var inChord = false
+        var chordStart = 0
+
+        for (index, char) in line.enumerated() {
+            if char == "[" {
+                inChord = true
+                chordStart = currentIndex
+                // Add spaces to chords to align with lyrics position
+                chords += String(repeating: " ", count: currentIndex - chords.count)
+            } else if char == "]" {
+                inChord = false
+            } else if inChord {
+                chords += String(char)
+            } else {
+                lyrics += String(char)
+                currentIndex += 1
+            }
+        }
+
+        return (chords.trimmingCharacters(in: .whitespaces),
+                lyrics.trimmingCharacters(in: .whitespaces))
     }
 }
 

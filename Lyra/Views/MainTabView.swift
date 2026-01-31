@@ -17,9 +17,19 @@ struct MainTabView: View {
     var body: some View {
         ZStack(alignment: .top) {
             TabView {
-                LibraryView()
+                SongsTabView()
                     .tabItem {
-                        Label("Library", systemImage: "book.fill")
+                        Label("Songs", systemImage: "music.note")
+                    }
+
+                BooksTabView()
+                    .tabItem {
+                        Label("Books", systemImage: "book.fill")
+                    }
+
+                SetsTabView()
+                    .tabItem {
+                        Label("Sets", systemImage: "list.bullet.rectangle")
                     }
 
                 SettingsView()

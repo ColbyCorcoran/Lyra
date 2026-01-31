@@ -91,7 +91,7 @@ final class Song {
         self.contentFormat = contentFormat
         self.originalKey = originalKey
         self.currentKey = originalKey
-        self.autoscrollEnabled = false
+        self.autoscrollEnabled = true
     }
 
     // MARK: - Display Settings Helpers
